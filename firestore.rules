@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // A user may only read/write their own user document.
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Families: readable/updatable by members. Create requires the caller
+    // to include themselves in memberIds. Join (arrayUnion) is treated as an
+    // update: allowed if the caller is already in memberIds OR is adding
+    // exactly themselves.
+    match /families/{familyId} {
+      allow read, update: if request.auth != null
+        && request.auth.uid in resource.data.memberIds;
+      allow create: if request.auth != null
+        && request.auth.uid in request.resource.data.memberIds
+        && request.resource.data.createdBy == request.auth.uid;
+      // Joining a family: caller not yet in memberIds, is adding exactly
+      // themselves, and does not modify any other field.
+      allow update: if request.auth != null
+        && !(request.auth.uid in resource.data.memberIds)
+        && request.auth.uid in request.resource.data.memberIds
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds']);
+    }
+
+    // Events belong to a family; only family members may read/write them.
+    match /events/{eventId} {
+      function familyMembers(fid) {
+        return get(/databases/$(database)/documents/families/$(fid)).data.memberIds;
+      }
+      allow read: if request.auth != null
+        && request.auth.uid in familyMembers(resource.data.familyId);
+      allow create: if request.auth != null
+        && request.auth.uid in familyMembers(request.resource.data.familyId)
+        && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null
+        && request.auth.uid in familyMembers(resource.data.familyId);
+    }
+  }
+}
