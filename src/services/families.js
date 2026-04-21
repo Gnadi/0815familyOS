@@ -3,6 +3,7 @@ import {
   arrayUnion,
   collection,
   doc,
+  getDoc,
   getDocs,
   limit,
   onSnapshot,
@@ -13,6 +14,8 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { generateInviteCode } from '../utils/inviteCode';
+import { DEFAULT_CATEGORY } from '../constants/eventCategories';
+import { reassignEventsCategory } from './events';
 
 const familiesRef = collection(db, 'families');
 
@@ -72,4 +75,26 @@ export async function addFamilyCategory(familyId, { label, color }) {
     customCategories: arrayUnion(category),
   });
   return category;
+}
+
+// Delete a category. Built-ins are hidden via `disabledBuiltins`; customs are
+// removed from `customCategories`. Any events still pointing at the deleted
+// category are reassigned to `general` so they never render as "unknown".
+export async function deleteCategory(familyId, category) {
+  if (category.id === DEFAULT_CATEGORY) {
+    throw new Error("'General' cannot be deleted.");
+  }
+  await reassignEventsCategory(familyId, category.id, DEFAULT_CATEGORY);
+  const famRef = doc(db, 'families', familyId);
+  if (category.builtin) {
+    await updateDoc(famRef, { disabledBuiltins: arrayUnion(category.id) });
+  } else {
+    // arrayRemove needs an exact object match; we read-filter-write instead
+    // so users can delete a custom category even if its shape drifted.
+    const snap = await getDoc(famRef);
+    const list = (snap.data()?.customCategories || []).filter(
+      (c) => c && c.id !== category.id
+    );
+    await updateDoc(famRef, { customCategories: list });
+  }
 }

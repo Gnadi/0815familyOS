@@ -6,7 +6,7 @@ import Input from '../common/Input';
 import Button from '../common/Button';
 import useCategories from '../../hooks/useCategories';
 import useAuth from '../../hooks/useAuth';
-import { addFamilyCategory } from '../../services/families';
+import { addFamilyCategory, deleteCategory } from '../../services/families';
 import {
   COLOR_PALETTE,
   DEFAULT_CATEGORY,
@@ -103,6 +103,7 @@ export default function EventFormModal({ open, onClose, onSubmit, onDelete, init
   const [time, setTime] = useState('09:00');
   const [category, setCategory] = useState(DEFAULT_CATEGORY);
   const [creatingCategory, setCreatingCategory] = useState(false);
+  const [deletingCategoryId, setDeletingCategoryId] = useState(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -123,8 +124,26 @@ export default function EventFormModal({ open, onClose, onSubmit, onDelete, init
       setCategory(DEFAULT_CATEGORY);
     }
     setCreatingCategory(false);
+    setDeletingCategoryId(null);
     setError('');
   }, [open, initial]);
+
+  async function handleDeleteCategory(cat) {
+    if (!userDoc?.familyId) return;
+    const ok = window.confirm(
+      `Delete category "${cat.label}"? Events in this category will be moved to General.`
+    );
+    if (!ok) return;
+    setDeletingCategoryId(cat.id);
+    try {
+      await deleteCategory(userDoc.familyId, cat);
+      if (category === cat.id) setCategory(DEFAULT_CATEGORY);
+    } catch (err) {
+      setError(err.message || 'Could not delete category.');
+    } finally {
+      setDeletingCategoryId(null);
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -188,20 +207,41 @@ export default function EventFormModal({ open, onClose, onSubmit, onDelete, init
           <div className="flex flex-wrap gap-2">
             {categories.map((cat) => {
               const active = category === cat.id;
+              const deletable = cat.id !== DEFAULT_CATEGORY;
+              const isDeleting = deletingCategoryId === cat.id;
+              const chipClasses = active
+                ? `${cat.chipBg} ${cat.chipText} border-transparent shadow-sm`
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50';
               return (
-                <button
+                <div
                   key={cat.id}
-                  type="button"
-                  onClick={() => setCategory(cat.id)}
-                  className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition ${
-                    active
-                      ? `${cat.chipBg} ${cat.chipText} border-transparent shadow-sm`
-                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  className={`flex items-center rounded-full border text-sm font-medium transition ${chipClasses} ${
+                    isDeleting ? 'opacity-60' : ''
                   }`}
                 >
-                  <span className={`h-2.5 w-2.5 rounded-full ${cat.dot}`} />
-                  {cat.label}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setCategory(cat.id)}
+                    disabled={isDeleting}
+                    className={`flex items-center gap-2 py-1.5 pl-3 ${
+                      deletable ? 'pr-1.5' : 'pr-3'
+                    }`}
+                  >
+                    <span className={`h-2.5 w-2.5 rounded-full ${cat.dot}`} />
+                    {cat.label}
+                  </button>
+                  {deletable && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCategory(cat)}
+                      disabled={isDeleting}
+                      aria-label={`Delete category ${cat.label}`}
+                      className="flex h-6 w-6 items-center justify-center rounded-full opacity-60 hover:bg-black/5 hover:opacity-100 disabled:cursor-not-allowed mr-1"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
               );
             })}
             {!creatingCategory && userDoc?.familyId && (

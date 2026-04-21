@@ -9,12 +9,13 @@ import {
 export default function useCategories() {
   const { family } = useAuth();
   const custom = family?.customCategories || [];
+  const disabled = family?.disabledBuiltins || [];
 
   return useMemo(() => {
-    const list = mergeCategories(custom);
+    const list = mergeCategories(custom, disabled);
     return {
       list,
       get: (id) => getCategoryById(id || DEFAULT_CATEGORY, custom),
     };
-  }, [custom]);
+  }, [custom, disabled]);
 }

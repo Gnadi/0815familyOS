@@ -89,12 +89,12 @@ export const BUILTIN_CATEGORIES = [
   { id: 'sports', label: 'Sports', color: 'emerald' },
 ];
 
-function resolve({ id, label, color }) {
+function resolve({ id, label, color }, builtin = false) {
   const palette = COLOR_PALETTE[color] || COLOR_PALETTE.slate;
-  return { id, label, color, ...palette };
+  return { id, label, color, builtin, ...palette };
 }
 
-export const BUILTIN_LIST = BUILTIN_CATEGORIES.map(resolve);
+export const BUILTIN_LIST = BUILTIN_CATEGORIES.map((c) => resolve(c, true));
 const BUILTIN_MAP = Object.fromEntries(BUILTIN_LIST.map((c) => [c.id, c]));
 
 export function resolveCategory(raw) {
@@ -103,14 +103,17 @@ export function resolveCategory(raw) {
 }
 
 // Merge built-in + family-custom categories into a single resolved list.
-export function mergeCategories(customRaw = []) {
-  const customs = customRaw.filter(Boolean).map(resolve);
-  return [...BUILTIN_LIST, ...customs];
+// `disabled` is an array of built-in ids the family has chosen to hide.
+export function mergeCategories(customRaw = [], disabled = []) {
+  const hidden = new Set(disabled);
+  const builtins = BUILTIN_LIST.filter((c) => !hidden.has(c.id));
+  const customs = customRaw.filter(Boolean).map((c) => resolve(c, false));
+  return [...builtins, ...customs];
 }
 
 export function getCategoryById(id, customRaw = []) {
   if (BUILTIN_MAP[id]) return BUILTIN_MAP[id];
   const match = customRaw.find((c) => c && c.id === id);
-  if (match) return resolve(match);
+  if (match) return resolve(match, false);
   return BUILTIN_MAP[DEFAULT_CATEGORY];
 }
