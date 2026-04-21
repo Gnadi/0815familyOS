@@ -12,8 +12,13 @@ import {
   where,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { CATEGORIES, DEFAULT_CATEGORY } from '../constants/eventCategories';
 
 const eventsRef = collection(db, 'events');
+
+function normalizeCategory(category) {
+  return category && CATEGORIES[category] ? category : DEFAULT_CATEGORY;
+}
 
 export function subscribeEvents(familyId, cb) {
   const q = query(eventsRef, where('familyId', '==', familyId), orderBy('date', 'asc'));
@@ -23,6 +28,7 @@ export function subscribeEvents(familyId, cb) {
       return {
         id: d.id,
         ...data,
+        category: normalizeCategory(data.category),
         date: data.date?.toDate ? data.date.toDate() : data.date,
       };
     });
@@ -30,22 +36,24 @@ export function subscribeEvents(familyId, cb) {
   });
 }
 
-export function createEvent({ familyId, userId, title, description, date }) {
+export function createEvent({ familyId, userId, title, description, date, category }) {
   return addDoc(eventsRef, {
     familyId,
     userId,
     title: title.trim(),
     description: description?.trim() || '',
+    category: normalizeCategory(category),
     date: Timestamp.fromDate(date),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 }
 
-export function updateEvent(id, { title, description, date }) {
+export function updateEvent(id, { title, description, date, category }) {
   return updateDoc(doc(db, 'events', id), {
     title: title.trim(),
     description: description?.trim() || '',
+    category: normalizeCategory(category),
     date: Timestamp.fromDate(date),
     updatedAt: serverTimestamp(),
   });

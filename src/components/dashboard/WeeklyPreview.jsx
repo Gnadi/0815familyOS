@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatRelativeDay, upcomingEvents } from '../../utils/date';
+import { getCategory } from '../../constants/eventCategories';
 import useEvents from '../../hooks/useEvents';
 import useAuth from '../../hooks/useAuth';
 
@@ -34,23 +35,26 @@ export default function WeeklyPreview() {
           </div>
         ) : (
           <ul className="divide-y divide-slate-100">
-            {next.map((ev) => (
-              <li key={ev.id} className="flex items-center gap-3 px-4 py-3">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-500">
-                  <Calendar size={18} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-slate-900">{ev.title}</p>
-                  {ev.description && (
-                    <p className="truncate text-xs text-slate-500">{ev.description}</p>
-                  )}
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-slate-900">{formatRelativeDay(ev.date)}</p>
-                  <p className="text-xs text-slate-500">{format(ev.date, 'p')}</p>
-                </div>
-              </li>
-            ))}
+            {next.map((ev) => {
+              const cat = getCategory(ev.category);
+              return (
+                <li key={ev.id} className="flex items-center gap-3 px-4 py-3">
+                  <div
+                    className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${cat.iconBg} ${cat.iconColor}`}
+                  >
+                    <Calendar size={18} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-slate-900">{ev.title}</p>
+                    <p className={`mt-0.5 truncate text-xs ${cat.chipText}`}>{cat.label}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-slate-900">{formatRelativeDay(ev.date)}</p>
+                    <p className="text-xs text-slate-500">{format(ev.date, 'p')}</p>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

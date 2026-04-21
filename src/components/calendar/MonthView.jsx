@@ -1,6 +1,7 @@
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, isSameDay, isSameMonth } from 'date-fns';
 import { addMonths, getMonthGrid, subMonths, eventsOnDay } from '../../utils/date';
+import { getCategory } from '../../constants/eventCategories';
 import EventCard from './EventCard';
 import EmptyState from '../common/EmptyState';
 
@@ -43,7 +44,8 @@ export default function MonthView({ anchor, selected, onAnchorChange, onSelect, 
           {grid.map((d) => {
             const active = isSameDay(d, selected);
             const inMonth = isSameMonth(d, anchor);
-            const hasEvents = events.some((e) => isSameDay(e.date, d));
+            const dayEvs = events.filter((e) => isSameDay(e.date, d));
+            const categories = [...new Set(dayEvs.map((e) => e.category))].slice(0, 3);
             return (
               <button
                 key={d.toISOString()}
@@ -57,12 +59,15 @@ export default function MonthView({ anchor, selected, onAnchorChange, onSelect, 
                 }`}
               >
                 <span className={active ? 'font-bold' : 'font-medium'}>{format(d, 'd')}</span>
-                {hasEvents && (
-                  <span
-                    className={`mt-0.5 h-1.5 w-1.5 rounded-full ${
-                      active ? 'bg-white' : 'bg-brand-500'
-                    }`}
-                  />
+                {categories.length > 0 && (
+                  <span className="mt-0.5 flex h-1.5 items-center gap-0.5">
+                    {categories.map((c) => (
+                      <span
+                        key={c}
+                        className={`h-1.5 w-1.5 rounded-full ${active ? 'bg-white' : getCategory(c).dot}`}
+                      />
+                    ))}
+                  </span>
                 )}
               </button>
             );

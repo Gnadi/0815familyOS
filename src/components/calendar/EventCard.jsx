@@ -1,6 +1,8 @@
 import { format } from 'date-fns';
+import { getCategory } from '../../constants/eventCategories';
 
 export default function EventCard({ event, onClick }) {
+  const cat = getCategory(event.category);
   return (
     <button
       onClick={onClick}
@@ -12,9 +14,16 @@ export default function EventCard({ event, onClick }) {
         </p>
         <p className="text-xs text-slate-400">{format(event.date, 'a')}</p>
       </div>
-      <div className="w-1 flex-shrink-0 rounded-full bg-brand-400" />
+      <div className={`w-1 flex-shrink-0 rounded-full ${cat.bar}`} />
       <div className="min-w-0 flex-1">
-        <h3 className="truncate text-base font-semibold text-slate-900">{event.title}</h3>
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="truncate text-base font-semibold text-slate-900">{event.title}</h3>
+          <span
+            className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${cat.chipBg} ${cat.chipText}`}
+          >
+            {cat.label}
+          </span>
+        </div>
         {event.description && (
           <p className="mt-1 line-clamp-2 text-sm text-slate-500">{event.description}</p>
         )}

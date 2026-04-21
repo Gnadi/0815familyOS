@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
 import Button from '../common/Button';
+import { CATEGORY_LIST, DEFAULT_CATEGORY } from '../../constants/eventCategories';
 
 function toDateInput(d) {
   return format(d, 'yyyy-MM-dd');
@@ -16,6 +17,7 @@ export default function EventFormModal({ open, onClose, onSubmit, onDelete, init
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(toDateInput(new Date()));
   const [time, setTime] = useState('09:00');
+  const [category, setCategory] = useState(DEFAULT_CATEGORY);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -27,11 +29,13 @@ export default function EventFormModal({ open, onClose, onSubmit, onDelete, init
       setDescription(initial.description || '');
       setDate(toDateInput(initial.date));
       setTime(toTimeInput(initial.date));
+      setCategory(initial.category || DEFAULT_CATEGORY);
     } else {
       setTitle('');
       setDescription('');
       setDate(toDateInput(new Date()));
       setTime('09:00');
+      setCategory(DEFAULT_CATEGORY);
     }
     setError('');
   }, [open, initial]);
@@ -45,7 +49,7 @@ export default function EventFormModal({ open, onClose, onSubmit, onDelete, init
     setError('');
     setSaving(true);
     try {
-      await onSubmit({ title, description, date: when });
+      await onSubmit({ title, description, date: when, category });
     } catch (err) {
       setError(err.message || 'Could not save event.');
     } finally {
@@ -92,6 +96,31 @@ export default function EventFormModal({ open, onClose, onSubmit, onDelete, init
             required
           />
         </div>
+
+        <div>
+          <span className="mb-1.5 block text-sm font-medium text-slate-700">Category</span>
+          <div className="flex flex-wrap gap-2">
+            {CATEGORY_LIST.map((cat) => {
+              const active = category === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setCategory(cat.id)}
+                  className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+                    active
+                      ? `${cat.chipBg} ${cat.chipText} border-transparent shadow-sm`
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className={`h-2.5 w-2.5 rounded-full ${cat.dot}`} />
+                  {cat.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <label className="block">
           <span className="mb-1.5 block text-sm font-medium text-slate-700">
             Description (optional)
