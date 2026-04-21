@@ -1,13 +1,14 @@
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, isSameDay, isSameMonth } from 'date-fns';
 import { addMonths, getMonthGrid, subMonths, eventsOnDay } from '../../utils/date';
-import { getCategory } from '../../constants/eventCategories';
+import useCategories from '../../hooks/useCategories';
 import EventCard from './EventCard';
 import EmptyState from '../common/EmptyState';
 
 const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 export default function MonthView({ anchor, selected, onAnchorChange, onSelect, events, onEventClick }) {
+  const { get: getCat } = useCategories();
   const grid = getMonthGrid(anchor);
   const dayEvents = eventsOnDay(events, selected);
 
@@ -64,7 +65,7 @@ export default function MonthView({ anchor, selected, onAnchorChange, onSelect, 
                     {categories.map((c) => (
                       <span
                         key={c}
-                        className={`h-1.5 w-1.5 rounded-full ${active ? 'bg-white' : getCategory(c).dot}`}
+                        className={`h-1.5 w-1.5 rounded-full ${active ? 'bg-white' : getCat(c).dot}`}
                       />
                     ))}
                   </span>

@@ -12,12 +12,12 @@ import {
   where,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { CATEGORIES, DEFAULT_CATEGORY } from '../constants/eventCategories';
+import { DEFAULT_CATEGORY } from '../constants/eventCategories';
 
 const eventsRef = collection(db, 'events');
 
 function normalizeCategory(category) {
-  return category && CATEGORIES[category] ? category : DEFAULT_CATEGORY;
+  return typeof category === 'string' && category.trim() ? category : DEFAULT_CATEGORY;
 }
 
 export function subscribeEvents(familyId, cb) {

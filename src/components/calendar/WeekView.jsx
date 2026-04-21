@@ -1,13 +1,14 @@
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { addWeeks, format, isSameDay, subWeeks } from 'date-fns';
 import { getWeekDays, eventsOnDay } from '../../utils/date';
-import { getCategory } from '../../constants/eventCategories';
+import useCategories from '../../hooks/useCategories';
 import EventCard from './EventCard';
 import EmptyState from '../common/EmptyState';
 
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 export default function WeekView({ anchor, selected, onAnchorChange, onSelect, events, onEventClick }) {
+  const { get: getCat } = useCategories();
   const days = getWeekDays(anchor);
   const dayEvents = eventsOnDay(events, selected);
   const monthLabel = format(anchor, 'MMMM yyyy');
@@ -58,7 +59,7 @@ export default function WeekView({ anchor, selected, onAnchorChange, onSelect, e
                   {categories.map((c) => (
                     <span
                       key={c}
-                      className={`h-1.5 w-1.5 rounded-full ${active ? 'bg-white' : getCategory(c).dot}`}
+                      className={`h-1.5 w-1.5 rounded-full ${active ? 'bg-white' : getCat(c).dot}`}
                     />
                   ))}
                 </span>

@@ -59,3 +59,17 @@ export function subscribeFamily(familyId, cb) {
     cb(snap.exists() ? { id: snap.id, ...snap.data() } : null);
   });
 }
+
+export async function addFamilyCategory(familyId, { label, color }) {
+  const trimmed = label.trim();
+  if (!trimmed) throw new Error('Category name is required.');
+  const category = {
+    id: `cat_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+    label: trimmed,
+    color,
+  };
+  await updateDoc(doc(db, 'families', familyId), {
+    customCategories: arrayUnion(category),
+  });
+  return category;
+}

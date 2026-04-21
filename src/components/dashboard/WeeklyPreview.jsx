@@ -2,12 +2,13 @@ import { Link } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatRelativeDay, upcomingEvents } from '../../utils/date';
-import { getCategory } from '../../constants/eventCategories';
 import useEvents from '../../hooks/useEvents';
 import useAuth from '../../hooks/useAuth';
+import useCategories from '../../hooks/useCategories';
 
 export default function WeeklyPreview() {
   const { userDoc } = useAuth();
+  const { get: getCat } = useCategories();
   const { events, loading } = useEvents(userDoc?.familyId);
   const next = upcomingEvents(events, new Date(), 3);
 
@@ -36,7 +37,7 @@ export default function WeeklyPreview() {
         ) : (
           <ul className="divide-y divide-slate-100">
             {next.map((ev) => {
-              const cat = getCategory(ev.category);
+              const cat = getCat(ev.category);
               return (
                 <li key={ev.id} className="flex items-center gap-3 px-4 py-3">
                   <div

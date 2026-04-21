@@ -1,8 +1,9 @@
 import { format } from 'date-fns';
-import { getCategory } from '../../constants/eventCategories';
+import useCategories from '../../hooks/useCategories';
 
 export default function EventCard({ event, onClick }) {
-  const cat = getCategory(event.category);
+  const { get } = useCategories();
+  const cat = get(event.category);
   return (
     <button
       onClick={onClick}
