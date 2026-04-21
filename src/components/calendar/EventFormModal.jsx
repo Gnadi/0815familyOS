@@ -6,6 +6,7 @@ import Input from '../common/Input';
 import Button from '../common/Button';
 import useCategories from '../../hooks/useCategories';
 import useAuth from '../../hooks/useAuth';
+import useFamilyMembers from '../../hooks/useFamilyMembers';
 import { addFamilyCategory, deleteCategory, addKid } from '../../services/families';
 import {
   COLOR_PALETTE,
@@ -147,18 +148,18 @@ function AddKidForm({ onCreated, onCancel, familyId, existingKidsCount }) {
 }
 
 const KID_CHIP_COLORS = {
-  violet: 'bg-violet-100 text-violet-700 border-violet-200',
-  sky: 'bg-sky-100 text-sky-700 border-sky-200',
-  pink: 'bg-pink-100 text-pink-700 border-pink-200',
-  teal: 'bg-teal-100 text-teal-700 border-teal-200',
-  orange: 'bg-orange-100 text-orange-700 border-orange-200',
-  indigo: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+  violet: 'bg-violet-100 text-violet-700 border-violet-300',
+  sky:    'bg-sky-100 text-sky-700 border-sky-300',
+  pink:   'bg-pink-100 text-pink-700 border-pink-300',
+  teal:   'bg-teal-100 text-teal-700 border-teal-300',
+  orange: 'bg-orange-100 text-orange-700 border-orange-300',
+  indigo: 'bg-indigo-100 text-indigo-700 border-indigo-300',
 };
 const KID_CHIP_ACTIVE = {
   violet: 'bg-violet-500 text-white border-violet-500',
-  sky: 'bg-sky-500 text-white border-sky-500',
-  pink: 'bg-pink-500 text-white border-pink-500',
-  teal: 'bg-teal-500 text-white border-teal-500',
+  sky:    'bg-sky-500 text-white border-sky-500',
+  pink:   'bg-pink-500 text-white border-pink-500',
+  teal:   'bg-teal-500 text-white border-teal-500',
   orange: 'bg-orange-500 text-white border-orange-500',
   indigo: 'bg-indigo-500 text-white border-indigo-500',
 };
@@ -173,6 +174,7 @@ export default function EventFormModal({
 }) {
   const { userDoc, family } = useAuth();
   const { list: categories } = useCategories();
+  const familyMembers = useFamilyMembers();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -190,7 +192,6 @@ export default function EventFormModal({
   const [deleting, setDeleting] = useState(false);
 
   const familyKids = family?.kids || [];
-  const parentLabels = family?.parentLabels?.length ? family.parentLabels : ['Mom', 'Dad'];
 
   useEffect(() => {
     if (!open) return;
@@ -211,7 +212,7 @@ export default function EventFormModal({
       setCategory(DEFAULT_CATEGORY);
       setKids([]);
       setResponsibleParent('');
-      setEffortLevel('');
+      setEffortLevel('medium');
     }
     setCreatingCategory(false);
     setAddingKid(false);
@@ -375,28 +376,30 @@ export default function EventFormModal({
           </div>
         )}
 
-        {/* Responsible Parent */}
-        <div>
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Responsible Parent <span className="font-normal text-slate-400">(optional)</span>
-          </span>
-          <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
-            {parentLabels.map((label) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => toggleParent(label)}
-                className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
-                  responsibleParent === label
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+        {/* Responsible */}
+        {familyMembers.length > 0 && (
+          <div>
+            <span className="mb-1.5 block text-sm font-medium text-slate-700">
+              Responsible <span className="font-normal text-slate-400">(optional)</span>
+            </span>
+            <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+              {familyMembers.map((member) => (
+                <button
+                  key={member.uid}
+                  type="button"
+                  onClick={() => toggleParent(member.displayName)}
+                  className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
+                    responsibleParent === member.displayName
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {member.displayName}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Effort Level */}
         <div>
