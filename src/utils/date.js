@@ -6,6 +6,7 @@ import {
   format,
   isSameDay,
   isSameMonth,
+  startOfDay,
   startOfMonth,
   startOfWeek,
   subMonths,
@@ -35,7 +36,7 @@ export function eventsOnDay(events, day) {
   return events.filter((e) => isSameDay(e.date, day));
 }
 
-export function upcomingEvents(events, from = new Date(), max = 3) {
+export function upcomingEvents(events, from = startOfDay(new Date()), max = 3) {
   return events.filter((e) => e.date >= from).slice(0, max);
 }
 

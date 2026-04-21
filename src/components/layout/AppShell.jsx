@@ -8,6 +8,9 @@ import { createEvent } from '../../services/events';
 export default function AppShell() {
   const { user, userDoc } = useAuth();
   const [adding, setAdding] = useState(false);
+  // Pages can publish a preferred default date for the FAB (e.g. the calendar
+  // page pushes its selected day here so "+" prefills to the right day).
+  const [createDefaultDate, setCreateDefaultDate] = useState(null);
 
   async function handleCreate(values) {
     await createEvent({
@@ -20,12 +23,13 @@ export default function AppShell() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
-      <Outlet />
+      <Outlet context={{ setCreateDefaultDate }} />
       <BottomNav onAdd={() => setAdding(true)} />
       <EventFormModal
         open={adding}
         onClose={() => setAdding(false)}
         onSubmit={handleCreate}
+        initialDate={createDefaultDate}
       />
     </div>
   );

@@ -93,7 +93,14 @@ function NewCategoryForm({ onCreated, onCancel, familyId }) {
   );
 }
 
-export default function EventFormModal({ open, onClose, onSubmit, onDelete, initial }) {
+export default function EventFormModal({
+  open,
+  onClose,
+  onSubmit,
+  onDelete,
+  initial,
+  initialDate,
+}) {
   const { userDoc } = useAuth();
   const { list: categories } = useCategories();
 
@@ -119,14 +126,14 @@ export default function EventFormModal({ open, onClose, onSubmit, onDelete, init
     } else {
       setTitle('');
       setDescription('');
-      setDate(toDateInput(new Date()));
+      setDate(toDateInput(initialDate || new Date()));
       setTime('09:00');
       setCategory(DEFAULT_CATEGORY);
     }
     setCreatingCategory(false);
     setDeletingCategoryId(null);
     setError('');
-  }, [open, initial]);
+  }, [open, initial, initialDate]);
 
   async function handleDeleteCategory(cat) {
     if (!userDoc?.familyId) return;

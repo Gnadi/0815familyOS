@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import TopBar from '../components/layout/TopBar';
 import ViewToggle from '../components/calendar/ViewToggle';
 import WeekView from '../components/calendar/WeekView';
@@ -11,10 +12,18 @@ import { createEvent, deleteEvent, updateEvent } from '../services/events';
 export default function CalendarPage() {
   const { user, userDoc } = useAuth();
   const { events, loading } = useEvents(userDoc?.familyId);
+  const { setCreateDefaultDate } = useOutletContext() || {};
   const [view, setView] = useState('week');
   const [anchor, setAnchor] = useState(new Date());
   const [selected, setSelected] = useState(new Date());
   const [editing, setEditing] = useState(null); // event object or 'new' or null
+
+  // Push the selected day up to AppShell so the "+" FAB prefills this date.
+  useEffect(() => {
+    if (!setCreateDefaultDate) return;
+    setCreateDefaultDate(selected);
+    return () => setCreateDefaultDate(null);
+  }, [selected, setCreateDefaultDate]);
 
   async function handleSubmit(values) {
     if (editing && editing !== 'new') {
