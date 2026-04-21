@@ -32,13 +32,16 @@ export function subscribeEvents(familyId, cb) {
         ...data,
         category: normalizeCategory(data.category),
         date: data.date?.toDate ? data.date.toDate() : data.date,
+        kids: data.kids || [],
+        responsibleParent: data.responsibleParent || '',
+        effortLevel: data.effortLevel || '',
       };
     });
     cb(list);
   });
 }
 
-export function createEvent({ familyId, userId, title, description, date, category }) {
+export function createEvent({ familyId, userId, title, description, date, category, kids, responsibleParent, effortLevel }) {
   return addDoc(eventsRef, {
     familyId,
     userId,
@@ -46,17 +49,23 @@ export function createEvent({ familyId, userId, title, description, date, catego
     description: description?.trim() || '',
     category: normalizeCategory(category),
     date: Timestamp.fromDate(date),
+    kids: kids || [],
+    responsibleParent: responsibleParent || '',
+    effortLevel: effortLevel || '',
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 }
 
-export function updateEvent(id, { title, description, date, category }) {
+export function updateEvent(id, { title, description, date, category, kids, responsibleParent, effortLevel }) {
   return updateDoc(doc(db, 'events', id), {
     title: title.trim(),
     description: description?.trim() || '',
     category: normalizeCategory(category),
     date: Timestamp.fromDate(date),
+    kids: kids || [],
+    responsibleParent: responsibleParent || '',
+    effortLevel: effortLevel || '',
     updatedAt: serverTimestamp(),
   });
 }
