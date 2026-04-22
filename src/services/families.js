@@ -12,6 +12,8 @@ import {
   updateDoc,
   where,
 } from 'firebase/firestore';
+
+const KID_COLORS = ['violet', 'sky', 'pink', 'teal', 'orange', 'indigo'];
 import { db } from '../lib/firebase';
 import { generateInviteCode } from '../utils/inviteCode';
 import { DEFAULT_CATEGORY } from '../constants/eventCategories';
@@ -75,6 +77,27 @@ export async function addFamilyCategory(familyId, { label, color }) {
     customCategories: arrayUnion(category),
   });
   return category;
+}
+
+export async function addKid(familyId, name, existingKidsCount = 0) {
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error('Child name is required.');
+  const kid = {
+    id: `kid_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+    name: trimmed,
+    color: KID_COLORS[existingKidsCount % KID_COLORS.length],
+  };
+  await updateDoc(doc(db, 'families', familyId), {
+    kids: arrayUnion(kid),
+  });
+  return kid;
+}
+
+export async function removeKid(familyId, kid) {
+  const famRef = doc(db, 'families', familyId);
+  const snap = await getDoc(famRef);
+  const list = (snap.data()?.kids || []).filter((k) => k && k.id !== kid.id);
+  await updateDoc(famRef, { kids: list });
 }
 
 // Delete a category. Built-ins are hidden via `disabledBuiltins`; customs are

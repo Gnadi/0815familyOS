@@ -2,9 +2,19 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // A user may only read/write their own user document.
+    // A user may read their own document, or any document belonging to a
+    // member of the same family (needed to resolve member display names).
     match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if request.auth != null && (
+        request.auth.uid == uid ||
+        (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.familyId != null &&
+          uid in get(/databases/$(database)/documents/families/$(
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.familyId
+          )).data.memberIds
+        )
+      );
+      allow write: if request.auth != null && request.auth.uid == uid;
     }
 
     // Families.
