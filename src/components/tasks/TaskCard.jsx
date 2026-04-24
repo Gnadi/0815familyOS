@@ -1,5 +1,6 @@
-import { Calendar, Check, Users } from 'lucide-react';
+import { Calendar, Check, GripVertical, Users } from 'lucide-react';
 import { format, isBefore, isSameDay, startOfDay } from 'date-fns';
+import { useDraggable } from '@dnd-kit/core';
 import AvatarStack from '../common/AvatarStack';
 import { getTaskCategory, TASK_PRIORITY_MAP } from '../../constants/taskCategories';
 import { formatRelativeDay } from '../../utils/date';
@@ -25,7 +26,7 @@ function formatDueLabel(task) {
   return format(task.dueDate, 'MMM d');
 }
 
-export default function TaskCard({ task, members, onClick }) {
+function TaskCardBody({ task, members, dragging = false, overlay = false }) {
   const category = getTaskCategory(task.category);
   const priority = TASK_PRIORITY_MAP[task.priority] || TASK_PRIORITY_MAP.normal;
   const assigned = (task.assigneeIds || [])
@@ -40,11 +41,7 @@ export default function TaskCard({ task, members, onClick }) {
     : null;
 
   return (
-    <button
-      type="button"
-      onClick={() => onClick?.(task)}
-      className="block w-full rounded-2xl bg-white p-4 text-left shadow-card transition hover:shadow-md active:scale-[0.99]"
-    >
+    <>
       <div className="flex items-start justify-between gap-3">
         <span
           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${category.chipBg} ${category.chipText}`}
@@ -52,11 +49,21 @@ export default function TaskCard({ task, members, onClick }) {
           <span className={`h-1.5 w-1.5 rounded-full ${priority.dot}`} />
           {category.label}
         </span>
-        {isCompleted && (
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-            <Check size={14} strokeWidth={3} />
-          </span>
-        )}
+        <div className="flex items-center gap-1">
+          {isCompleted && (
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+              <Check size={14} strokeWidth={3} />
+            </span>
+          )}
+          {!overlay && (
+            <span
+              className="flex h-6 w-6 items-center justify-center rounded-md text-slate-300"
+              aria-hidden
+            >
+              <GripVertical size={14} />
+            </span>
+          )}
+        </div>
       </div>
 
       <h3
@@ -112,6 +119,38 @@ export default function TaskCard({ task, members, onClick }) {
         </div>
         <AvatarStack members={assigned} max={3} size="sm" />
       </div>
+    </>
+  );
+}
+
+// Plain card rendered inside a DragOverlay (no drag hooks — the overlay
+// already handles its own positioning).
+export function TaskCardPreview({ task, members }) {
+  return (
+    <div className="w-full cursor-grabbing rounded-2xl bg-white p-4 text-left shadow-xl ring-2 ring-brand-400">
+      <TaskCardBody task={task} members={members} overlay />
+    </div>
+  );
+}
+
+export default function TaskCard({ task, members, onClick }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: task.id,
+    data: { status: task.status },
+  });
+
+  return (
+    <button
+      ref={setNodeRef}
+      type="button"
+      onClick={() => onClick?.(task)}
+      {...listeners}
+      {...attributes}
+      className={`block w-full touch-none cursor-grab rounded-2xl bg-white p-4 text-left shadow-card transition hover:shadow-md active:cursor-grabbing active:scale-[0.99] ${
+        isDragging ? 'opacity-30' : ''
+      }`}
+    >
+      <TaskCardBody task={task} members={members} dragging={isDragging} />
     </button>
   );
 }

@@ -1,4 +1,5 @@
 import { MoreVertical } from 'lucide-react';
+import { useDroppable } from '@dnd-kit/core';
 import TaskCard from './TaskCard';
 import { summaryForColumn } from '../../utils/tasks';
 
@@ -12,6 +13,11 @@ export default function ColumnSection({ status, tasks, members, onTaskClick, sec
   const meta = COLUMN_META[status];
   const filtered = tasks.filter((t) => t.status === status);
   const summary = summaryForColumn(status, tasks);
+
+  const { setNodeRef, isOver } = useDroppable({
+    id: `column-${status}`,
+    data: { status },
+  });
 
   return (
     <section ref={sectionRef} className="space-y-3">
@@ -40,22 +46,33 @@ export default function ColumnSection({ status, tasks, members, onTaskClick, sec
         </div>
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-white/60 p-4 text-center text-xs text-slate-400">
-          No tasks in {meta.label.toLowerCase()} yet.
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map((task) => (
+      <div
+        ref={setNodeRef}
+        className={`space-y-3 rounded-2xl p-1 transition ${
+          isOver ? 'bg-brand-50 ring-2 ring-brand-200' : ''
+        }`}
+      >
+        {filtered.length === 0 ? (
+          <div
+            className={`rounded-2xl border border-dashed p-4 text-center text-xs transition ${
+              isOver
+                ? 'border-brand-300 bg-white/80 text-brand-600'
+                : 'border-slate-200 bg-white/60 text-slate-400'
+            }`}
+          >
+            {isOver ? `Drop to move to ${meta.label}` : `No tasks in ${meta.label.toLowerCase()} yet.`}
+          </div>
+        ) : (
+          filtered.map((task) => (
             <TaskCard
               key={task.id}
               task={task}
               members={members}
               onClick={onTaskClick}
             />
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
     </section>
   );
 }

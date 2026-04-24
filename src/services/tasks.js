@@ -137,6 +137,28 @@ export function updateTask(id, fields) {
   return updateDoc(doc(db, 'tasks', id), payload);
 }
 
+// Lightweight status-only update for drag-and-drop. Handles the same
+// completedAt/progress transitions as updateTask without requiring the full
+// task payload.
+export function updateTaskStatus(id, status, previousStatus) {
+  const normStatus = normalizeStatus(status);
+  if (normStatus === previousStatus) return Promise.resolve();
+  const payload = {
+    status: normStatus,
+    updatedAt: serverTimestamp(),
+  };
+  if (normStatus === 'completed') {
+    payload.completedAt = serverTimestamp();
+    payload.progress = 100;
+  } else if (previousStatus === 'completed') {
+    payload.completedAt = null;
+    if (normStatus === 'backlog') payload.progress = 0;
+  } else if (normStatus === 'backlog') {
+    payload.progress = 0;
+  }
+  return updateDoc(doc(db, 'tasks', id), payload);
+}
+
 export function deleteTask(id) {
   return deleteDoc(doc(db, 'tasks', id));
 }
