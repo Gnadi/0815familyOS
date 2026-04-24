@@ -4,7 +4,6 @@ import {
   deleteDoc,
   doc,
   onSnapshot,
-  orderBy,
   query,
   serverTimestamp,
   Timestamp,
@@ -41,27 +40,33 @@ function toDate(value) {
 }
 
 export function subscribeTasks(familyId, cb) {
-  const q = query(
-    tasksRef,
-    where('familyId', '==', familyId),
-    orderBy('createdAt', 'desc')
-  );
+  // Single-field `familyId` query only — Firestore auto-indexes this so we
+  // don't need a composite index. Sort client-side; a family's task list is
+  // small enough that this is cheaper than maintaining an index.
+  const q = query(tasksRef, where('familyId', '==', familyId));
   return onSnapshot(q, (snap) => {
-    const list = snap.docs.map((d) => {
-      const data = d.data();
-      return {
-        id: d.id,
-        ...data,
-        category: normalizeCategory(data.category),
-        status: normalizeStatus(data.status),
-        priority: normalizePriority(data.priority),
-        points: Number(data.points) || 0,
-        progress: Number(data.progress) || 0,
-        assigneeIds: Array.isArray(data.assigneeIds) ? data.assigneeIds : [],
-        dueDate: toDate(data.dueDate),
-        completedAt: toDate(data.completedAt),
-      };
-    });
+    const list = snap.docs
+      .map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          ...data,
+          category: normalizeCategory(data.category),
+          status: normalizeStatus(data.status),
+          priority: normalizePriority(data.priority),
+          points: Number(data.points) || 0,
+          progress: Number(data.progress) || 0,
+          assigneeIds: Array.isArray(data.assigneeIds) ? data.assigneeIds : [],
+          dueDate: toDate(data.dueDate),
+          completedAt: toDate(data.completedAt),
+          createdAt: toDate(data.createdAt),
+        };
+      })
+      .sort((a, b) => {
+        const ta = a.createdAt ? a.createdAt.getTime() : 0;
+        const tb = b.createdAt ? b.createdAt.getTime() : 0;
+        return tb - ta;
+      });
     cb(list);
   });
 }
