@@ -1,4 +1,5 @@
-import { MoreVertical } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import TaskCard from './TaskCard';
 import { summaryForColumn } from '../../utils/tasks';
@@ -10,7 +11,15 @@ const COLUMN_META = {
   completed:  { label: 'Completed',   chip: 'bg-emerald-50 text-emerald-700' },
 };
 
-export default function ColumnSection({ status, tasks, members, onTaskClick, sectionRef }) {
+export default function ColumnSection({
+  status,
+  tasks,
+  members,
+  onTaskClick,
+  sectionRef,
+  defaultCollapsed = false,
+}) {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const meta = COLUMN_META[status];
   const filtered = tasks.filter((t) => t.status === status);
   const summary = summaryForColumn(status, tasks);
@@ -21,57 +30,73 @@ export default function ColumnSection({ status, tasks, members, onTaskClick, sec
   });
 
   return (
-    <section ref={sectionRef} className="space-y-3">
-      <div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-slate-900">{meta.label}</h2>
-            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${meta.chip}`}>
-              {summary.count}
-            </span>
-          </div>
-          <button
-            type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100"
-            aria-label="Column options"
-          >
-            <MoreVertical size={18} />
-          </button>
-        </div>
-        <div className="mt-1 flex items-center gap-2 text-xs font-medium text-slate-500">
-          <span>{summary.leftLabel}</span>
-          <span className="h-1 w-1 rounded-full bg-slate-300" />
-          <span className="tabular-nums text-slate-700">{summary.points} pts</span>
-          <span className="h-1 w-1 rounded-full bg-slate-300" />
-          <span className={`${summary.rightTone} font-semibold`}>{summary.rightLabel}</span>
-        </div>
-      </div>
-
+    <section ref={sectionRef}>
       <div
         ref={setNodeRef}
-        className={`space-y-3 rounded-2xl p-1 transition ${
+        className={`rounded-2xl p-1 transition ${
           isOver ? 'bg-brand-50 ring-2 ring-brand-200' : ''
         }`}
       >
-        {filtered.length === 0 ? (
-          <div
-            className={`rounded-2xl border border-dashed p-4 text-center text-xs transition ${
-              isOver
-                ? 'border-brand-300 bg-white/80 text-brand-600'
-                : 'border-slate-200 bg-white/60 text-slate-400'
-            }`}
-          >
-            {isOver ? `Drop to move to ${meta.label}` : `No tasks in ${meta.label.toLowerCase()} yet.`}
+        <button
+          type="button"
+          onClick={() => setCollapsed((c) => !c)}
+          aria-expanded={!collapsed}
+          className="flex w-full items-start justify-between gap-2 rounded-xl px-2 py-2 text-left hover:bg-slate-50/60"
+        >
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold text-slate-900">{meta.label}</h2>
+              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${meta.chip}`}>
+                {summary.count}
+              </span>
+            </div>
+            <div className="mt-1 flex items-center gap-2 text-xs font-medium text-slate-500">
+              <span>{summary.leftLabel}</span>
+              <span className="h-1 w-1 rounded-full bg-slate-300" />
+              <span className="tabular-nums text-slate-700">{summary.points} pts</span>
+              <span className="h-1 w-1 rounded-full bg-slate-300" />
+              <span className={`${summary.rightTone} font-semibold`}>{summary.rightLabel}</span>
+            </div>
           </div>
-        ) : (
-          filtered.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              members={members}
-              onClick={onTaskClick}
-            />
-          ))
+          <span
+            className={`mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-slate-400 transition-transform ${
+              collapsed ? '-rotate-90' : ''
+            }`}
+            aria-hidden
+          >
+            <ChevronDown size={18} />
+          </span>
+        </button>
+
+        {!collapsed && (
+          <div className="mt-2 space-y-3 px-1 pb-1">
+            {filtered.length === 0 ? (
+              <div
+                className={`rounded-2xl border border-dashed p-4 text-center text-xs transition ${
+                  isOver
+                    ? 'border-brand-300 bg-white/80 text-brand-600'
+                    : 'border-slate-200 bg-white/60 text-slate-400'
+                }`}
+              >
+                {isOver ? `Drop to move to ${meta.label}` : `No tasks in ${meta.label.toLowerCase()} yet.`}
+              </div>
+            ) : (
+              filtered.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  members={members}
+                  onClick={onTaskClick}
+                />
+              ))
+            )}
+          </div>
+        )}
+
+        {collapsed && isOver && (
+          <div className="mt-1 rounded-xl border border-dashed border-brand-300 bg-white/80 p-2 text-center text-xs font-medium text-brand-600">
+            Drop to move to {meta.label}
+          </div>
         )}
       </div>
     </section>
