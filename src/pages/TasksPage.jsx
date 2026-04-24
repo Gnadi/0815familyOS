@@ -111,6 +111,12 @@ export default function TasksPage() {
                 sectionRef={backlogRef}
               />
               <ColumnSection
+                status="planned"
+                tasks={tasks}
+                members={members}
+                onTaskClick={setEditingTask}
+              />
+              <ColumnSection
                 status="inProgress"
                 tasks={tasks}
                 members={members}

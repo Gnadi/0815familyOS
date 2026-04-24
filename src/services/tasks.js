@@ -20,7 +20,7 @@ function normalizeCategory(category) {
 }
 
 function normalizeStatus(status) {
-  return ['backlog', 'inProgress', 'completed'].includes(status) ? status : 'backlog';
+  return ['backlog', 'planned', 'inProgress', 'completed'].includes(status) ? status : 'backlog';
 }
 
 function normalizePriority(priority) {
@@ -30,7 +30,7 @@ function normalizePriority(priority) {
 function clampProgress(progress, status) {
   const n = Math.max(0, Math.min(100, Math.round(Number(progress) || 0)));
   if (status === 'completed') return 100;
-  if (status === 'backlog') return 0;
+  if (status === 'backlog' || status === 'planned') return 0;
   return n;
 }
 
@@ -152,8 +152,8 @@ export function updateTaskStatus(id, status, previousStatus) {
     payload.progress = 100;
   } else if (previousStatus === 'completed') {
     payload.completedAt = null;
-    if (normStatus === 'backlog') payload.progress = 0;
-  } else if (normStatus === 'backlog') {
+    if (normStatus === 'backlog' || normStatus === 'planned') payload.progress = 0;
+  } else if (normStatus === 'backlog' || normStatus === 'planned') {
     payload.progress = 0;
   }
   return updateDoc(doc(db, 'tasks', id), payload);

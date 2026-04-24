@@ -28,9 +28,12 @@ export function getTaskCategory(id) {
 
 export const TASK_STATUSES = [
   { id: 'backlog',    label: 'Backlog'     },
+  { id: 'planned',    label: 'Planned'     },
   { id: 'inProgress', label: 'In Progress' },
   { id: 'completed',  label: 'Completed'   },
 ];
+
+export const SPRINT_STATUSES = ['planned', 'inProgress', 'completed'];
 
 export const TASK_PRIORITIES = [
   { id: 'low',     label: 'Low',     dot: 'bg-slate-400'  },

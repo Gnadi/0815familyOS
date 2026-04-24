@@ -1,4 +1,5 @@
 import { addDays, format, isSameDay, startOfWeek } from 'date-fns';
+import { SPRINT_STATUSES } from '../constants/taskCategories';
 
 const WEEK_OPTS = { weekStartsOn: 1 };
 
@@ -6,29 +7,23 @@ export function currentSprintMonday(now = new Date()) {
   return startOfWeek(now, WEEK_OPTS);
 }
 
-export function sprintMondayOf(date) {
-  return startOfWeek(date, WEEK_OPTS);
+// Sprint scope = everything the family has pulled out of the backlog.
+// Backlog items are explicitly excluded — they haven't been committed to yet.
+export function tasksInSprint(tasks) {
+  return tasks.filter((t) => SPRINT_STATUSES.includes(t.status));
 }
 
-export function isSameSprintWeek(date, monday) {
-  return isSameDay(sprintMondayOf(date), monday);
-}
-
-export function tasksForSprint(tasks, monday = currentSprintMonday()) {
-  return tasks.filter((t) => t.dueDate && isSameSprintWeek(t.dueDate, monday));
-}
-
-export function computeEfficiencyScore(tasks, monday = currentSprintMonday()) {
-  const sprint = tasksForSprint(tasks, monday);
-  const total = sprint.reduce((sum, t) => sum + (Number(t.points) || 0), 0);
-  if (total === 0) return { score: 0, completedPoints: 0, totalPoints: 0 };
+export function computeEfficiencyScore(tasks) {
+  const sprint = tasksInSprint(tasks);
+  const totalPoints = sprint.reduce((sum, t) => sum + (Number(t.points) || 0), 0);
+  if (totalPoints === 0) return { score: 0, completedPoints: 0, totalPoints: 0 };
   const completedPoints = sprint
     .filter((t) => t.status === 'completed')
     .reduce((sum, t) => sum + (Number(t.points) || 0), 0);
   return {
-    score: Math.round((completedPoints / total) * 100),
+    score: Math.round((completedPoints / totalPoints) * 100),
     completedPoints,
-    totalPoints: total,
+    totalPoints,
   };
 }
 
@@ -42,10 +37,13 @@ function bucketLoad(points) {
 
 export function computeCapacityLoad(tasks, monday = currentSprintMonday()) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
+  // Capacity reflects work the family has committed to — backlog items are
+  // excluded, completed items no longer consume capacity.
+  const committed = tasks.filter(
+    (t) => t.status === 'planned' || t.status === 'inProgress'
+  );
   return days.map((date) => {
-    const dayTasks = tasks.filter(
-      (t) => t.dueDate && isSameDay(t.dueDate, date) && t.status !== 'completed'
-    );
+    const dayTasks = committed.filter((t) => t.dueDate && isSameDay(t.dueDate, date));
     const points = dayTasks.reduce((sum, t) => sum + (Number(t.points) || 0), 0);
     return {
       date,
@@ -73,6 +71,19 @@ export function summaryForColumn(status, tasks) {
       leftLabel: 'Est. Points',
       rightLabel: hasUrgent ? 'High Priority' : 'Queued',
       rightTone: hasUrgent ? 'text-red-600' : 'text-slate-500',
+    };
+  }
+
+  if (status === 'planned') {
+    const hasUrgent = filtered.some(
+      (t) => t.priority === 'urgent' || t.priority === 'high'
+    );
+    return {
+      count,
+      points,
+      leftLabel: 'Sprint Scope',
+      rightLabel: hasUrgent ? 'High Priority' : 'Ready',
+      rightTone: hasUrgent ? 'text-red-600' : 'text-cyan-600',
     };
   }
 

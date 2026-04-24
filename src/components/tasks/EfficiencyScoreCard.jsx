@@ -1,9 +1,8 @@
 import AvatarStack from '../common/AvatarStack';
-import { computeEfficiencyScore, currentSprintMonday } from '../../utils/tasks';
+import { computeEfficiencyScore } from '../../utils/tasks';
 
 export default function EfficiencyScoreCard({ tasks, members }) {
-  const monday = currentSprintMonday();
-  const { score, completedPoints, totalPoints } = computeEfficiencyScore(tasks, monday);
+  const { score, completedPoints, totalPoints } = computeEfficiencyScore(tasks);
 
   return (
     <div className="rounded-2xl bg-white p-5 shadow-card">

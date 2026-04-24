@@ -24,6 +24,7 @@ const PRIORITY_ACTIVE = {
 
 const STATUS_ACTIVE = {
   backlog:    'bg-white text-slate-700 shadow-sm',
+  planned:    'bg-white text-cyan-700 shadow-sm',
   inProgress: 'bg-white text-brand-700 shadow-sm',
   completed:  'bg-white text-emerald-700 shadow-sm',
 };
@@ -204,7 +205,7 @@ export default function TaskFormModal({
                 key={s.id}
                 type="button"
                 onClick={() => setStatus(s.id)}
-                className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
+                className={`flex-1 whitespace-nowrap rounded-lg px-1 py-2 text-xs font-medium transition ${
                   status === s.id ? STATUS_ACTIVE[s.id] : 'text-slate-500 hover:text-slate-700'
                 }`}
               >

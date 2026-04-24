@@ -5,6 +5,7 @@ import { summaryForColumn } from '../../utils/tasks';
 
 const COLUMN_META = {
   backlog:    { label: 'Backlog',     chip: 'bg-slate-100 text-slate-700' },
+  planned:    { label: 'Planned',     chip: 'bg-cyan-50 text-cyan-700'    },
   inProgress: { label: 'In Progress', chip: 'bg-brand-50 text-brand-700'  },
   completed:  { label: 'Completed',   chip: 'bg-emerald-50 text-emerald-700' },
 };
