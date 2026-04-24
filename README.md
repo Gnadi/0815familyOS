@@ -97,13 +97,25 @@ events/{id}           { familyId, userId, title, description?, date, createdAt, 
   streamed in real time via `onSnapshot`, so every family member sees
   changes instantly.
 
+## Task Board (working module)
+
+- Scrum-style board with three columns: Backlog, In Progress, Completed.
+- Tasks carry a category, priority, story points, due date, assignees,
+  and a progress percentage (shown when in progress).
+- A sprint runs Monday–Sunday. The efficiency score is the ratio of
+  completed points to total points for tasks due in the current sprint.
+- A weekly capacity heatmap surfaces day-by-day load and the pro-tip
+  banner suggests rebalancing when a day is overloaded.
+- Tap the `+` FAB on `/tasks` to create a task; tap a card to edit or
+  delete it. Persisted in Firestore via the same per-family snapshot
+  pattern as events.
+
 ## Out of scope (future work)
 
 Per the MVP spec, these are intentionally **not** implemented:
 
 - Gift Planner logic
 - Document Vault uploads
-- Task Manager logic
 - Notifications / email invites
 - AI features
 - Payments

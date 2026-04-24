@@ -54,5 +54,20 @@ service cloud.firestore {
       allow update, delete: if request.auth != null
         && request.auth.uid in familyMembers(resource.data.familyId);
     }
+
+    // Tasks mirror the events rule: only members of the owning family may
+    // read or mutate them, and creation must identify the caller.
+    match /tasks/{taskId} {
+      function familyMembers(fid) {
+        return get(/databases/$(database)/documents/families/$(fid)).data.memberIds;
+      }
+      allow read: if request.auth != null
+        && request.auth.uid in familyMembers(resource.data.familyId);
+      allow create: if request.auth != null
+        && request.auth.uid in familyMembers(request.resource.data.familyId)
+        && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null
+        && request.auth.uid in familyMembers(resource.data.familyId);
+    }
   }
 }
