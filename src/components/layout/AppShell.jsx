@@ -10,49 +10,52 @@ import { createTask } from '../../services/tasks';
 export default function AppShell() {
   const { user, userDoc } = useAuth();
   const location = useLocation();
-  const isTasksRoute = location.pathname.startsWith('/tasks');
+  const isTasksRoute  = location.pathname.startsWith('/tasks');
+  const isHealthRoute = location.pathname.startsWith('/health');
 
   const [adding, setAdding] = useState(false);
-  // Pages can publish a preferred default date for the FAB (e.g. the calendar
-  // page pushes its selected day here so "+" prefills to the right day).
   const [createDefaultDate, setCreateDefaultDate] = useState(null);
 
+  // VaccinationPage registers its own FAB handler here so the shared + button
+  // opens the add-vaccination modal instead of the event modal on /health.
+  const [healthFabCallback, setHealthFabCallback] = useState(null);
+
   async function handleCreateEvent(values) {
-    await createEvent({
-      familyId: userDoc.familyId,
-      userId: user.uid,
-      ...values,
-    });
+    await createEvent({ familyId: userDoc.familyId, userId: user.uid, ...values });
     setAdding(false);
   }
 
   async function handleCreateTask(values) {
-    await createTask({
-      familyId: userDoc.familyId,
-      userId: user.uid,
-      ...values,
-    });
+    await createTask({ familyId: userDoc.familyId, userId: user.uid, ...values });
     setAdding(false);
+  }
+
+  function handleFab() {
+    if (isHealthRoute && healthFabCallback) {
+      healthFabCallback();
+    } else {
+      setAdding(true);
+    }
   }
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
-      <Outlet context={{ setCreateDefaultDate }} />
-      <BottomNav onAdd={() => setAdding(true)} />
+      <Outlet context={{ setCreateDefaultDate, setHealthFabCallback }} />
+      <BottomNav onAdd={handleFab} />
       {isTasksRoute ? (
         <TaskFormModal
           open={adding}
           onClose={() => setAdding(false)}
           onSubmit={handleCreateTask}
         />
-      ) : (
+      ) : !isHealthRoute ? (
         <EventFormModal
           open={adding}
           onClose={() => setAdding(false)}
           onSubmit={handleCreateEvent}
           initialDate={createDefaultDate}
         />
-      )}
+      ) : null}
     </div>
   );
 }
