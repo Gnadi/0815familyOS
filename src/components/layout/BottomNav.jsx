@@ -1,12 +1,13 @@
 import { NavLink } from 'react-router-dom';
-import { Calendar, CheckCircle2, Home, Plus, Settings } from 'lucide-react';
+import { Calendar, CheckCircle2, Home, Plus, Settings, Vault } from 'lucide-react';
 
 const items = [
   { to: '/dashboard', label: 'Dashboard', Icon: Home },
   { to: '/calendar', label: 'Schedule', Icon: Calendar },
 ];
 const itemsRight = [
-  { to: '/tasks', label: 'Tasks', Icon: CheckCircle2 },
+  { to: '/tasks',    label: 'Tasks',    Icon: CheckCircle2 },
+  { to: '/vault',    label: 'Vault',    Icon: Vault },
   { to: '/settings', label: 'Settings', Icon: Settings },
 ];
 
