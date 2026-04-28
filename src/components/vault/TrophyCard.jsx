@@ -9,6 +9,13 @@ function fileExtBadge(url) {
   return known.includes(ext) ? ext : 'FILE';
 }
 
+function proxyUrl(fileUrl) {
+  if (!fileUrl) return null;
+  const m = fileUrl.match(/res\.cloudinary\.com\/[^/]+\/([^/]+)\/upload\/(.+)/);
+  if (!m) return fileUrl;
+  return `/api/cloudinary-download?path=${encodeURIComponent(m[2])}&rt=${encodeURIComponent(m[1])}`;
+}
+
 export default function TrophyCard({ trophy, onClick }) {
   const cat = getTrophyCategory(trophy.category);
 
@@ -26,7 +33,7 @@ export default function TrophyCard({ trophy, onClick }) {
           <p className="truncate text-sm font-semibold text-slate-900">{trophy.title}</p>
           {trophy.fileUrl && (
             <a
-              href={trophy.fileUrl}
+              href={proxyUrl(trophy.fileUrl)}
               target="_blank"
               rel="noreferrer"
               onClick={(e) => e.stopPropagation()}

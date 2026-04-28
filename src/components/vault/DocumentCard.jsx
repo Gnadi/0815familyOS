@@ -28,6 +28,13 @@ function fileExtBadge(url) {
   return known.includes(ext) ? ext : 'FILE';
 }
 
+function proxyUrl(fileUrl) {
+  if (!fileUrl) return null;
+  const m = fileUrl.match(/res\.cloudinary\.com\/[^/]+\/([^/]+)\/upload\/(.+)/);
+  if (!m) return fileUrl;
+  return `/api/cloudinary-download?path=${encodeURIComponent(m[2])}&rt=${encodeURIComponent(m[1])}`;
+}
+
 export default function DocumentCard({ doc, onClick }) {
   const cat = getDocCategory(doc.category);
   const Icon = CATEGORY_ICONS[doc.category] || FileText;
@@ -46,7 +53,7 @@ export default function DocumentCard({ doc, onClick }) {
           <p className="truncate text-sm font-semibold text-slate-900">{doc.title}</p>
           {doc.fileUrl && (
             <a
-              href={doc.fileUrl}
+              href={proxyUrl(doc.fileUrl)}
               target="_blank"
               rel="noreferrer"
               onClick={(e) => e.stopPropagation()}
