@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Calendar, CheckCircle2, Home, Plus, Settings, Vault } from 'lucide-react';
+import { Calendar, CheckCircle2, Gift, Home, Plus, Settings, Vault } from 'lucide-react';
 
 const items = [
   { to: '/dashboard', label: 'Dashboard', Icon: Home },
@@ -8,6 +8,7 @@ const items = [
 ];
 const itemsRight = [
   { to: '/tasks',    label: 'Tasks',    Icon: CheckCircle2 },
+  { to: '/gifts',    label: 'Gifts',    Icon: Gift },
   { to: '/settings', label: 'Settings', Icon: Settings },
 ];
 

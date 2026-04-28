@@ -103,6 +103,12 @@ export async function removeKid(familyId, kid) {
 // Delete a category. Built-ins are hidden via `disabledBuiltins`; customs are
 // removed from `customCategories`. Any events still pointing at the deleted
 // category are reassigned to `general` so they never render as "unknown".
+export function updateGiftBudget(familyId, amount) {
+  return updateDoc(doc(db, 'families', familyId), {
+    giftBudget: Math.max(0, Number(amount) || 0),
+  });
+}
+
 export async function deleteCategory(familyId, category) {
   if (category.id === DEFAULT_CATEGORY) {
     throw new Error("'General' cannot be deleted.");

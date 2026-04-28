@@ -3,14 +3,17 @@ import { Outlet, useLocation } from 'react-router-dom';
 import BottomNav from './BottomNav';
 import EventFormModal from '../calendar/EventFormModal';
 import TaskFormModal from '../tasks/TaskFormModal';
+import GiftFormModal from '../gifts/GiftFormModal';
 import useAuth from '../../hooks/useAuth';
 import { createEvent } from '../../services/events';
 import { createTask } from '../../services/tasks';
+import { createGift } from '../../services/gifts';
 
 export default function AppShell() {
-  const { user, userDoc } = useAuth();
+  const { user, userDoc, family } = useAuth();
   const location = useLocation();
   const isTasksRoute = location.pathname.startsWith('/tasks');
+  const isGiftsRoute = location.pathname.startsWith('/gifts');
   const isVaultRoute = location.pathname.startsWith('/vault');
 
   const [adding, setAdding] = useState(false);
@@ -35,6 +38,14 @@ export default function AppShell() {
     setAdding(false);
   }
 
+  async function handleCreateGift(values) {
+    await createGift({
+      familyId: userDoc.familyId,
+      ...values,
+    });
+    setAdding(false);
+  }
+
   function handleAdd() {
     if (isVaultRoute) {
       vaultAdd?.();
@@ -48,7 +59,14 @@ export default function AppShell() {
       <Outlet context={{ setCreateDefaultDate, setVaultAdd }} />
       <BottomNav onAdd={handleAdd} />
       {!isVaultRoute && (
-        isTasksRoute ? (
+        isGiftsRoute ? (
+          <GiftFormModal
+            open={adding}
+            onClose={() => setAdding(false)}
+            onSubmit={handleCreateGift}
+            kids={family?.kids ?? []}
+          />
+        ) : isTasksRoute ? (
           <TaskFormModal
             open={adding}
             onClose={() => setAdding(false)}

@@ -24,7 +24,7 @@ export default function QuickAccess() {
       <h2 className="text-lg font-bold text-slate-900">Quick Access</h2>
       <div className="mt-3 flex gap-3">
         <Tile icon={FileText} label="Document Vault" bg="bg-emerald-50" color="text-emerald-600" to="/vault" />
-        <Tile icon={Gift} label="Gift Planner" bg="bg-violet-50" color="text-violet-600" />
+        <Tile icon={Gift}     label="Gift Planner"   bg="bg-violet-50"  color="text-violet-600"  to="/gifts" />
       </div>
     </section>
   );
