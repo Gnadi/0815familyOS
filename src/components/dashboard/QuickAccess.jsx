@@ -1,8 +1,12 @@
+import { useNavigate } from 'react-router-dom';
 import { FileText, Gift } from 'lucide-react';
 
-function Tile({ icon: Icon, label, bg, color }) {
+function Tile({ icon: Icon, label, bg, color, onClick }) {
   return (
-    <button className={`flex flex-1 flex-col items-start gap-3 rounded-2xl p-5 text-left ${bg}`}>
+    <button
+      onClick={onClick}
+      className={`flex flex-1 flex-col items-start gap-3 rounded-2xl p-5 text-left ${bg}`}
+    >
       <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-white ${color}`}>
         <Icon size={18} />
       </div>
@@ -12,12 +16,19 @@ function Tile({ icon: Icon, label, bg, color }) {
 }
 
 export default function QuickAccess() {
+  const navigate = useNavigate();
   return (
     <section>
       <h2 className="text-lg font-bold text-slate-900">Quick Access</h2>
       <div className="mt-3 flex gap-3">
         <Tile icon={FileText} label="Document Vault" bg="bg-emerald-50" color="text-emerald-600" />
-        <Tile icon={Gift} label="Gift Planner" bg="bg-violet-50" color="text-violet-600" />
+        <Tile
+          icon={Gift}
+          label="Gift Planner"
+          bg="bg-violet-50"
+          color="text-violet-600"
+          onClick={() => navigate('/gifts')}
+        />
       </div>
     </section>
   );
