@@ -10,7 +10,7 @@ export default function handler(req, res) {
   }
 
   const folder = 'familyos/documents';
-  const resourceType = 'raw'; // PDF, DOCX, XLS, XLSX
+  const resourceType = 'auto'; // Cloudinary detects type: PDFs → image (Content-Type: application/pdf), office files → raw
   const timestamp = Math.round(Date.now() / 1000);
 
   const signature = createHash('sha1')
