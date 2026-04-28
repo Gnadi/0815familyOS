@@ -54,8 +54,7 @@ export default function DocumentCard({ doc, onClick }) {
           {doc.fileUrl && (
             <a
               href={proxyUrl(doc.fileUrl)}
-              target="_blank"
-              rel="noreferrer"
+              download
               onClick={(e) => e.stopPropagation()}
               className="flex shrink-0 items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600 hover:bg-slate-200"
             >

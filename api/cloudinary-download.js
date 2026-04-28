@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
+import { Readable } from 'stream';
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   const secret = process.env.CLOUDINARY_API_SECRET;
   const cloudName = process.env.VITE_CLOUDINARY_CLOUD_NAME;
 
@@ -10,15 +11,10 @@ export default function handler(req, res) {
 
   const { path: pathToSign, rt: resourceType = 'image' } = req.query;
 
-  // Allow only paths within our documents folder to prevent signing
-  // arbitrary Cloudinary paths.
   if (!pathToSign || !pathToSign.match(/familyos\/documents\//)) {
     return res.status(400).json({ error: 'Invalid request' });
   }
 
-  // Cloudinary signed URL: SHA-1 of (path_after_upload + api_secret), hex, first 8 chars.
-  // The browser is redirected to the signed URL and loads the file
-  // directly from Cloudinary CDN — no large-file streaming through Vercel.
   const sig = createHash('sha1')
     .update(pathToSign + secret)
     .digest('hex')
@@ -27,5 +23,16 @@ export default function handler(req, res) {
   const signedUrl =
     `https://res.cloudinary.com/${cloudName}/${resourceType}/upload/s--${sig}--/${pathToSign}`;
 
-  res.redirect(302, signedUrl);
+  const upstream = await fetch(signedUrl);
+  if (!upstream.ok) {
+    return res.status(upstream.status).json({ error: 'File unavailable' });
+  }
+
+  const contentType = upstream.headers.get('content-type') || 'application/octet-stream';
+  const filename = pathToSign.split('/').pop();
+
+  res.setHeader('Content-Type', contentType);
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+  Readable.fromWeb(upstream.body).pipe(res);
 }

@@ -34,8 +34,7 @@ export default function TrophyCard({ trophy, onClick }) {
           {trophy.fileUrl && (
             <a
               href={proxyUrl(trophy.fileUrl)}
-              target="_blank"
-              rel="noreferrer"
+              download
               onClick={(e) => e.stopPropagation()}
               className="flex shrink-0 items-center gap-1 rounded-md bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700 hover:bg-amber-200"
             >
