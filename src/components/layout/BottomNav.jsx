@@ -3,11 +3,11 @@ import { Calendar, CheckCircle2, Home, Plus, Settings, Vault } from 'lucide-reac
 
 const items = [
   { to: '/dashboard', label: 'Dashboard', Icon: Home },
-  { to: '/calendar', label: 'Schedule', Icon: Calendar },
+  { to: '/calendar',  label: 'Schedule',  Icon: Calendar },
+  { to: '/vault',     label: 'Vault',     Icon: Vault },
 ];
 const itemsRight = [
   { to: '/tasks',    label: 'Tasks',    Icon: CheckCircle2 },
-  { to: '/vault',    label: 'Vault',    Icon: Vault },
   { to: '/settings', label: 'Settings', Icon: Settings },
 ];
 
