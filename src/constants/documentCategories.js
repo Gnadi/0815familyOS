@@ -14,13 +14,13 @@ export const DOC_CATEGORIES = [
 ];
 
 export const TROPHY_CATEGORIES = [
-  { id: 'academic',  label: 'Academic',  color: 'amber'   },
-  { id: 'sports',    label: 'Sports',    color: 'emerald' },
-  { id: 'arts',      label: 'Arts',      color: 'violet'  },
-  { id: 'swimming',  label: 'Swimming',  color: 'cyan'    },
-  { id: 'milestone', label: 'Milestone', color: 'pink'    },
-  { id: 'community', label: 'Community', color: 'blue'    },
-  { id: 'other',     label: 'Other',     color: 'slate'   },
+  { id: 'academic',  label: 'Academic',  color: 'amber',   cardBg: 'bg-gradient-to-br from-amber-50 to-yellow-50',   cardRing: 'ring-amber-100'   },
+  { id: 'sports',    label: 'Sports',    color: 'emerald', cardBg: 'bg-gradient-to-br from-emerald-50 to-green-50',  cardRing: 'ring-emerald-100' },
+  { id: 'arts',      label: 'Arts',      color: 'violet',  cardBg: 'bg-gradient-to-br from-violet-50 to-purple-50',  cardRing: 'ring-violet-100'  },
+  { id: 'swimming',  label: 'Swimming',  color: 'cyan',    cardBg: 'bg-gradient-to-br from-cyan-50 to-sky-50',       cardRing: 'ring-cyan-100'    },
+  { id: 'milestone', label: 'Milestone', color: 'pink',    cardBg: 'bg-gradient-to-br from-pink-50 to-rose-50',      cardRing: 'ring-pink-100'    },
+  { id: 'community', label: 'Community', color: 'blue',    cardBg: 'bg-gradient-to-br from-blue-50 to-indigo-50',    cardRing: 'ring-blue-100'    },
+  { id: 'other',     label: 'Other',     color: 'slate',   cardBg: 'bg-gradient-to-br from-slate-50 to-gray-50',     cardRing: 'ring-slate-100'   },
 ];
 
 function resolve(cat) {
