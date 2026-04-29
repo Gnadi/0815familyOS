@@ -13,6 +13,7 @@ import TasksPage from './pages/TasksPage';
 import SettingsPage from './pages/SettingsPage';
 import DocumentVaultPage from './pages/DocumentVaultPage';
 import GiftPlannerPage from './pages/GiftPlannerPage';
+import VaccinationPage from './pages/VaccinationPage';
 
 export default function App() {
   return (
@@ -44,6 +45,7 @@ export default function App() {
           <Route path="/vault" element={<DocumentVaultPage />} />
           <Route path="/gifts" element={<GiftPlannerPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/health" element={<VaccinationPage />} />
         </Route>
         <Route path="*" element={<LandingPage />} />
       </Routes>
