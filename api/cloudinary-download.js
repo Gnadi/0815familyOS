@@ -1,44 +1,40 @@
 import { createHash } from 'crypto';
 
-export default async function handler(req, res) {
+export default function handler(req, res) {
   const secret = process.env.CLOUDINARY_API_SECRET;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
   const cloudName = process.env.VITE_CLOUDINARY_CLOUD_NAME;
 
-  if (!secret || !cloudName) {
+  if (!secret || !apiKey || !cloudName) {
     return res.status(500).json({ error: 'Not configured' });
   }
 
-  const { path: pathToSign, rt: resourceType = 'image' } = req.query;
+  const { pid: publicId, rt: resourceType = 'image', fmt: format = 'pdf' } = req.query;
 
-  if (!pathToSign || !pathToSign.match(/familyos\/documents\//)) {
+  if (!publicId || !publicId.startsWith('familyos/documents/')) {
     return res.status(400).json({ error: 'Invalid request' });
   }
 
-  const sig = createHash('sha1')
-    .update(pathToSign + secret)
-    .digest('hex')
-    .substring(0, 8);
+  const timestamp = Math.round(Date.now() / 1000);
+  const expiresAt = timestamp + 300; // 5-minute window
 
-  const signedUrl =
-    `https://res.cloudinary.com/${cloudName}/${resourceType}/upload/s--${sig}--/${pathToSign}`;
+  // Cloudinary Admin API signature: all params except api_key / resource_type / signature,
+  // sorted alphabetically, then append api_secret — same pattern that signs uploads.
+  const toSign = `expires_at=${expiresAt}&format=${format}&public_id=${publicId}&timestamp=${timestamp}&type=upload`;
+  const signature = createHash('sha1').update(toSign + secret).digest('hex');
 
-  let upstream;
-  try {
-    upstream = await fetch(signedUrl);
-  } catch (err) {
-    return res.status(502).json({ error: 'Could not reach storage' });
-  }
+  const params = new URLSearchParams({
+    public_id: publicId,
+    format,
+    type: 'upload',
+    expires_at: expiresAt,
+    timestamp,
+    api_key: apiKey,
+    signature,
+  });
 
-  if (!upstream.ok) {
-    return res.status(upstream.status).json({ error: 'File unavailable' });
-  }
-
-  const buffer = Buffer.from(await upstream.arrayBuffer());
-  const contentType = upstream.headers.get('content-type') || 'application/octet-stream';
-  const filename = decodeURIComponent(pathToSign.split('/').pop());
-
-  res.setHeader('Content-Type', contentType);
-  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-  res.setHeader('Content-Length', buffer.length);
-  res.end(buffer);
+  // Cloudinary's /download endpoint authenticates via Admin API credentials and
+  // returns the file with Content-Disposition: attachment — no delivery-URL
+  // signing needed, and no file bytes pass through Vercel.
+  res.redirect(302, `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/download?${params}`);
 }

@@ -28,11 +28,18 @@ function fileExtBadge(url) {
   return known.includes(ext) ? ext : 'FILE';
 }
 
-function proxyUrl(fileUrl) {
+function proxyUrl(filePublicId, fileUrl) {
   if (!fileUrl) return null;
-  const m = fileUrl.match(/res\.cloudinary\.com\/[^/]+\/([^/]+)\/upload\/(.+)/);
-  if (!m) return fileUrl;
-  return `/api/cloudinary-download?path=${encodeURIComponent(m[2])}&rt=${encodeURIComponent(m[1])}`;
+  const rtM = fileUrl.match(/res\.cloudinary\.com\/[^/]+\/([^/]+)\/upload\//);
+  const rt = rtM ? rtM[1] : 'image';
+  const fmtM = fileUrl.match(/\.([a-z0-9]+)(?:\?|$)/i);
+  const fmt = fmtM ? fmtM[1].toLowerCase() : 'pdf';
+  // Use stored public_id; fall back to extracting from URL (strip version + extension)
+  const pid = filePublicId
+    || fileUrl.match(/\/upload\/(?:v\d+\/)?(.+?)(?:\.[^/.]+)?$/)?.[1]
+    || null;
+  if (!pid) return null;
+  return `/api/cloudinary-download?pid=${encodeURIComponent(pid)}&rt=${encodeURIComponent(rt)}&fmt=${encodeURIComponent(fmt)}`;
 }
 
 export default function DocumentCard({ doc, onClick }) {
@@ -53,8 +60,7 @@ export default function DocumentCard({ doc, onClick }) {
           <p className="truncate text-sm font-semibold text-slate-900">{doc.title}</p>
           {doc.fileUrl && (
             <a
-              href={proxyUrl(doc.fileUrl)}
-              download
+              href={proxyUrl(doc.filePublicId, doc.fileUrl)}
               onClick={(e) => e.stopPropagation()}
               className="flex shrink-0 items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600 hover:bg-slate-200"
             >

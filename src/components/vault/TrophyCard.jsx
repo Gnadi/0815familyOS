@@ -9,11 +9,17 @@ function fileExtBadge(url) {
   return known.includes(ext) ? ext : 'FILE';
 }
 
-function proxyUrl(fileUrl) {
+function proxyUrl(filePublicId, fileUrl) {
   if (!fileUrl) return null;
-  const m = fileUrl.match(/res\.cloudinary\.com\/[^/]+\/([^/]+)\/upload\/(.+)/);
-  if (!m) return fileUrl;
-  return `/api/cloudinary-download?path=${encodeURIComponent(m[2])}&rt=${encodeURIComponent(m[1])}`;
+  const rtM = fileUrl.match(/res\.cloudinary\.com\/[^/]+\/([^/]+)\/upload\//);
+  const rt = rtM ? rtM[1] : 'image';
+  const fmtM = fileUrl.match(/\.([a-z0-9]+)(?:\?|$)/i);
+  const fmt = fmtM ? fmtM[1].toLowerCase() : 'pdf';
+  const pid = filePublicId
+    || fileUrl.match(/\/upload\/(?:v\d+\/)?(.+?)(?:\.[^/.]+)?$/)?.[1]
+    || null;
+  if (!pid) return null;
+  return `/api/cloudinary-download?pid=${encodeURIComponent(pid)}&rt=${encodeURIComponent(rt)}&fmt=${encodeURIComponent(fmt)}`;
 }
 
 export default function TrophyCard({ trophy, onClick }) {
@@ -33,8 +39,7 @@ export default function TrophyCard({ trophy, onClick }) {
           <p className="truncate text-sm font-semibold text-slate-900">{trophy.title}</p>
           {trophy.fileUrl && (
             <a
-              href={proxyUrl(trophy.fileUrl)}
-              download
+              href={proxyUrl(trophy.filePublicId, trophy.fileUrl)}
               onClick={(e) => e.stopPropagation()}
               className="flex shrink-0 items-center gap-1 rounded-md bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700 hover:bg-amber-200"
             >
