@@ -3,21 +3,27 @@ import { Outlet, useLocation } from 'react-router-dom';
 import BottomNav from './BottomNav';
 import EventFormModal from '../calendar/EventFormModal';
 import TaskFormModal from '../tasks/TaskFormModal';
+import GiftFormModal from '../gifts/GiftFormModal';
 import useAuth from '../../hooks/useAuth';
 import { createEvent } from '../../services/events';
 import { createTask } from '../../services/tasks';
+import { createGift } from '../../services/gifts';
 
 export default function AppShell() {
-  const { user, userDoc } = useAuth();
+  const { user, userDoc, family } = useAuth();
   const location = useLocation();
   const isTasksRoute  = location.pathname.startsWith('/tasks');
+  const isGiftsRoute  = location.pathname.startsWith('/gifts');
+  const isVaultRoute  = location.pathname.startsWith('/vault');
   const isHealthRoute = location.pathname.startsWith('/health');
 
   const [adding, setAdding] = useState(false);
   const [createDefaultDate, setCreateDefaultDate] = useState(null);
 
-  // VaccinationPage registers its own FAB handler here so the shared + button
-  // opens the add-vaccination modal instead of the event modal on /health.
+  // DocumentVaultPage registers a callback to open its own upload modal
+  const [vaultAdd, setVaultAdd] = useState(null);
+
+  // VaccinationPage registers a callback to open its own add-vaccination modal
   const [healthFabCallback, setHealthFabCallback] = useState(null);
 
   async function handleCreateEvent(values) {
@@ -30,32 +36,44 @@ export default function AppShell() {
     setAdding(false);
   }
 
+  async function handleCreateGift(values) {
+    await createGift({ familyId: userDoc.familyId, ...values });
+    setAdding(false);
+  }
+
   function handleFab() {
-    if (isHealthRoute && healthFabCallback) {
-      healthFabCallback();
-    } else {
-      setAdding(true);
-    }
+    if (isVaultRoute)  { vaultAdd?.(); return; }
+    if (isHealthRoute) { healthFabCallback?.(); return; }
+    setAdding(true);
   }
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
-      <Outlet context={{ setCreateDefaultDate, setHealthFabCallback }} />
+      <Outlet context={{ setCreateDefaultDate, setVaultAdd, setHealthFabCallback }} />
       <BottomNav onAdd={handleFab} />
-      {isTasksRoute ? (
-        <TaskFormModal
-          open={adding}
-          onClose={() => setAdding(false)}
-          onSubmit={handleCreateTask}
-        />
-      ) : !isHealthRoute ? (
-        <EventFormModal
-          open={adding}
-          onClose={() => setAdding(false)}
-          onSubmit={handleCreateEvent}
-          initialDate={createDefaultDate}
-        />
-      ) : null}
+      {!isVaultRoute && !isHealthRoute && (
+        isGiftsRoute ? (
+          <GiftFormModal
+            open={adding}
+            onClose={() => setAdding(false)}
+            onSubmit={handleCreateGift}
+            kids={family?.kids ?? []}
+          />
+        ) : isTasksRoute ? (
+          <TaskFormModal
+            open={adding}
+            onClose={() => setAdding(false)}
+            onSubmit={handleCreateTask}
+          />
+        ) : (
+          <EventFormModal
+            open={adding}
+            onClose={() => setAdding(false)}
+            onSubmit={handleCreateEvent}
+            initialDate={createDefaultDate}
+          />
+        )
+      )}
     </div>
   );
 }

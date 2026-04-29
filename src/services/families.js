@@ -18,6 +18,7 @@ import { db } from '../lib/firebase';
 import { generateInviteCode } from '../utils/inviteCode';
 import { DEFAULT_CATEGORY } from '../constants/eventCategories';
 import { reassignEventsCategory } from './events';
+import { generateEncryptionKey } from '../utils/encryption';
 
 const familiesRef = collection(db, 'families');
 
@@ -33,11 +34,13 @@ export async function createFamily({ name, uid }) {
     if (await codeIsUnique(code)) break;
     code = generateInviteCode();
   }
+  const { jwk } = await generateEncryptionKey();
   const ref = await addDoc(familiesRef, {
     name: name.trim() || 'My Family',
     inviteCode: code,
     createdBy: uid,
     memberIds: [uid],
+    encryptionKeyJwk: jwk,
     createdAt: serverTimestamp(),
   });
   await updateDoc(doc(db, 'users', uid), { familyId: ref.id });
@@ -103,6 +106,12 @@ export async function removeKid(familyId, kid) {
 // Delete a category. Built-ins are hidden via `disabledBuiltins`; customs are
 // removed from `customCategories`. Any events still pointing at the deleted
 // category are reassigned to `general` so they never render as "unknown".
+export function updateGiftBudget(familyId, amount) {
+  return updateDoc(doc(db, 'families', familyId), {
+    giftBudget: Math.max(0, Number(amount) || 0),
+  });
+}
+
 export async function deleteCategory(familyId, category) {
   if (category.id === DEFAULT_CATEGORY) {
     throw new Error("'General' cannot be deleted.");
@@ -119,5 +128,32 @@ export async function deleteCategory(familyId, category) {
       (c) => c && c.id !== category.id
     );
     await updateDoc(famRef, { customCategories: list });
+  }
+}
+
+export async function addVaultCategory(familyId, vaultType, { label, color }) {
+  const trimmed = label.trim();
+  if (!trimmed) throw new Error('Category name is required.');
+  const category = {
+    id: `vcat_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+    label: trimmed,
+    color,
+  };
+  const field = vaultType === 'trophy' ? 'customTrophyCategories' : 'customDocCategories';
+  await updateDoc(doc(db, 'families', familyId), { [field]: arrayUnion(category) });
+  return category;
+}
+
+export async function deleteVaultCategory(familyId, vaultType, category) {
+  const famRef = doc(db, 'families', familyId);
+  const customField = vaultType === 'trophy' ? 'customTrophyCategories' : 'customDocCategories';
+  const disabledField = vaultType === 'trophy' ? 'disabledTrophyCategories' : 'disabledDocCategories';
+
+  if (category.builtin) {
+    await updateDoc(famRef, { [disabledField]: arrayUnion(category.id) });
+  } else {
+    const snap = await getDoc(famRef);
+    const list = (snap.data()?.[customField] || []).filter((c) => c && c.id !== category.id);
+    await updateDoc(famRef, { [customField]: list });
   }
 }
