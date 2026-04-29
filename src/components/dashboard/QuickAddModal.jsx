@@ -26,9 +26,27 @@ function todayDateInput() {
   return format(new Date(), 'yyyy-MM-dd');
 }
 
+const KID_CHIP_COLORS = {
+  violet: 'bg-violet-100 text-violet-700 border-violet-300',
+  sky:    'bg-sky-100 text-sky-700 border-sky-300',
+  pink:   'bg-pink-100 text-pink-700 border-pink-300',
+  teal:   'bg-teal-100 text-teal-700 border-teal-300',
+  orange: 'bg-orange-100 text-orange-700 border-orange-300',
+  indigo: 'bg-indigo-100 text-indigo-700 border-indigo-300',
+};
+const KID_CHIP_ACTIVE = {
+  violet: 'bg-violet-500 text-white border-violet-500',
+  sky:    'bg-sky-500 text-white border-sky-500',
+  pink:   'bg-pink-500 text-white border-pink-500',
+  teal:   'bg-teal-500 text-white border-teal-500',
+  orange: 'bg-orange-500 text-white border-orange-500',
+  indigo: 'bg-indigo-500 text-white border-indigo-500',
+};
+
 export default function QuickAddModal({ open, onClose }) {
-  const { user, userDoc } = useAuth();
+  const { user, userDoc, family } = useAuth();
   const { list: categories } = useCategories();
+  const familyKids = family?.kids || [];
 
   const [tab, setTab] = useState('event');
 
@@ -36,6 +54,7 @@ export default function QuickAddModal({ open, onClose }) {
   const [evTitle, setEvTitle] = useState('');
   const [evTime, setEvTime] = useState('09:00');
   const [evCategory, setEvCategory] = useState(DEFAULT_CATEGORY);
+  const [evKids, setEvKids] = useState([]);
 
   // Task fields
   const [taskTitle, setTaskTitle] = useState('');
@@ -52,6 +71,7 @@ export default function QuickAddModal({ open, onClose }) {
     setEvTitle('');
     setEvTime('09:00');
     setEvCategory(DEFAULT_CATEGORY);
+    setEvKids([]);
     setTaskTitle('');
     setTaskPriority('normal');
     setTaskDueDate(todayDateInput());
@@ -78,7 +98,7 @@ export default function QuickAddModal({ open, onClose }) {
           description: '',
           date: when,
           category: evCategory,
-          kids: [],
+          kids: evKids,
           responsibleParent: '',
           effortLevel: '',
         });
@@ -162,6 +182,37 @@ export default function QuickAddModal({ open, onClose }) {
               onChange={(e) => setEvTime(e.target.value)}
               required
             />
+            {familyKids.length > 0 && (
+              <div>
+                <span className="mb-1.5 block text-sm font-medium text-slate-700">
+                  Child <span className="font-normal text-slate-400">(optional)</span>
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {familyKids.map((kid) => {
+                    const active = evKids.includes(kid.id);
+                    const colorClass = active
+                      ? (KID_CHIP_ACTIVE[kid.color] || 'bg-brand-500 text-white border-brand-500')
+                      : (KID_CHIP_COLORS[kid.color] || 'bg-slate-100 text-slate-700 border-slate-200');
+                    return (
+                      <button
+                        key={kid.id}
+                        type="button"
+                        onClick={() =>
+                          setEvKids((prev) =>
+                            prev.includes(kid.id)
+                              ? prev.filter((id) => id !== kid.id)
+                              : [...prev, kid.id]
+                          )
+                        }
+                        className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${colorClass}`}
+                      >
+                        {kid.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <div>
               <span className="mb-1.5 block text-sm font-medium text-slate-700">Category</span>
               <div className="flex flex-wrap gap-2">
