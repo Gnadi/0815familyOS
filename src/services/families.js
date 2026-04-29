@@ -18,6 +18,7 @@ import { db } from '../lib/firebase';
 import { generateInviteCode } from '../utils/inviteCode';
 import { DEFAULT_CATEGORY } from '../constants/eventCategories';
 import { reassignEventsCategory } from './events';
+import { generateEncryptionKey } from '../utils/encryption';
 
 const familiesRef = collection(db, 'families');
 
@@ -33,11 +34,13 @@ export async function createFamily({ name, uid }) {
     if (await codeIsUnique(code)) break;
     code = generateInviteCode();
   }
+  const { jwk } = await generateEncryptionKey();
   const ref = await addDoc(familiesRef, {
     name: name.trim() || 'My Family',
     inviteCode: code,
     createdBy: uid,
     memberIds: [uid],
+    encryptionKeyJwk: jwk,
     createdAt: serverTimestamp(),
   });
   await updateDoc(doc(db, 'users', uid), { familyId: ref.id });

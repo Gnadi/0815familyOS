@@ -14,11 +14,11 @@ export default function AppShell() {
   const location = useLocation();
   const isTasksRoute = location.pathname.startsWith('/tasks');
   const isGiftsRoute = location.pathname.startsWith('/gifts');
+  const isVaultRoute = location.pathname.startsWith('/vault');
 
   const [adding, setAdding] = useState(false);
-  // Pages can publish a preferred default date for the FAB (e.g. the calendar
-  // page pushes its selected day here so "+" prefills to the right day).
   const [createDefaultDate, setCreateDefaultDate] = useState(null);
+  const [vaultAdd, setVaultAdd] = useState(null);
 
   async function handleCreateEvent(values) {
     await createEvent({
@@ -46,30 +46,40 @@ export default function AppShell() {
     setAdding(false);
   }
 
+  function handleAdd() {
+    if (isVaultRoute) {
+      vaultAdd?.();
+    } else {
+      setAdding(true);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
-      <Outlet context={{ setCreateDefaultDate }} />
-      <BottomNav onAdd={() => setAdding(true)} />
-      {isGiftsRoute ? (
-        <GiftFormModal
-          open={adding}
-          onClose={() => setAdding(false)}
-          onSubmit={handleCreateGift}
-          kids={family?.kids ?? []}
-        />
-      ) : isTasksRoute ? (
-        <TaskFormModal
-          open={adding}
-          onClose={() => setAdding(false)}
-          onSubmit={handleCreateTask}
-        />
-      ) : (
-        <EventFormModal
-          open={adding}
-          onClose={() => setAdding(false)}
-          onSubmit={handleCreateEvent}
-          initialDate={createDefaultDate}
-        />
+      <Outlet context={{ setCreateDefaultDate, setVaultAdd }} />
+      <BottomNav onAdd={handleAdd} />
+      {!isVaultRoute && (
+        isGiftsRoute ? (
+          <GiftFormModal
+            open={adding}
+            onClose={() => setAdding(false)}
+            onSubmit={handleCreateGift}
+            kids={family?.kids ?? []}
+          />
+        ) : isTasksRoute ? (
+          <TaskFormModal
+            open={adding}
+            onClose={() => setAdding(false)}
+            onSubmit={handleCreateTask}
+          />
+        ) : (
+          <EventFormModal
+            open={adding}
+            onClose={() => setAdding(false)}
+            onSubmit={handleCreateEvent}
+            initialDate={createDefaultDate}
+          />
+        )
       )}
     </div>
   );

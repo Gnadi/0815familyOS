@@ -83,5 +83,19 @@ service cloud.firestore {
       allow update, delete: if request.auth != null
         && request.auth.uid in familyMembers(resource.data.familyId);
     }
+
+    // Document Vault (documents and trophies). Mirrors the tasks rule.
+    match /documents/{documentId} {
+      function familyMembers(fid) {
+        return get(/databases/$(database)/documents/families/$(fid)).data.memberIds;
+      }
+      allow read: if request.auth != null
+        && request.auth.uid in familyMembers(resource.data.familyId);
+      allow create: if request.auth != null
+        && request.auth.uid in familyMembers(request.resource.data.familyId)
+        && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null
+        && request.auth.uid in familyMembers(resource.data.familyId);
+    }
   }
 }
