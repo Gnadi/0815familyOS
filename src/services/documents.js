@@ -59,6 +59,7 @@ export function createDocument({
   date,
   fileUrl,
   filePublicId,
+  fileName,
   awardedTo,
 }) {
   return addDoc(docsRef, {
@@ -71,6 +72,7 @@ export function createDocument({
     date: Timestamp.fromDate(date),
     fileUrl: fileUrl || null,
     filePublicId: filePublicId || null,
+    fileName: fileName || null,
     awardedTo: awardedTo?.trim() || null,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -78,7 +80,7 @@ export function createDocument({
 }
 
 export function updateDocument(id, fields) {
-  const { type, title, category, notes, date, fileUrl, filePublicId, awardedTo } = fields;
+  const { type, title, category, notes, date, fileUrl, filePublicId, fileName, awardedTo } = fields;
   return updateDoc(doc(db, 'documents', id), {
     title: title.trim(),
     category: normalizeCategory(type, category),
@@ -86,6 +88,7 @@ export function updateDocument(id, fields) {
     date: Timestamp.fromDate(date),
     fileUrl: fileUrl || null,
     filePublicId: filePublicId || null,
+    fileName: fileName || null,
     awardedTo: awardedTo?.trim() || null,
     updatedAt: serverTimestamp(),
   });

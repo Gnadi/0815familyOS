@@ -12,7 +12,7 @@ import useAuth from '../hooks/useAuth';
 import useDocuments from '../hooks/useDocuments';
 import { createDocument, updateDocument, deleteDocument } from '../services/documents';
 
-function DocumentsSection({ docs, onAdd, onEdit }) {
+function DocumentsSection({ docs, onAdd, onEdit, encryptionKey }) {
   return (
     <div className="space-y-3">
       {docs.length === 0 ? (
@@ -36,7 +36,7 @@ function DocumentsSection({ docs, onAdd, onEdit }) {
           </div>
           <div className="space-y-2">
             {docs.map((doc) => (
-              <DocumentCard key={doc.id} doc={doc} onClick={onEdit} />
+              <DocumentCard key={doc.id} doc={doc} onClick={onEdit} encryptionKey={encryptionKey} />
             ))}
           </div>
         </>
@@ -45,7 +45,7 @@ function DocumentsSection({ docs, onAdd, onEdit }) {
   );
 }
 
-function TrophiesSection({ trophies, onAdd, onEdit }) {
+function TrophiesSection({ trophies, onAdd, onEdit, encryptionKey }) {
   return (
     <div className="space-y-3">
       {trophies.length === 0 ? (
@@ -69,7 +69,7 @@ function TrophiesSection({ trophies, onAdd, onEdit }) {
           </div>
           <div className="space-y-2">
             {trophies.map((trophy) => (
-              <TrophyCard key={trophy.id} trophy={trophy} onClick={onEdit} />
+              <TrophyCard key={trophy.id} trophy={trophy} onClick={onEdit} encryptionKey={encryptionKey} />
             ))}
           </div>
         </>
@@ -79,7 +79,7 @@ function TrophiesSection({ trophies, onAdd, onEdit }) {
 }
 
 export default function DocumentVaultPage() {
-  const { user, userDoc } = useAuth();
+  const { user, userDoc, encryptionKey } = useAuth();
   const { documents, loading } = useDocuments(userDoc?.familyId);
   const outletContext = useOutletContext() || {};
   const { setVaultAdd } = outletContext;
@@ -152,12 +152,14 @@ export default function DocumentVaultPage() {
             docs={docs}
             onAdd={() => setModal({ type: 'document' })}
             onEdit={(doc) => setModal({ type: 'document', initial: doc })}
+            encryptionKey={encryptionKey}
           />
         ) : (
           <TrophiesSection
             trophies={trophies}
             onAdd={() => setModal({ type: 'trophy' })}
             onEdit={(trophy) => setModal({ type: 'trophy', initial: trophy })}
+            encryptionKey={encryptionKey}
           />
         )}
       </main>
@@ -169,6 +171,7 @@ export default function DocumentVaultPage() {
         onClose={() => setModal(null)}
         onSubmit={handleSubmit}
         onDelete={modal?.initial ? handleDelete : undefined}
+        encryptionKey={encryptionKey}
       />
     </>
   );

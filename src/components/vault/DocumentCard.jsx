@@ -1,15 +1,18 @@
+import { useState } from 'react';
 import { format } from 'date-fns';
 import {
   CreditCard,
-  ExternalLink,
+  Download,
   FileText,
   GraduationCap,
   Heart,
   Home,
+  Loader2,
   Receipt,
   ShieldCheck,
 } from 'lucide-react';
 import { getDocCategory } from '../../constants/documentCategories';
+import { decryptBlob } from '../../utils/encryption';
 
 const CATEGORY_ICONS = {
   identity:  CreditCard,
@@ -21,30 +24,51 @@ const CATEGORY_ICONS = {
   other:     FileText,
 };
 
-function fileExtBadge(url) {
-  if (!url) return null;
-  const ext = url.split('.').pop().split('?')[0].toUpperCase();
-  const known = ['PDF', 'DOCX', 'XLS', 'XLSX'];
-  return known.includes(ext) ? ext : 'FILE';
+const EXT_MIME = {
+  pdf:  'application/pdf',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  xls:  'application/vnd.ms-excel',
+};
+
+function fileExtBadge(fileName) {
+  if (!fileName) return 'FILE';
+  const ext = fileName.split('.').pop().toUpperCase();
+  return ['PDF', 'DOCX', 'XLS', 'XLSX'].includes(ext) ? ext : 'FILE';
 }
 
-function proxyUrl(filePublicId, fileUrl) {
-  if (!fileUrl) return null;
-  const rtM = fileUrl.match(/res\.cloudinary\.com\/[^/]+\/([^/]+)\/upload\//);
-  const rt = rtM ? rtM[1] : 'image';
-  const fmtM = fileUrl.match(/\.([a-z0-9]+)(?:\?|$)/i);
-  const fmt = fmtM ? fmtM[1].toLowerCase() : 'pdf';
-  // Use stored public_id; fall back to extracting from URL (strip version + extension)
-  const pid = filePublicId
-    || fileUrl.match(/\/upload\/(?:v\d+\/)?(.+?)(?:\.[^/.]+)?$/)?.[1]
-    || null;
-  if (!pid) return null;
-  return `/api/cloudinary-download?pid=${encodeURIComponent(pid)}&rt=${encodeURIComponent(rt)}&fmt=${encodeURIComponent(fmt)}`;
-}
-
-export default function DocumentCard({ doc, onClick }) {
+export default function DocumentCard({ doc, onClick, encryptionKey }) {
   const cat = getDocCategory(doc.category);
   const Icon = CATEGORY_ICONS[doc.category] || FileText;
+  const [downloading, setDownloading] = useState(false);
+
+  async function handleDownload(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!encryptionKey || !doc.fileUrl || downloading) return;
+    setDownloading(true);
+    try {
+      const ext = doc.fileName?.split('.').pop().toLowerCase() ?? 'pdf';
+      const mime = EXT_MIME[ext] ?? 'application/octet-stream';
+      const res = await fetch(doc.fileUrl);
+      if (!res.ok) throw new Error('Download failed');
+      const buf = await res.arrayBuffer();
+      const blob = await decryptBlob(encryptionKey, buf, mime);
+      const url = URL.createObjectURL(blob);
+      const a = Object.assign(document.createElement('a'), {
+        href: url,
+        download: doc.fileName ?? doc.title,
+      });
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Decrypt error:', err);
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  const canDownload = doc.fileUrl && doc.fileName && encryptionKey;
 
   return (
     <button
@@ -58,15 +82,15 @@ export default function DocumentCard({ doc, onClick }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <p className="truncate text-sm font-semibold text-slate-900">{doc.title}</p>
-          {doc.fileUrl && (
-            <a
-              href={proxyUrl(doc.filePublicId, doc.fileUrl)}
-              onClick={(e) => e.stopPropagation()}
-              className="flex shrink-0 items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600 hover:bg-slate-200"
+          {canDownload && (
+            <button
+              onClick={handleDownload}
+              disabled={downloading}
+              className="flex shrink-0 items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600 hover:bg-slate-200 disabled:opacity-50"
             >
-              {fileExtBadge(doc.fileUrl)}
-              <ExternalLink size={11} />
-            </a>
+              {fileExtBadge(doc.fileName)}
+              {downloading ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />}
+            </button>
           )}
         </div>
 

@@ -25,6 +25,7 @@ export default function DocumentFormModal({
   onDelete,
   initial,
   type,
+  encryptionKey,
 }) {
   const { family } = useAuth();
   const familyMembers = useFamilyMembers();
@@ -101,18 +102,21 @@ export default function DocumentFormModal({
 
     let fileUrl = initial?.fileUrl || null;
     let filePublicId = initial?.filePublicId || null;
+    let fileName = initial?.fileName || null;
     setFileWarning('');
 
     if (file) {
       try {
-        const result = await uploadFile(file);
+        const result = await uploadFile(file, encryptionKey || null);
         fileUrl = result.url;
         filePublicId = result.publicId;
+        fileName = file.name;
       } catch (err) {
         if (err.message === 'Cloudinary is not configured.') {
           setFileWarning('File upload is not configured — document saved without attachment.');
           fileUrl = null;
           filePublicId = null;
+          fileName = null;
         } else {
           setError(err.message);
           setSaving(false);
@@ -130,6 +134,7 @@ export default function DocumentFormModal({
         date: parsedDate,
         fileUrl,
         filePublicId,
+        fileName,
         awardedTo: isTrophy ? awardedTo : null,
       });
     } catch (err) {

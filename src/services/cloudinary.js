@@ -1,3 +1,5 @@
+import { encryptBlob } from '../utils/encryption';
+
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 
 const MAX_SIZE_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB
@@ -13,20 +15,26 @@ export function validateFile(file) {
   }
 }
 
-export async function uploadFile(file) {
+export async function uploadFile(file, encryptionKey = null) {
   if (!CLOUD_NAME) {
     throw new Error('Cloudinary is not configured.');
   }
   validateFile(file);
 
-  // Fetch a short-lived signed token from the server — the API secret never
-  // leaves the server, so the upload is signed without exposing credentials.
-  const signRes = await fetch('/api/cloudinary-sign');
+  let upload = file;
+  const useRaw = Boolean(encryptionKey);
+
+  if (encryptionKey) {
+    const buf = await encryptBlob(encryptionKey, file);
+    upload = new Blob([buf], { type: 'application/octet-stream' });
+  }
+
+  const signRes = await fetch(`/api/cloudinary-sign${useRaw ? '?resource_type=raw' : ''}`);
   if (!signRes.ok) throw new Error('Could not get upload credentials.');
   const { timestamp, signature, folder, apiKey, resourceType } = await signRes.json();
 
   const form = new FormData();
-  form.append('file', file);
+  form.append('file', upload, useRaw ? 'encrypted.dat' : file.name);
   form.append('api_key', apiKey);
   form.append('timestamp', timestamp);
   form.append('signature', signature);
@@ -34,7 +42,7 @@ export async function uploadFile(file) {
 
   const uploadRes = await fetch(
     `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`,
-    { method: 'POST', body: form }
+    { method: 'POST', body: form },
   );
   if (!uploadRes.ok) {
     const err = await uploadRes.json().catch(() => ({}));
