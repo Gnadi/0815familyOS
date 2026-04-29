@@ -1,5 +1,4 @@
 import { createHash } from 'crypto';
-import { Readable } from 'stream';
 
 export default async function handler(req, res) {
   const secret = process.env.CLOUDINARY_API_SECRET;
@@ -23,16 +22,23 @@ export default async function handler(req, res) {
   const signedUrl =
     `https://res.cloudinary.com/${cloudName}/${resourceType}/upload/s--${sig}--/${pathToSign}`;
 
-  const upstream = await fetch(signedUrl);
+  let upstream;
+  try {
+    upstream = await fetch(signedUrl);
+  } catch (err) {
+    return res.status(502).json({ error: 'Could not reach storage' });
+  }
+
   if (!upstream.ok) {
     return res.status(upstream.status).json({ error: 'File unavailable' });
   }
 
+  const buffer = Buffer.from(await upstream.arrayBuffer());
   const contentType = upstream.headers.get('content-type') || 'application/octet-stream';
-  const filename = pathToSign.split('/').pop();
+  const filename = decodeURIComponent(pathToSign.split('/').pop());
 
   res.setHeader('Content-Type', contentType);
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-
-  Readable.fromWeb(upstream.body).pipe(res);
+  res.setHeader('Content-Length', buffer.length);
+  res.end(buffer);
 }
