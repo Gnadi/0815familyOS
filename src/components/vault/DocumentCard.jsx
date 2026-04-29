@@ -11,8 +11,8 @@ import {
   Receipt,
   ShieldCheck,
 } from 'lucide-react';
-import { getDocCategory } from '../../constants/documentCategories';
 import { decryptBlob } from '../../utils/encryption';
+import useVaultCategories from '../../hooks/useVaultCategories';
 
 const CATEGORY_ICONS = {
   identity:  CreditCard,
@@ -38,7 +38,8 @@ function fileExtBadge(fileName) {
 }
 
 export default function DocumentCard({ doc, onClick, encryptionKey }) {
-  const cat = getDocCategory(doc.category);
+  const { get: getCat } = useVaultCategories('document');
+  const cat = getCat(doc.category);
   const Icon = CATEGORY_ICONS[doc.category] || FileText;
   const [downloading, setDownloading] = useState(false);
 

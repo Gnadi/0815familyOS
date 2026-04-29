@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { Download, Loader2, Trophy, User } from 'lucide-react';
-import { getTrophyCategory } from '../../constants/documentCategories';
 import { decryptBlob } from '../../utils/encryption';
+import useVaultCategories from '../../hooks/useVaultCategories';
 
 const EXT_MIME = {
   pdf:  'application/pdf',
@@ -18,7 +18,8 @@ function fileExtBadge(fileName) {
 }
 
 export default function TrophyCard({ trophy, onClick, encryptionKey }) {
-  const cat = getTrophyCategory(trophy.category);
+  const { get: getCat } = useVaultCategories('trophy');
+  const cat = getCat(trophy.category);
   const [downloading, setDownloading] = useState(false);
 
   async function handleDownload(e) {
