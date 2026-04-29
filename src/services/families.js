@@ -130,3 +130,30 @@ export async function deleteCategory(familyId, category) {
     await updateDoc(famRef, { customCategories: list });
   }
 }
+
+export async function addVaultCategory(familyId, vaultType, { label, color }) {
+  const trimmed = label.trim();
+  if (!trimmed) throw new Error('Category name is required.');
+  const category = {
+    id: `vcat_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+    label: trimmed,
+    color,
+  };
+  const field = vaultType === 'trophy' ? 'customTrophyCategories' : 'customDocCategories';
+  await updateDoc(doc(db, 'families', familyId), { [field]: arrayUnion(category) });
+  return category;
+}
+
+export async function deleteVaultCategory(familyId, vaultType, category) {
+  const famRef = doc(db, 'families', familyId);
+  const customField = vaultType === 'trophy' ? 'customTrophyCategories' : 'customDocCategories';
+  const disabledField = vaultType === 'trophy' ? 'disabledTrophyCategories' : 'disabledDocCategories';
+
+  if (category.builtin) {
+    await updateDoc(famRef, { [disabledField]: arrayUnion(category.id) });
+  } else {
+    const snap = await getDoc(famRef);
+    const list = (snap.data()?.[customField] || []).filter((c) => c && c.id !== category.id);
+    await updateDoc(famRef, { [customField]: list });
+  }
+}

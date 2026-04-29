@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { Download, Loader2, Trophy, User } from 'lucide-react';
-import { getTrophyCategory } from '../../constants/documentCategories';
 import { decryptBlob } from '../../utils/encryption';
+import useVaultCategories from '../../hooks/useVaultCategories';
 
 const EXT_MIME = {
   pdf:  'application/pdf',
@@ -18,7 +18,8 @@ function fileExtBadge(fileName) {
 }
 
 export default function TrophyCard({ trophy, onClick, encryptionKey }) {
-  const cat = getTrophyCategory(trophy.category);
+  const { get: getCat } = useVaultCategories('trophy');
+  const cat = getCat(trophy.category);
   const [downloading, setDownloading] = useState(false);
 
   async function handleDownload(e) {
@@ -52,9 +53,9 @@ export default function TrophyCard({ trophy, onClick, encryptionKey }) {
   return (
     <button
       onClick={() => onClick(trophy)}
-      className="flex w-full items-start gap-3 rounded-2xl bg-gradient-to-br from-amber-50 to-yellow-50 p-4 text-left shadow-sm ring-1 ring-amber-100 transition hover:shadow-md"
+      className={`flex w-full items-start gap-3 rounded-2xl p-4 text-left shadow-sm ring-1 transition hover:shadow-md ${cat.cardBg} ${cat.cardRing}`}
     >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${cat.iconBg} ${cat.iconColor}`}>
         <Trophy size={18} />
       </div>
 
@@ -65,7 +66,7 @@ export default function TrophyCard({ trophy, onClick, encryptionKey }) {
             <button
               onClick={handleDownload}
               disabled={downloading}
-              className="flex shrink-0 items-center gap-1 rounded-md bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700 hover:bg-amber-200 disabled:opacity-50"
+              className={`flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium shadow-sm disabled:opacity-50 ${cat.iconBg} ${cat.iconColor}`}
             >
               {fileExtBadge(trophy.fileName)}
               {downloading ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />}
@@ -74,7 +75,7 @@ export default function TrophyCard({ trophy, onClick, encryptionKey }) {
         </div>
 
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
-          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${cat.chipBg} ${cat.chipText}`}>
+          <span className={`rounded-full px-2 py-0.5 text-xs font-medium shadow-sm ${cat.chipBg} ${cat.chipText}`}>
             {cat.label}
           </span>
           {trophy.date && (
@@ -85,7 +86,7 @@ export default function TrophyCard({ trophy, onClick, encryptionKey }) {
         </div>
 
         {trophy.awardedTo && (
-          <div className="mt-1.5 flex items-center gap-1 text-xs font-medium text-amber-700">
+          <div className={`mt-1.5 flex items-center gap-1 text-xs font-medium ${cat.iconColor}`}>
             <User size={11} />
             {trophy.awardedTo}
           </div>
