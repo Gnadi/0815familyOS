@@ -74,7 +74,7 @@ export default function TrophyCard({ trophy, onClick, encryptionKey }) {
         </div>
 
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
-          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${cat.chipBg} ${cat.chipText}`}>
+          <span className={`rounded-full px-2 py-0.5 text-xs font-medium shadow-sm ${cat.chipBg} ${cat.chipText}`}>
             {cat.label}
           </span>
           {trophy.date && (
