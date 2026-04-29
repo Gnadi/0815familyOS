@@ -99,7 +99,7 @@ export default function QuickAddModal({ open, onClose }) {
           date: when,
           category: evCategory,
           kids: evKids,
-          responsibleParent: '',
+          responsibleParent: userDoc?.displayName || '',
           effortLevel: '',
         });
         onClose();
