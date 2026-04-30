@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
 import { Calendar, CheckCircle2, Gift, Home, Plus, Settings, Vault } from 'lucide-react';
+import useAuth from '../../hooks/useAuth';
 
 const items = [
-  { to: '/dashboard', label: 'Dashboard', Icon: Home },
-  { to: '/calendar',  label: 'Schedule',  Icon: Calendar },
-  { to: '/vault',     label: 'Vault',     Icon: Vault },
+  { to: '/dashboard', label: 'Home',     Icon: Home },
+  { to: '/calendar',  label: 'Schedule', Icon: Calendar },
+  { to: '/vault',     label: 'Vault',    Icon: Vault },
 ];
 const itemsRight = [
   { to: '/tasks',    label: 'Tasks',    Icon: CheckCircle2 },
@@ -12,7 +13,7 @@ const itemsRight = [
   { to: '/settings', label: 'Settings', Icon: Settings },
 ];
 
-function NavItem({ to, label, Icon }) {
+function NavItem({ to, label, Icon, showLabel }) {
   return (
     <NavLink
       to={to}
@@ -23,17 +24,19 @@ function NavItem({ to, label, Icon }) {
       }
     >
       <Icon size={22} />
-      <span className="font-medium">{label}</span>
+      {showLabel && <span className="font-medium">{label}</span>}
     </NavLink>
   );
 }
 
 export default function BottomNav({ onAdd }) {
+  const { userDoc } = useAuth();
+  const showLabel = !userDoc?.hideNavLabels;
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white safe-bottom">
       <div className="mx-auto flex max-w-md items-center">
         {items.map((it) => (
-          <NavItem key={it.to} {...it} />
+          <NavItem key={it.to} {...it} showLabel={showLabel} />
         ))}
         <div className="flex flex-1 items-center justify-center">
           <button
@@ -45,7 +48,7 @@ export default function BottomNav({ onAdd }) {
           </button>
         </div>
         {itemsRight.map((it) => (
-          <NavItem key={it.to} {...it} />
+          <NavItem key={it.to} {...it} showLabel={showLabel} />
         ))}
       </div>
     </nav>
