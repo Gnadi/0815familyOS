@@ -34,7 +34,7 @@ export default function BottomNav({ onAdd }) {
   const showLabel = !userDoc?.hideNavLabels;
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white safe-bottom">
-      <div className="mx-auto flex max-w-md items-center">
+      <div className="mx-auto flex h-16 max-w-md items-center">
         {items.map((it) => (
           <NavItem key={it.to} {...it} showLabel={showLabel} />
         ))}
