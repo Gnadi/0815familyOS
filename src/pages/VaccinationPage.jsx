@@ -192,14 +192,14 @@ function VaccineRow({ vaccine, onClick }) {
     <button
       type="button"
       onClick={() => onClick(vaccine)}
-      className="-mx-5 flex w-[calc(100%+2.5rem)] items-center gap-4 px-5 py-5 text-left transition-colors hover:bg-slate-50"
+      className="-mx-5 flex w-[calc(100%+2.5rem)] items-center gap-4 px-5 py-5 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"
     >
       <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${iconCls}`}>
         <Icon size={18} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-slate-900">{vaccine.name}</p>
-        <p className="mt-0.5 text-xs text-slate-500">
+        <p className="text-sm font-semibold text-slate-900 dark:text-white">{vaccine.name}</p>
+        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
           {infoPrefix} • {fmtDate(vaccine.date)}
         </p>
       </div>
@@ -291,8 +291,8 @@ export default function VaccinationPage() {
         <TopBar title="Health Ledger" showBell={false} onBack={() => navigate('/dashboard')} />
         <main className="mx-auto max-w-md px-5 py-16 text-center">
           <p className="text-2xl">💉</p>
-          <p className="mt-3 text-base font-semibold text-slate-900">No children added yet</p>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-3 text-base font-semibold text-slate-900 dark:text-white">No children added yet</p>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Go to Settings → Family to add your children before tracking vaccinations.
           </p>
         </main>
@@ -304,18 +304,18 @@ export default function VaccinationPage() {
     <>
       <TopBar title="Health Ledger" showBell={false} onBack={() => navigate('/dashboard')} />
       <main className="mx-auto max-w-md space-y-6 px-5 py-6">
-        <p className="text-sm text-slate-500">Vaccination tracking for your household</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Vaccination tracking for your household</p>
 
         {/* Member tabs — no + button, kids are managed in Settings */}
-        <div className="flex items-center gap-1 rounded-full bg-slate-100 p-1">
+        <div className="flex items-center gap-1 rounded-full bg-slate-100 p-1 dark:bg-slate-700">
           {kids.map((kid, idx) => (
             <button
               key={kid.id}
               onClick={() => setSelectedIdx(idx)}
               className={`flex-1 rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
                 selectedIdx === idx
-                  ? 'bg-white font-semibold text-slate-900 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
+                  ? 'bg-white font-semibold text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white'
+                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
             >
               {kid.name}
@@ -324,47 +324,47 @@ export default function VaccinationPage() {
         </div>
 
         {/* Compliance card */}
-        <div className="rounded-2xl bg-white p-5 shadow-card">
+        <div className="rounded-2xl bg-white p-5 shadow-card dark:bg-slate-800">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Compliance</p>
-              <p className="mt-1 text-2xl font-bold text-slate-900">{compliance}% Complete</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Compliance</p>
+              <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{compliance}% Complete</p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-slate-400">Next update</p>
-              <p className="text-xs font-semibold text-slate-700">{nextUpdateDate}</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500">Next update</p>
+              <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{nextUpdateDate}</p>
             </div>
           </div>
-          <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
+          <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
             <div
               className="h-2 rounded-full bg-brand-500 transition-all duration-500"
               style={{ width: `${compliance}%` }}
             />
           </div>
           {advisoryText && (
-            <p className="mt-3 text-xs text-slate-500">{advisoryText}</p>
+            <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">{advisoryText}</p>
           )}
         </div>
 
         {/* History & Schedule */}
         <section>
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-slate-900">History &amp; Schedule</h2>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">History &amp; Schedule</h2>
             <button
               onClick={() =>
                 buildPdf({ kidName: currentKid?.name ?? '', compliance, nextUpdateDate, kidVaccines })
               }
-              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-brand-600 hover:bg-brand-50"
+              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-brand-600 hover:bg-brand-50 dark:hover:bg-slate-700"
             >
               <Download size={13} />
               Download PDF
             </button>
           </div>
-          <div className="mt-2 divide-y divide-slate-100 overflow-hidden rounded-2xl bg-white px-5 shadow-card">
+          <div className="mt-2 divide-y divide-slate-100 overflow-hidden rounded-2xl bg-white px-5 shadow-card dark:divide-slate-700 dark:bg-slate-800">
             {loading ? (
               <Spinner />
             ) : kidVaccines.length === 0 ? (
-              <p className="py-6 text-center text-sm text-slate-400">
+              <p className="py-6 text-center text-sm text-slate-400 dark:text-slate-500">
                 No vaccinations yet. Tap + to add the first one.
               </p>
             ) : (
@@ -377,9 +377,9 @@ export default function VaccinationPage() {
 
         {/* Travel Advisory */}
         {currentKid && (
-          <div className="flex gap-3 rounded-2xl bg-amber-50 p-4">
+          <div className="flex gap-3 rounded-2xl bg-amber-50 p-4 dark:bg-amber-950/30">
             <Info size={18} className="mt-0.5 flex-shrink-0 text-amber-500" />
-            <p className="text-sm text-amber-800">
+            <p className="text-sm text-amber-800 dark:text-amber-300">
               <span className="font-semibold">Travel Advisory — </span>
               {currentKid.name}&apos;s records are currently compatible with international
               travel requirements for EU zones.

@@ -10,11 +10,11 @@ export default function GiftItem({ gift, onEdit }) {
   return (
     <button
       onClick={() => onEdit(gift)}
-      className="flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 text-left shadow-card hover:bg-slate-50 transition"
+      className="flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 text-left shadow-card hover:bg-slate-50 transition dark:bg-slate-800 dark:hover:bg-slate-700"
     >
       <div className="flex-1 min-w-0">
-        <p className="truncate text-sm font-semibold text-slate-900">{gift.title}</p>
-        <p className="text-xs text-slate-400">
+        <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{gift.title}</p>
+        <p className="text-xs text-slate-400 dark:text-slate-500">
           {gift.price > 0
             ? `$${gift.price.toFixed(2)}`
             : 'Est. price TBD'}

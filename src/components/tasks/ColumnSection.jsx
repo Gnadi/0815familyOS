@@ -41,20 +41,20 @@ export default function ColumnSection({
           type="button"
           onClick={() => setCollapsed((c) => !c)}
           aria-expanded={!collapsed}
-          className="flex w-full items-start justify-between gap-2 rounded-xl px-2 py-2 text-left hover:bg-slate-50/60"
+          className="flex w-full items-start justify-between gap-2 rounded-xl px-2 py-2 text-left hover:bg-slate-50/60 dark:hover:bg-slate-700/40"
         >
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold text-slate-900">{meta.label}</h2>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">{meta.label}</h2>
               <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${meta.chip}`}>
                 {summary.count}
               </span>
             </div>
-            <div className="mt-1 flex items-center gap-2 text-xs font-medium text-slate-500">
+            <div className="mt-1 flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
               <span>{summary.leftLabel}</span>
-              <span className="h-1 w-1 rounded-full bg-slate-300" />
-              <span className="tabular-nums text-slate-700">{summary.points} pts</span>
-              <span className="h-1 w-1 rounded-full bg-slate-300" />
+              <span className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+              <span className="tabular-nums text-slate-700 dark:text-slate-200">{summary.points} pts</span>
+              <span className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-600" />
               <span className={`${summary.rightTone} font-semibold`}>{summary.rightLabel}</span>
             </div>
           </div>
@@ -74,8 +74,8 @@ export default function ColumnSection({
               <div
                 className={`rounded-2xl border border-dashed p-4 text-center text-xs transition ${
                   isOver
-                    ? 'border-brand-300 bg-white/80 text-brand-600'
-                    : 'border-slate-200 bg-white/60 text-slate-400'
+                    ? 'border-brand-300 bg-white/80 text-brand-600 dark:bg-slate-700/80'
+                    : 'border-slate-200 bg-white/60 text-slate-400 dark:border-slate-600 dark:bg-slate-800/30 dark:text-slate-500'
                 }`}
               >
                 {isOver ? `Drop to move to ${meta.label}` : `No tasks in ${meta.label.toLowerCase()} yet.`}

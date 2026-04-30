@@ -29,7 +29,7 @@ function DocumentsSection({ docs, onAdd, onEdit, encryptionKey }) {
       ) : (
         <>
           <div className="flex items-center justify-between">
-            <p className="text-sm text-slate-500">{docs.length} document{docs.length !== 1 ? 's' : ''}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{docs.length} document{docs.length !== 1 ? 's' : ''}</p>
             <Button variant="secondary" onClick={onAdd}>
               Add Document
             </Button>
@@ -62,7 +62,7 @@ function TrophiesSection({ trophies, onAdd, onEdit, encryptionKey }) {
       ) : (
         <>
           <div className="flex items-center justify-between">
-            <p className="text-sm text-slate-500">{trophies.length} {trophies.length !== 1 ? 'trophies' : 'trophy'}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{trophies.length} {trophies.length !== 1 ? 'trophies' : 'trophy'}</p>
             <Button variant="secondary" onClick={onAdd}>
               Add Trophy
             </Button>
@@ -120,13 +120,13 @@ export default function DocumentVaultPage() {
     <>
       <TopBar title="Document Vault" showBell={false} />
       <main className="mx-auto max-w-md space-y-5 px-5 py-6">
-        <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+        <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-700">
           <button
             onClick={() => setActiveTab('documents')}
             className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition ${
               activeTab === 'documents'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
+                ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             <FileText size={16} />
@@ -136,8 +136,8 @@ export default function DocumentVaultPage() {
             onClick={() => setActiveTab('trophies')}
             className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition ${
               activeTab === 'trophies'
-                ? 'bg-white text-amber-700 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
+                ? 'bg-white text-amber-700 shadow-sm dark:bg-slate-800'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             <Trophy size={16} />

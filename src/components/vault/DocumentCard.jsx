@@ -74,7 +74,7 @@ export default function DocumentCard({ doc, onClick, encryptionKey }) {
   return (
     <button
       onClick={() => onClick(doc)}
-      className="flex w-full items-start gap-3 rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-slate-100 transition hover:shadow-md"
+      className="flex w-full items-start gap-3 rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-slate-100 transition hover:shadow-md dark:bg-slate-800 dark:ring-slate-700"
     >
       <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${cat.iconBg} ${cat.iconColor}`}>
         <Icon size={18} />
@@ -82,12 +82,12 @@ export default function DocumentCard({ doc, onClick, encryptionKey }) {
 
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <p className="truncate text-sm font-semibold text-slate-900">{doc.title}</p>
+          <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{doc.title}</p>
           {canDownload && (
             <button
               onClick={handleDownload}
               disabled={downloading}
-              className="flex shrink-0 items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600 hover:bg-slate-200 disabled:opacity-50"
+              className="flex shrink-0 items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600 hover:bg-slate-200 disabled:opacity-50 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
             >
               {fileExtBadge(doc.fileName)}
               {downloading ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />}
@@ -100,14 +100,14 @@ export default function DocumentCard({ doc, onClick, encryptionKey }) {
             {cat.label}
           </span>
           {doc.date && (
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-slate-400 dark:text-slate-500">
               {format(doc.date, 'dd MMM yyyy')}
             </span>
           )}
         </div>
 
         {doc.notes && (
-          <p className="mt-1.5 line-clamp-2 text-xs text-slate-500">{doc.notes}</p>
+          <p className="mt-1.5 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">{doc.notes}</p>
         )}
       </div>
     </button>

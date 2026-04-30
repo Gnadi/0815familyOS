@@ -141,12 +141,12 @@ export default function QuickAddModal({ open, onClose }) {
   return (
     <Modal open={open} onClose={onClose} title="Quick Add">
       {/* Tab toggle */}
-      <div className="mb-4 flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+      <div className="mb-4 flex rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-600 dark:bg-slate-700">
         <button
           type="button"
           onClick={() => { setTab('event'); setError(''); }}
           className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition ${
-            tab === 'event' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            tab === 'event' ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
           }`}
         >
           <Calendar size={15} />
@@ -156,7 +156,7 @@ export default function QuickAddModal({ open, onClose }) {
           type="button"
           onClick={() => { setTab('task'); setError(''); }}
           className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition ${
-            tab === 'task' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            tab === 'task' ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
           }`}
         >
           <CheckSquare size={15} />
@@ -184,8 +184,8 @@ export default function QuickAddModal({ open, onClose }) {
             />
             {familyKids.length > 0 && (
               <div>
-                <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                  Child <span className="font-normal text-slate-400">(optional)</span>
+                <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Child <span className="font-normal text-slate-400 dark:text-slate-500">(optional)</span>
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {familyKids.map((kid) => {
@@ -214,7 +214,7 @@ export default function QuickAddModal({ open, onClose }) {
               </div>
             )}
             <div>
-              <span className="mb-1.5 block text-sm font-medium text-slate-700">Category</span>
+              <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">Category</span>
               <div className="flex flex-wrap gap-2">
                 {categories.map((cat) => {
                   const active = evCategory === cat.id;
@@ -226,7 +226,7 @@ export default function QuickAddModal({ open, onClose }) {
                       className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition ${
                         active
                           ? `${cat.chipBg} ${cat.chipText} border-transparent shadow-sm`
-                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
                       }`}
                     >
                       <span className={`h-2.5 w-2.5 rounded-full ${cat.dot}`} />
@@ -248,8 +248,8 @@ export default function QuickAddModal({ open, onClose }) {
               autoFocus
             />
             <div>
-              <span className="mb-1.5 block text-sm font-medium text-slate-700">Priority</span>
-              <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+              <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">Priority</span>
+              <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-600 dark:bg-slate-700">
                 {TASK_PRIORITIES.map((p) => (
                   <button
                     key={p.id}
@@ -258,7 +258,7 @@ export default function QuickAddModal({ open, onClose }) {
                     className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
                       taskPriority === p.id
                         ? PRIORITY_ACTIVE[p.id]
-                        : 'text-slate-500 hover:text-slate-700'
+                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                     }`}
                   >
                     {p.label}
@@ -267,7 +267,7 @@ export default function QuickAddModal({ open, onClose }) {
               </div>
             </div>
             <div>
-              <span className="mb-1.5 block text-sm font-medium text-slate-700">Category</span>
+              <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">Category</span>
               <div className="flex flex-wrap gap-2">
                 {TASK_CATEGORY_LIST.map((cat) => {
                   const active = taskCategory === cat.id;
@@ -279,7 +279,7 @@ export default function QuickAddModal({ open, onClose }) {
                       className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition ${
                         active
                           ? `${cat.chipBg} ${cat.chipText} border-transparent shadow-sm`
-                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
                       }`}
                     >
                       <span className={`h-2.5 w-2.5 rounded-full ${cat.dot}`} />

@@ -97,7 +97,7 @@ export default function CalendarPage() {
         <ViewToggle value={view} onChange={setView} />
         <FilterChips chips={chips} selected={activeFilters} onToggle={handleToggle} />
         {loading ? (
-          <p className="py-10 text-center text-sm text-slate-400">Loading events…</p>
+          <p className="py-10 text-center text-sm text-slate-400 dark:text-slate-500">Loading events…</p>
         ) : view === 'week' ? (
           <WeekView
             anchor={anchor}

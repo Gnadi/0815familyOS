@@ -45,13 +45,13 @@ function NewCategoryForm({ onCreated, onCancel, familyId }) {
   }
 
   return (
-    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-600 dark:bg-slate-700">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-slate-700">New category</span>
+        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">New category</span>
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-full p-1 text-slate-500 hover:bg-slate-200"
+          className="rounded-full p-1 text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-600"
           aria-label="Cancel"
         >
           <X size={14} />
@@ -63,7 +63,7 @@ function NewCategoryForm({ onCreated, onCancel, familyId }) {
         placeholder="e.g. Work, School, Pets"
         maxLength={24}
         autoFocus
-        className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+        className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100 dark:border-slate-600 dark:bg-slate-600 dark:text-white dark:placeholder-slate-400"
       />
       <div className="mt-3 flex flex-wrap gap-2">
         {PALETTE_COLORS.map((c) => {
@@ -117,13 +117,13 @@ function AddKidForm({ onCreated, onCancel, familyId, existingKidsCount }) {
   }
 
   return (
-    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-600 dark:bg-slate-700">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-slate-700">Add child</span>
+        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Add child</span>
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-full p-1 text-slate-500 hover:bg-slate-200"
+          className="rounded-full p-1 text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-600"
           aria-label="Cancel"
         >
           <X size={14} />
@@ -135,7 +135,7 @@ function AddKidForm({ onCreated, onCancel, familyId, existingKidsCount }) {
         placeholder="e.g. Emma, Noah"
         maxLength={24}
         autoFocus
-        className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+        className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100 dark:border-slate-600 dark:bg-slate-600 dark:text-white dark:placeholder-slate-400"
       />
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
       <div className="mt-3 flex justify-end">
@@ -319,15 +319,15 @@ export default function EventFormModal({
         {/* Kids */}
         {(familyKids.length > 0 || userDoc?.familyId) && (
           <div>
-            <span className="mb-1.5 block text-sm font-medium text-slate-700">
-              Child <span className="font-normal text-slate-400">(optional)</span>
+            <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
+              Child <span className="font-normal text-slate-400 dark:text-slate-500">(optional)</span>
             </span>
             <div className="flex flex-wrap gap-2">
               {familyKids.map((kid) => {
                 const active = kids.includes(kid.id);
                 const colorClass = active
                   ? (KID_CHIP_ACTIVE[kid.color] || 'bg-brand-500 text-white border-brand-500')
-                  : (KID_CHIP_COLORS[kid.color] || 'bg-slate-100 text-slate-700 border-slate-200');
+                  : (KID_CHIP_COLORS[kid.color] || 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600');
                 return (
                   <button
                     key={kid.id}
@@ -346,7 +346,7 @@ export default function EventFormModal({
                   className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
                     allKidsSelected
                       ? 'border-brand-500 bg-brand-500 text-white'
-                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
                   }`}
                 >
                   {familyKids.length === 2 ? 'Both' : 'All'}
@@ -356,7 +356,7 @@ export default function EventFormModal({
                 <button
                   type="button"
                   onClick={() => setAddingKid(true)}
-                  className="flex items-center gap-1 rounded-full border border-dashed border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-50"
+                  className="flex items-center gap-1 rounded-full border border-dashed border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400 dark:hover:bg-slate-600"
                 >
                   <Plus size={14} /> Add child
                 </button>
@@ -379,10 +379,10 @@ export default function EventFormModal({
         {/* Responsible */}
         {familyMembers.length > 0 && (
           <div>
-            <span className="mb-1.5 block text-sm font-medium text-slate-700">
-              Responsible <span className="font-normal text-slate-400">(optional)</span>
+            <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
+              Responsible <span className="font-normal text-slate-400 dark:text-slate-500">(optional)</span>
             </span>
-            <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+            <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-600 dark:bg-slate-700">
               {familyMembers.map((member) => (
                 <button
                   key={member.uid}
@@ -390,8 +390,8 @@ export default function EventFormModal({
                   onClick={() => toggleParent(member.displayName)}
                   className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
                     responsibleParent === member.displayName
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
+                      ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white'
+                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                   }`}
                 >
                   {member.displayName}
@@ -403,10 +403,10 @@ export default function EventFormModal({
 
         {/* Effort Level */}
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Effort Level <span className="font-normal text-slate-400">(optional)</span>
+          <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
+            Effort Level <span className="font-normal text-slate-400 dark:text-slate-500">(optional)</span>
           </span>
-          <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+          <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-600 dark:bg-slate-700">
             {[
               { value: 'low', label: 'Low', active: 'bg-white text-green-700 shadow-sm' },
               { value: 'medium', label: 'Medium', active: 'bg-white text-amber-600 shadow-sm' },
@@ -417,7 +417,7 @@ export default function EventFormModal({
                 type="button"
                 onClick={() => toggleEffort(value)}
                 className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
-                  effortLevel === value ? active : 'text-slate-500 hover:text-slate-700'
+                  effortLevel === value ? active : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
               >
                 {label}
@@ -427,7 +427,7 @@ export default function EventFormModal({
         </div>
 
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">Category</span>
+          <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">Category</span>
           <div className="flex flex-wrap gap-2">
             {categories.map((cat) => {
               const active = category === cat.id;
@@ -435,7 +435,7 @@ export default function EventFormModal({
               const isDeleting = deletingCategoryId === cat.id;
               const chipClasses = active
                 ? `${cat.chipBg} ${cat.chipText} border-transparent shadow-sm`
-                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50';
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600';
               return (
                 <div
                   key={cat.id}
@@ -472,7 +472,7 @@ export default function EventFormModal({
               <button
                 type="button"
                 onClick={() => setCreatingCategory(true)}
-                className="flex items-center gap-1 rounded-full border border-dashed border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-50"
+                className="flex items-center gap-1 rounded-full border border-dashed border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400 dark:hover:bg-slate-600"
               >
                 <Plus size={14} /> New
               </button>
@@ -492,14 +492,14 @@ export default function EventFormModal({
         </div>
 
         <label className="block">
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">
+          <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
             Notes (optional)
           </span>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-slate-400"
             placeholder="Add any special instructions or details..."
           />
         </label>

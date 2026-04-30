@@ -2,6 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Brand color palette — default: blue */
+:root {
+  --brand-50:  239 246 255;
+  --brand-100: 219 234 254;
+  --brand-200: 191 219 254;
+  --brand-400:  96 165 250;
+  --brand-500:  59 130 246;
+  --brand-600:  37  99 235;
+  --brand-700:  29  78 216;
+}
+
+/* Accent color presets */
+html.accent-purple {
+  --brand-50:  245 243 255;
+  --brand-100: 237 233 254;
+  --brand-200: 221 214 254;
+  --brand-400: 167 139 250;
+  --brand-500: 139  92 246;
+  --brand-600: 124  58 237;
+  --brand-700: 109  40 217;
+}
+html.accent-green {
+  --brand-50:  236 253 245;
+  --brand-100: 209 250 229;
+  --brand-200: 167 243 208;
+  --brand-400:  52 211 153;
+  --brand-500:  16 185 129;
+  --brand-600:   5 150 105;
+  --brand-700:   4 120  87;
+}
+html.accent-rose {
+  --brand-50:  255 241 242;
+  --brand-100: 255 228 230;
+  --brand-200: 254 205 211;
+  --brand-400: 251 113 133;
+  --brand-500: 244  63  94;
+  --brand-600: 225  29  72;
+  --brand-700: 190  18  60;
+}
+html.accent-amber {
+  --brand-50:  255 251 235;
+  --brand-100: 254 243 199;
+  --brand-200: 253 230 138;
+  --brand-400: 251 191  36;
+  --brand-500: 245 158  11;
+  --brand-600: 217 119   6;
+  --brand-700: 180  83   9;
+}
+
+/* Font size scale — all Tailwind rem units cascade */
+html.text-sm-scale { font-size: 14px; }
+html.text-lg-scale { font-size: 18px; }
+
 html, body, #root {
   height: 100%;
 }
@@ -11,6 +64,15 @@ body {
   -webkit-font-smoothing: antialiased;
   background-color: #F3F4F6;
   color: #0F172A;
+}
+
+.dark body {
+  background-color: #0F172A;
+  color: #F8FAFC;
+}
+
+.dark .shadow-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 @layer utilities {

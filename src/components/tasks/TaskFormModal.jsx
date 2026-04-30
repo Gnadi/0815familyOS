@@ -138,13 +138,13 @@ export default function TaskFormModal({
         />
 
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">Category</span>
+          <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">Category</span>
           <div className="flex flex-wrap gap-2">
             {TASK_CATEGORY_LIST.map((cat) => {
               const active = category === cat.id;
               const chip = active
                 ? `${cat.chipBg} ${cat.chipText} border-transparent shadow-sm`
-                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50';
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600';
               return (
                 <button
                   key={cat.id}
@@ -161,15 +161,15 @@ export default function TaskFormModal({
         </div>
 
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">Priority</span>
-          <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+          <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">Priority</span>
+          <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-600 dark:bg-slate-700">
             {TASK_PRIORITIES.map((p) => (
               <button
                 key={p.id}
                 type="button"
                 onClick={() => setPriority(p.id)}
                 className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
-                  priority === p.id ? PRIORITY_ACTIVE[p.id] : 'text-slate-500 hover:text-slate-700'
+                  priority === p.id ? PRIORITY_ACTIVE[p.id] : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
               >
                 {p.label}
@@ -198,15 +198,15 @@ export default function TaskFormModal({
         </div>
 
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">Status</span>
-          <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+          <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">Status</span>
+          <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-600 dark:bg-slate-700">
             {TASK_STATUSES.map((s) => (
               <button
                 key={s.id}
                 type="button"
                 onClick={() => setStatus(s.id)}
                 className={`flex-1 whitespace-nowrap rounded-lg px-1 py-2 text-xs font-medium transition ${
-                  status === s.id ? STATUS_ACTIVE[s.id] : 'text-slate-500 hover:text-slate-700'
+                  status === s.id ? STATUS_ACTIVE[s.id] : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
               >
                 {s.label}
@@ -218,7 +218,7 @@ export default function TaskFormModal({
         {status === 'inProgress' && (
           <div>
             <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-700">Progress</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Progress</span>
               <span className="text-sm font-semibold tabular-nums text-brand-600">
                 {progress}%
               </span>
@@ -237,8 +237,8 @@ export default function TaskFormModal({
 
         {familyMembers.length > 0 && (
           <div>
-            <span className="mb-1.5 block text-sm font-medium text-slate-700">
-              Assignees <span className="font-normal text-slate-400">(optional)</span>
+            <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
+              Assignees <span className="font-normal text-slate-400 dark:text-slate-500">(optional)</span>
             </span>
             <div className="flex flex-wrap gap-2">
               {familyMembers.map((m) => {
@@ -251,7 +251,7 @@ export default function TaskFormModal({
                     className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
                       active
                         ? 'border-brand-500 bg-brand-500 text-white'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
                     }`}
                   >
                     {m.displayName}
@@ -263,14 +263,14 @@ export default function TaskFormModal({
         )}
 
         <label className="block">
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Notes <span className="font-normal text-slate-400">(optional)</span>
+          <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
+            Notes <span className="font-normal text-slate-400 dark:text-slate-500">(optional)</span>
           </span>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-slate-400"
             placeholder="Schedule the technician for annual filter change and inspection."
           />
         </label>

@@ -34,18 +34,18 @@ export default function EventCard({ event, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-stretch gap-3 rounded-2xl bg-white p-4 text-left shadow-card hover:bg-slate-50"
+      className="flex w-full items-stretch gap-3 rounded-2xl bg-white p-4 text-left shadow-card hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700"
     >
       <div className="w-16 flex-shrink-0 text-right">
-        <p className="text-sm font-semibold text-slate-900">
+        <p className="text-sm font-semibold text-slate-900 dark:text-white">
           {format(event.date, 'HH:mm')}
         </p>
-        <p className="text-xs text-slate-400">{format(event.date, 'a')}</p>
+        <p className="text-xs text-slate-400 dark:text-slate-500">{format(event.date, 'a')}</p>
       </div>
       <div className={`w-1 flex-shrink-0 rounded-full ${barClass}`} />
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="truncate text-base font-semibold text-slate-900">{event.title}</h3>
+          <h3 className="truncate text-base font-semibold text-slate-900 dark:text-white">{event.title}</h3>
           {effort ? (
             <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${effort.badge}`}>
               {effort.label}
@@ -70,13 +70,13 @@ export default function EventCard({ event, onClick }) {
           </div>
         )}
         {event.responsibleParent && (
-          <div className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+          <div className="mt-1 flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
             <User size={12} className="flex-shrink-0" />
             {event.responsibleParent}
           </div>
         )}
         {event.description && (
-          <p className="mt-1 line-clamp-2 text-sm text-slate-500">{event.description}</p>
+          <p className="mt-1 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">{event.description}</p>
         )}
       </div>
     </button>

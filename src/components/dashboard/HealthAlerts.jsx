@@ -30,21 +30,21 @@ export default function HealthAlerts() {
 
   return (
     <section>
-      <h2 className="text-lg font-bold text-slate-900">Health Alerts</h2>
-      <div className="mt-3 rounded-2xl bg-red-50/60 p-5">
+      <h2 className="text-lg font-bold text-slate-900 dark:text-white">Health Alerts</h2>
+      <div className="mt-3 rounded-2xl bg-red-50/60 p-5 dark:bg-red-950/40">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-red-100 text-red-500">
             <Syringe size={18} />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-slate-900">Upcoming Vaccination</h3>
-            <p className="mt-1 text-sm text-slate-600">{description}</p>
+            <h3 className="text-base font-semibold text-slate-900 dark:text-white">Upcoming Vaccination</h3>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{description}</p>
           </div>
         </div>
         <button
           type="button"
           onClick={() => navigate('/health')}
-          className="mt-4 w-full rounded-full border border-red-200 bg-white px-5 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+          className="mt-4 w-full rounded-full border border-red-200 bg-white px-5 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 dark:border-red-800 dark:bg-slate-800 dark:hover:bg-red-950/40"
         >
           Show Details
         </button>

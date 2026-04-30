@@ -61,7 +61,7 @@ export default function TrophyCard({ trophy, onClick, encryptionKey }) {
 
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <p className="truncate text-sm font-semibold text-slate-900">{trophy.title}</p>
+          <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{trophy.title}</p>
           {canDownload && (
             <button
               onClick={handleDownload}
@@ -79,7 +79,7 @@ export default function TrophyCard({ trophy, onClick, encryptionKey }) {
             {cat.label}
           </span>
           {trophy.date && (
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-slate-400 dark:text-slate-500">
               {format(trophy.date, 'dd MMM yyyy')}
             </span>
           )}
@@ -93,7 +93,7 @@ export default function TrophyCard({ trophy, onClick, encryptionKey }) {
         )}
 
         {trophy.notes && (
-          <p className="mt-1.5 line-clamp-2 text-xs text-slate-500">{trophy.notes}</p>
+          <p className="mt-1.5 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">{trophy.notes}</p>
         )}
       </div>
     </button>
