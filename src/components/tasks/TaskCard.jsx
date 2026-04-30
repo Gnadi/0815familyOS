@@ -7,14 +7,14 @@ import { formatRelativeDay } from '../../utils/date';
 
 function dueChipClasses(task) {
   if (task.status === 'completed') {
-    return 'bg-slate-50 text-slate-500';
+    return 'bg-slate-50 text-slate-500 dark:bg-slate-700 dark:text-slate-400';
   }
   const today = startOfDay(new Date());
   const due = startOfDay(task.dueDate);
   if (isBefore(due, today) || isSameDay(due, today)) {
-    return 'bg-red-50 text-red-600';
+    return 'bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-400';
   }
-  return 'bg-slate-50 text-slate-600';
+  return 'bg-slate-50 text-slate-600 dark:bg-slate-700 dark:text-slate-300';
 }
 
 function formatDueLabel(task) {
@@ -57,7 +57,7 @@ function TaskCardBody({ task, members, dragging = false, overlay = false }) {
           )}
           {!overlay && (
             <span
-              className="flex h-6 w-6 items-center justify-center rounded-md text-slate-300"
+              className="flex h-6 w-6 items-center justify-center rounded-md text-slate-300 dark:text-slate-500"
               aria-hidden
             >
               <GripVertical size={14} />
@@ -68,24 +68,24 @@ function TaskCardBody({ task, members, dragging = false, overlay = false }) {
 
       <h3
         className={`mt-2 text-base font-semibold ${
-          isCompleted ? 'text-slate-400 line-through decoration-slate-300' : 'text-slate-900'
+          isCompleted ? 'text-slate-400 line-through decoration-slate-300 dark:text-slate-500' : 'text-slate-900 dark:text-white'
         }`}
       >
         {task.title}
       </h3>
       {task.description && (
-        <p className="mt-1 text-sm leading-snug text-slate-500 line-clamp-2">
+        <p className="mt-1 text-sm leading-snug text-slate-500 line-clamp-2 dark:text-slate-400">
           {task.description}
         </p>
       )}
 
       {isInProgress && (
         <div className="mt-3">
-          <div className="flex items-center justify-between text-[11px] font-medium text-slate-500">
+          <div className="flex items-center justify-between text-[11px] font-medium text-slate-500 dark:text-slate-400">
             <span>Progress</span>
-            <span className="tabular-nums text-slate-900">{task.progress || 0}%</span>
+            <span className="tabular-nums text-slate-900 dark:text-white">{task.progress || 0}%</span>
           </div>
-          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
             <div
               className="h-full rounded-full bg-brand-500"
               style={{ width: `${Math.min(100, task.progress || 0)}%` }}
@@ -113,7 +113,7 @@ function TaskCardBody({ task, members, dragging = false, overlay = false }) {
             <Calendar size={12} />
             {formatDueLabel(task)}
           </span>
-          <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-600">
+          <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
             {task.points || 0} pts
           </span>
         </div>
@@ -127,7 +127,7 @@ function TaskCardBody({ task, members, dragging = false, overlay = false }) {
 // already handles its own positioning).
 export function TaskCardPreview({ task, members }) {
   return (
-    <div className="w-full cursor-grabbing rounded-2xl bg-white p-4 text-left shadow-xl ring-2 ring-brand-400">
+    <div className="w-full cursor-grabbing rounded-2xl bg-white p-4 text-left shadow-xl ring-2 ring-brand-400 dark:bg-slate-800">
       <TaskCardBody task={task} members={members} overlay />
     </div>
   );
@@ -146,7 +146,7 @@ export default function TaskCard({ task, members, onClick }) {
       onClick={() => onClick?.(task)}
       {...listeners}
       {...attributes}
-      className={`block w-full touch-none cursor-grab rounded-2xl bg-white p-4 text-left shadow-card transition hover:shadow-md active:cursor-grabbing active:scale-[0.99] ${
+      className={`block w-full touch-none cursor-grab rounded-2xl bg-white p-4 text-left shadow-card transition hover:shadow-md active:cursor-grabbing active:scale-[0.99] dark:bg-slate-800 ${
         isDragging ? 'opacity-30' : ''
       }`}
     >

@@ -37,8 +37,8 @@ export default function GiftPlannerPage() {
       <TopBar title="Gift Planner" />
       <main className="mx-auto max-w-md px-5 py-5 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Gift Planner</h1>
-          <p className="text-sm text-slate-500">Organizing the magic for the season.</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Gift Planner</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Organizing the magic for the season.</p>
         </div>
 
         <GiftBudgetCard
@@ -52,9 +52,9 @@ export default function GiftPlannerPage() {
             <Spinner />
           </div>
         ) : kids.length === 0 ? (
-          <div className="rounded-2xl bg-white px-5 py-8 text-center shadow-card">
-            <p className="font-semibold text-slate-700">No kids added yet</p>
-            <p className="mt-1 text-sm text-slate-400">
+          <div className="rounded-2xl bg-white px-5 py-8 text-center shadow-card dark:bg-slate-800">
+            <p className="font-semibold text-slate-700 dark:text-slate-200">No kids added yet</p>
+            <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
               Add your children in Settings to start planning gifts.
             </p>
           </div>

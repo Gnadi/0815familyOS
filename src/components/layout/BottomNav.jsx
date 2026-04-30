@@ -19,7 +19,7 @@ function NavItem({ to, label, Icon, showLabel }) {
       to={to}
       className={({ isActive }) =>
         `flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs ${
-          isActive ? 'text-brand-600' : 'text-slate-500'
+          isActive ? 'text-brand-600' : 'text-slate-500 dark:text-slate-400'
         }`
       }
     >
@@ -33,7 +33,7 @@ export default function BottomNav({ onAdd }) {
   const { userDoc } = useAuth();
   const showLabel = !userDoc?.hideNavLabels;
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white safe-bottom">
+    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white safe-bottom dark:border-slate-700 dark:bg-slate-800">
       <div className="mx-auto flex h-16 max-w-md items-center">
         {items.map((it) => (
           <NavItem key={it.to} {...it} showLabel={showLabel} />

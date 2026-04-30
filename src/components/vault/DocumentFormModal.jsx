@@ -40,10 +40,10 @@ function NewCategoryForm({ onCreated, onCancel, familyId, vaultType }) {
   }
 
   return (
-    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-600 dark:bg-slate-700">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-slate-700">New category</span>
-        <button type="button" onClick={onCancel} className="rounded-full p-1 text-slate-500 hover:bg-slate-200">
+        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">New category</span>
+        <button type="button" onClick={onCancel} className="rounded-full p-1 text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-600">
           <X size={14} />
         </button>
       </div>
@@ -53,7 +53,7 @@ function NewCategoryForm({ onCreated, onCancel, familyId, vaultType }) {
         placeholder="e.g. Tax, Awards, Hobbies"
         maxLength={24}
         autoFocus
-        className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+        className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100 dark:border-slate-600 dark:bg-slate-600 dark:text-white dark:placeholder-slate-400"
       />
       <div className="mt-3 flex flex-wrap gap-2">
         {PALETTE_COLORS.map((c) => {
@@ -260,7 +260,7 @@ export default function DocumentFormModal({
         />
 
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">Category</span>
+          <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">Category</span>
           <div className="flex flex-wrap gap-2">
             {cats.map((cat) => {
               const active = category === cat.id;
@@ -268,7 +268,7 @@ export default function DocumentFormModal({
               const isDeleting = deletingCategoryId === cat.id;
               const chip = active
                 ? `${cat.chipBg} ${cat.chipText} border-transparent shadow-sm`
-                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50';
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600';
               return (
                 <div
                   key={cat.id}
@@ -301,7 +301,7 @@ export default function DocumentFormModal({
               <button
                 type="button"
                 onClick={() => setCreatingCategory(true)}
-                className="flex items-center gap-1 rounded-full border border-dashed border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-50"
+                className="flex items-center gap-1 rounded-full border border-dashed border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400 dark:hover:bg-slate-600"
               >
                 <Plus size={14} /> New
               </button>
@@ -330,8 +330,8 @@ export default function DocumentFormModal({
 
         {isTrophy && peopleOptions.length > 0 && (
           <div>
-            <span className="mb-1.5 block text-sm font-medium text-slate-700">
-              Awarded to <span className="font-normal text-slate-400">(optional)</span>
+            <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
+              Awarded to <span className="font-normal text-slate-400 dark:text-slate-500">(optional)</span>
             </span>
             <div className="flex flex-wrap gap-2">
               {peopleOptions.map((name) => {
@@ -344,8 +344,8 @@ export default function DocumentFormModal({
                     className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
                       active
                         ? 'border-amber-400 bg-amber-400 text-white'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                    }`}
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                    }`
                   >
                     {name}
                   </button>
@@ -356,13 +356,13 @@ export default function DocumentFormModal({
         )}
 
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Attachment <span className="font-normal text-slate-400">(optional · PDF, DOCX, XLS, XLSX · max 2 GB)</span>
+          <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
+            Attachment <span className="font-normal text-slate-400 dark:text-slate-500">(optional · PDF, DOCX, XLS, XLSX · max 2 GB)</span>
           </span>
           {file ? (
-            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-              <span className="truncate text-sm text-slate-700">{file.name}</span>
-              <button type="button" onClick={clearFile} className="ml-2 shrink-0 text-slate-400 hover:text-slate-600">
+            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-600 dark:bg-slate-700">
+              <span className="truncate text-sm text-slate-700 dark:text-slate-200">{file.name}</span>
+              <button type="button" onClick={clearFile} className="ml-2 shrink-0 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300">
                 <X size={16} />
               </button>
             </div>
@@ -370,7 +370,7 @@ export default function DocumentFormModal({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm text-slate-500 hover:border-slate-400 hover:bg-slate-50 transition"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm text-slate-500 hover:border-slate-400 hover:bg-slate-50 transition dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400 dark:hover:bg-slate-600"
             >
               <Paperclip size={16} />
               {initial?.fileUrl ? 'Replace file' : 'Attach file'}
@@ -388,14 +388,14 @@ export default function DocumentFormModal({
         </div>
 
         <label className="block">
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Notes <span className="font-normal text-slate-400">(optional)</span>
+          <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
+            Notes <span className="font-normal text-slate-400 dark:text-slate-500">(optional)</span>
           </span>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-slate-400"
             placeholder={isTrophy ? 'Level 3 completed — June 2025' : 'Expires June 2030'}
           />
         </label>

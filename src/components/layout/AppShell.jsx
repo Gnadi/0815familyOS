@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import BottomNav from './BottomNav';
 import EventFormModal from '../calendar/EventFormModal';
@@ -16,6 +16,20 @@ export default function AppShell() {
   const isGiftsRoute  = location.pathname.startsWith('/gifts');
   const isVaultRoute  = location.pathname.startsWith('/vault');
   const isHealthRoute = location.pathname.startsWith('/health');
+
+  useEffect(() => {
+    const html = document.documentElement;
+    html.classList.toggle('dark', !!userDoc?.darkTheme);
+
+    html.classList.remove('text-sm-scale', 'text-lg-scale');
+    if (userDoc?.fontSize === 'sm') html.classList.add('text-sm-scale');
+    if (userDoc?.fontSize === 'lg') html.classList.add('text-lg-scale');
+
+    html.classList.remove('accent-purple', 'accent-green', 'accent-rose', 'accent-amber');
+    if (userDoc?.accentColor && userDoc.accentColor !== 'blue') {
+      html.classList.add(`accent-${userDoc.accentColor}`);
+    }
+  }, [userDoc?.darkTheme, userDoc?.fontSize, userDoc?.accentColor]);
 
   const [adding, setAdding] = useState(false);
   const [createDefaultDate, setCreateDefaultDate] = useState(null);
@@ -48,7 +62,7 @@ export default function AppShell() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-24">
       <Outlet context={{ setCreateDefaultDate, setVaultAdd, setHealthFabCallback }} />
       <BottomNav onAdd={handleFab} />
       {!isVaultRoute && !isHealthRoute && (

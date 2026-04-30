@@ -21,12 +21,12 @@ export default function GiftRecipientSection({ kid, gifts, onEdit }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className={`h-3 w-3 rounded-full ${dotColor}`} />
-          <h3 className="text-base font-bold text-slate-900">{kid.name}</h3>
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">{kid.name}</h3>
         </div>
-        <span className="text-sm text-slate-500">${spent.toFixed(2)} Spent</span>
+        <span className="text-sm text-slate-500 dark:text-slate-400">${spent.toFixed(2)} Spent</span>
       </div>
       {gifts.length === 0 ? (
-        <p className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-400 shadow-card">
+        <p className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-400 shadow-card dark:bg-slate-800 dark:text-slate-500">
           No gifts added yet — tap + to add one.
         </p>
       ) : (

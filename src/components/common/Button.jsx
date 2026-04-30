@@ -15,9 +15,9 @@ export default function Button({
   };
   const variants = {
     primary: 'bg-brand-500 text-white shadow-sm hover:bg-brand-600',
-    secondary: 'bg-white text-slate-900 border border-slate-200 hover:bg-slate-50',
-    ghost: 'text-brand-600 hover:bg-brand-50',
-    danger: 'bg-white text-red-600 border border-red-200 hover:bg-red-50',
+    secondary: 'bg-white text-slate-900 border border-slate-200 hover:bg-slate-50 dark:bg-slate-700 dark:text-white dark:border-slate-600 dark:hover:bg-slate-600',
+    ghost: 'text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-slate-700',
+    danger: 'bg-white text-red-600 border border-red-200 hover:bg-red-50 dark:bg-slate-700 dark:border-red-800 dark:hover:bg-red-950/40',
   };
   return (
     <button

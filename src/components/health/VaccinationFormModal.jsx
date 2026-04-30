@@ -90,15 +90,15 @@ export default function VaccinationFormModal({ open, onClose, onSubmit, onDelete
         />
 
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">Status</span>
-          <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+          <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">Status</span>
+          <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-600 dark:bg-slate-700">
             {STATUSES.map((s) => (
               <button
                 key={s.id}
                 type="button"
                 onClick={() => setStatus(s.id)}
                 className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
-                  status === s.id ? STATUS_ACTIVE[s.id] : 'text-slate-500 hover:text-slate-700'
+                  status === s.id ? STATUS_ACTIVE[s.id] : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
               >
                 {s.label}

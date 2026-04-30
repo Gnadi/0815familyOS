@@ -15,8 +15,8 @@ export default function DashboardPage() {
       <TopBar />
       <main className="mx-auto max-w-md space-y-7 px-5 py-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Hello, {name}</h1>
-          <p className="mt-1 text-sm text-slate-500">Here's what's happening today.</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Hello, {name}</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Here's what's happening today.</p>
         </div>
         <DailyPreview />
         <WeeklyPreview />

@@ -56,26 +56,26 @@ export default function DailyPreview() {
   return (
     <section>
       <div className="flex items-end justify-between">
-        <h2 className="text-lg font-bold text-slate-900">Today</h2>
-        <span className="text-sm text-slate-400">{todayLabel}</span>
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white">Today</h2>
+        <span className="text-sm text-slate-400 dark:text-slate-500">{todayLabel}</span>
       </div>
 
-      <div className="mt-3 rounded-2xl bg-white shadow-card">
+      <div className="mt-3 rounded-2xl bg-white shadow-card dark:bg-slate-800">
         {loading ? (
-          <div className="px-4 py-6 text-center text-sm text-slate-400">Loading…</div>
+          <div className="px-4 py-6 text-center text-sm text-slate-400 dark:text-slate-500">Loading…</div>
         ) : isEmpty ? (
           <div className="flex flex-col items-center px-4 py-8 text-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-50 text-amber-400">
               <Sun size={18} />
             </div>
-            <p className="mt-2 text-sm font-medium text-slate-700">Nothing scheduled for today</p>
-            <p className="mt-0.5 text-xs text-slate-400">Enjoy the free time — or add something below.</p>
+            <p className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">Nothing scheduled for today</p>
+            <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">Enjoy the free time — or add something below.</p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-slate-700">
             {todayEvents.length > 0 && (
               <div className="px-4 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                   Events
                 </p>
                 <ul className="space-y-2.5">
@@ -91,14 +91,14 @@ export default function DailyPreview() {
                           <Calendar size={15} />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-slate-900">{ev.title}</p>
+                          <p className="truncate text-sm font-medium text-slate-900 dark:text-white">{ev.title}</p>
                           {meta ? (
-                            <p className="mt-0.5 truncate text-xs text-slate-500">{meta}</p>
+                            <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">{meta}</p>
                           ) : (
                             <p className={`mt-0.5 truncate text-xs ${cat.chipText}`}>{cat.label}</p>
                           )}
                         </div>
-                        <span className="mt-0.5 flex-shrink-0 text-xs font-medium text-slate-500">
+                        <span className="mt-0.5 flex-shrink-0 text-xs font-medium text-slate-500 dark:text-slate-400">
                           {format(ev.date, 'p')}
                         </span>
                       </li>
@@ -110,7 +110,7 @@ export default function DailyPreview() {
 
             {todayTasks.length > 0 && (
               <div className="px-4 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                   Tasks due today
                 </p>
                 {flatFallback ? (
@@ -121,7 +121,7 @@ export default function DailyPreview() {
                   <div className="space-y-3">
                     {taskGroups.map((group) => (
                       <div key={group.name}>
-                        <p className="mb-1.5 text-xs font-semibold text-slate-700">{group.name}</p>
+                        <p className="mb-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">{group.name}</p>
                         <ul className="space-y-1.5">
                           {group.tasks.map((task) => <TaskRow key={task.id} task={task} indent />)}
                         </ul>
@@ -138,7 +138,7 @@ export default function DailyPreview() {
           <button
             type="button"
             onClick={() => setShowAdd(true)}
-            className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 py-2.5 text-sm font-semibold text-brand-600 transition hover:bg-slate-50"
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 py-2.5 text-sm font-semibold text-brand-600 transition hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-700"
           >
             <Plus size={16} />
             Add event or task
@@ -156,10 +156,10 @@ function TaskRow({ task, indent = false }) {
   const prio = TASK_PRIORITY_MAP[task.priority];
   return (
     <li className={`flex items-center gap-2 ${indent ? 'pl-1' : ''}`}>
-      <CheckSquare size={14} className="flex-shrink-0 text-slate-300" />
-      <span className="min-w-0 flex-1 truncate text-sm text-slate-800">{task.title}</span>
+      <CheckSquare size={14} className="flex-shrink-0 text-slate-300 dark:text-slate-500" />
+      <span className="min-w-0 flex-1 truncate text-sm text-slate-800 dark:text-slate-200">{task.title}</span>
       {prio && (
-        <span className="flex flex-shrink-0 items-center gap-1 text-xs text-slate-400">
+        <span className="flex flex-shrink-0 items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
           <span className={`h-1.5 w-1.5 rounded-full ${prio.dot}`} />
           {prio.label}
         </span>
