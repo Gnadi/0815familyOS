@@ -227,7 +227,7 @@ export default function QuickAddModal({ open, onClose }) {
                         active
                           ? `${cat.chipBg} ${cat.chipText} border-transparent shadow-sm`
                           : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-                      }`
+                      }`}
                     >
                       <span className={`h-2.5 w-2.5 rounded-full ${cat.dot}`} />
                       {cat.label}
@@ -280,7 +280,7 @@ export default function QuickAddModal({ open, onClose }) {
                         active
                           ? `${cat.chipBg} ${cat.chipText} border-transparent shadow-sm`
                           : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-                      }`
+                      }`}
                     >
                       <span className={`h-2.5 w-2.5 rounded-full ${cat.dot}`} />
                       {cat.label}

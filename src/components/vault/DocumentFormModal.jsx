@@ -345,7 +345,7 @@ export default function DocumentFormModal({
                       active
                         ? 'border-amber-400 bg-amber-400 text-white'
                         : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-                    }`
+                    }`}
                   >
                     {name}
                   </button>

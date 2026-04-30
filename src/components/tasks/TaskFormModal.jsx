@@ -252,7 +252,7 @@ export default function TaskFormModal({
                       active
                         ? 'border-brand-500 bg-brand-500 text-white'
                         : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-                    }`
+                    }`}
                   >
                     {m.displayName}
                   </button>

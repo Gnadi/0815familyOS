@@ -99,7 +99,7 @@ export default function GiftFormModal({ open, onClose, onSubmit, onDelete, initi
                     kidId === kid.id
                       ? 'border-brand-500 bg-brand-500 text-white'
                       : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-                  }`
+                  }`}
                 >
                   {kid.name}
                 </button>
