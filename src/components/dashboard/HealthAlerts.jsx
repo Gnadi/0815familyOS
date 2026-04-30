@@ -1,6 +1,33 @@
 import { Syringe } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import useAuth from '../../hooks/useAuth';
+import useVaccinations from '../../hooks/useVaccinations';
 
 export default function HealthAlerts() {
+  const { userDoc, family } = useAuth();
+  const { vaccinations } = useVaccinations(userDoc?.familyId);
+  const navigate = useNavigate();
+
+  const now = new Date();
+  const dueThisMonth = vaccinations
+    .filter(
+      (v) =>
+        v.status !== 'done' &&
+        v.date &&
+        v.date.getMonth() === now.getMonth() &&
+        v.date.getFullYear() === now.getFullYear(),
+    )
+    .sort((a, b) => a.date - b.date);
+
+  if (dueThisMonth.length === 0) return null;
+
+  const first = dueThisMonth[0];
+  const kid = (family?.kids || []).find((k) => k.id === first.kidId);
+  const description =
+    dueThisMonth.length === 1
+      ? `${kid?.name ?? 'A child'} is due for ${first.name} this month.`
+      : `${dueThisMonth.length} vaccinations are due this month.`;
+
   return (
     <section>
       <h2 className="text-lg font-bold text-slate-900">Health Alerts</h2>
@@ -11,16 +38,15 @@ export default function HealthAlerts() {
           </div>
           <div>
             <h3 className="text-base font-semibold text-slate-900">Upcoming Vaccination</h3>
-            <p className="mt-1 text-sm text-slate-600">
-              A child is due for a booster shot soon. Schedule an appointment when you can.
-            </p>
+            <p className="mt-1 text-sm text-slate-600">{description}</p>
           </div>
         </div>
         <button
           type="button"
+          onClick={() => navigate('/health')}
           className="mt-4 w-full rounded-full border border-red-200 bg-white px-5 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
         >
-          Book Appointment
+          Show Details
         </button>
       </div>
     </section>
