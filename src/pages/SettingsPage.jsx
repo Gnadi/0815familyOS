@@ -7,6 +7,7 @@ import useUIPreferences from '../hooks/useUIPreferences';
 import { THEMES } from '../context/UIPreferencesContext';
 import { addKid, removeKid, updateKid } from '../services/families';
 import { exportFamilyData } from '../utils/exportFamily';
+import CalendarImportSection from '../components/settings/CalendarImportSection';
 
 export default function SettingsPage() {
   const { user, userDoc, family, signOut } = useAuth();
@@ -211,6 +212,8 @@ export default function SettingsPage() {
             </form>
           </section>
         )}
+
+        {family && <CalendarImportSection />}
 
         {family && (
           <section className="rounded-2xl bg-white p-5 shadow-card">

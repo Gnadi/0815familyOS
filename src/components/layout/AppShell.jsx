@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import BottomNav from './BottomNav';
 import EventFormModal from '../calendar/EventFormModal';
@@ -8,6 +8,9 @@ import useAuth from '../../hooks/useAuth';
 import { createEvent } from '../../services/events';
 import { createTask } from '../../services/tasks';
 import { createGift } from '../../services/gifts';
+import { syncSubscription, updateSubscriptionMeta } from '../../services/calendarSubscriptions';
+
+const SYNC_STALE_MS = 60 * 60 * 1000; // re-sync subscriptions older than 1 hour
 
 export default function AppShell() {
   const { user, userDoc, family } = useAuth();
@@ -25,6 +28,29 @@ export default function AppShell() {
 
   // VaccinationPage registers a callback to open its own add-vaccination modal
   const [healthFabCallback, setHealthFabCallback] = useState(null);
+
+  // Re-sync any stale calendar subscriptions in the background once per
+  // session. Intentionally fire-and-forget; errors land in the subscription's
+  // lastError field and surface in Settings.
+  const syncedThisSession = useRef(new Set());
+  useEffect(() => {
+    if (!family?.id || !user?.uid) return;
+    const subs = family.calendarSubscriptions || [];
+    const now = Date.now();
+    for (const sub of subs) {
+      if (!sub?.id || syncedThisSession.current.has(sub.id)) continue;
+      const last = sub.lastSyncAt ? new Date(sub.lastSyncAt).getTime() : 0;
+      if (now - last < SYNC_STALE_MS) continue;
+      syncedThisSession.current.add(sub.id);
+      syncSubscription({ familyId: family.id, userId: user.uid, subscription: sub }).catch(
+        (err) => {
+          updateSubscriptionMeta(family.id, sub.id, {
+            lastError: err.message || 'Background sync failed.',
+          }).catch(() => {});
+        },
+      );
+    }
+  }, [family?.id, user?.uid, family?.calendarSubscriptions]);
 
   async function handleCreateEvent(values) {
     await createEvent({ familyId: userDoc.familyId, userId: user.uid, ...values });

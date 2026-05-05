@@ -292,9 +292,18 @@ export default function EventFormModal({
   const allKidsSelected =
     familyKids.length >= 2 && familyKids.every((k) => kids.includes(k.id));
 
+  const isSubscribed = Boolean(initial?.source === 'subscription');
+
   return (
     <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Event' : 'New Event'}>
       <form onSubmit={handleSubmit} className="space-y-4">
+        {isSubscribed && (
+          <div className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            This event is synced from an external calendar. Any edits here will
+            be overwritten the next time it syncs — change it in the original
+            calendar instead.
+          </div>
+        )}
         <Input
           label="Title"
           value={title}
