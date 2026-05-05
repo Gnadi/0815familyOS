@@ -100,6 +100,34 @@ body {
 [data-mode="dark"] .border-slate-300 { border-color: rgb(71 85 105); }
 [data-mode="dark"] .hover\:border-slate-400:hover { border-color: rgb(100 116 139); }
 
+[data-mode="dark"] .bg-white\/60 { background-color: rgb(30 41 59 / 0.6); }
+[data-mode="dark"] .bg-white\/80 { background-color: rgb(30 41 59 / 0.8); }
+[data-mode="dark"] .bg-white\/90 { background-color: rgb(30 41 59 / 0.9); }
+
+[data-mode="dark"] .bg-emerald-50  { background-color: rgb(6   78  59);  }
+[data-mode="dark"] .bg-emerald-100 { background-color: rgb(6   95  70);  }
+[data-mode="dark"] .bg-violet-50   { background-color: rgb(76  29  149); }
+[data-mode="dark"] .bg-violet-100  { background-color: rgb(91  33  182); }
+[data-mode="dark"] .bg-red-50      { background-color: rgb(127 29  29);  }
+[data-mode="dark"] .bg-red-100     { background-color: rgb(153 27  27);  }
+[data-mode="dark"] .bg-rose-100    { background-color: rgb(136 19  55);  }
+[data-mode="dark"] .bg-amber-50    { background-color: rgb(120 53  15);  }
+[data-mode="dark"] .bg-amber-100   { background-color: rgb(146 64  14);  }
+[data-mode="dark"] .bg-pink-50     { background-color: rgb(131 24  67);  }
+[data-mode="dark"] .bg-pink-100    { background-color: rgb(157 23  77);  }
+[data-mode="dark"] .bg-cyan-50     { background-color: rgb(22  78  99);  }
+[data-mode="dark"] .bg-teal-50     { background-color: rgb(19  78  74);  }
+[data-mode="dark"] .bg-teal-100    { background-color: rgb(17  94  89);  }
+[data-mode="dark"] .bg-sky-50      { background-color: rgb(12  74  110); }
+[data-mode="dark"] .bg-sky-100     { background-color: rgb(7   89  133); }
+[data-mode="dark"] .bg-orange-50   { background-color: rgb(124 45  18);  }
+[data-mode="dark"] .bg-orange-100  { background-color: rgb(154 52  18);  }
+[data-mode="dark"] .bg-indigo-50   { background-color: rgb(49  46  129); }
+[data-mode="dark"] .bg-indigo-100  { background-color: rgb(55  48  163); }
+[data-mode="dark"] .bg-blue-50     { background-color: rgb(30  58  138); }
+[data-mode="dark"] .bg-blue-100    { background-color: rgb(30  64  175); }
+[data-mode="dark"] .bg-green-100   { background-color: rgb(22  101 52);  }
+
 @layer utilities {
   .safe-bottom {
     padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
