@@ -5,12 +5,16 @@ import { formatRelativeDay, upcomingEvents } from '../../utils/date';
 import useEvents from '../../hooks/useEvents';
 import useAuth from '../../hooks/useAuth';
 import useCategories from '../../hooks/useCategories';
+import { expandEventsInRange } from '../../utils/recurrence';
 
 export default function WeeklyPreview() {
   const { userDoc } = useAuth();
   const { get: getCat } = useCategories();
   const { events, loading } = useEvents(userDoc?.familyId);
-  const next = upcomingEvents(events, new Date(), 3);
+  const today = new Date();
+  const horizon = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 30, 23, 59, 59);
+  const expanded = expandEventsInRange(events, today, horizon).sort((a, b) => a.date - b.date);
+  const next = upcomingEvents(expanded, new Date(), 3);
 
   return (
     <section>

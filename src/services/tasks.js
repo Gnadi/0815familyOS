@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { DEFAULT_TASK_CATEGORY } from '../constants/taskCategories';
+import { nextOccurrenceAfter } from '../utils/recurrence';
 
 const tasksRef = collection(db, 'tasks');
 
@@ -39,6 +40,15 @@ function toDate(value) {
   return value?.toDate ? value.toDate() : value;
 }
 
+function normalizeRecurrence(rec) {
+  if (!rec || !rec.freq) return null;
+  const freq = ['daily', 'weekly', 'monthly', 'yearly'].includes(rec.freq) ? rec.freq : null;
+  if (!freq) return null;
+  const interval = Math.max(1, Math.min(99, Math.round(Number(rec.interval) || 1)));
+  const until = rec.until ? String(rec.until) : null;
+  return { freq, interval, until };
+}
+
 export function subscribeTasks(familyId, cb) {
   // Single-field `familyId` query only — Firestore auto-indexes this so we
   // don't need a composite index. Sort client-side; a family's task list is
@@ -57,6 +67,7 @@ export function subscribeTasks(familyId, cb) {
           points: Number(data.points) || 0,
           progress: Number(data.progress) || 0,
           assigneeIds: Array.isArray(data.assigneeIds) ? data.assigneeIds : [],
+          recurrence: normalizeRecurrence(data.recurrence),
           dueDate: toDate(data.dueDate),
           completedAt: toDate(data.completedAt),
           createdAt: toDate(data.createdAt),
@@ -83,6 +94,7 @@ export function createTask({
   dueDate,
   assigneeIds,
   progress,
+  recurrence,
 }) {
   const normStatus = normalizeStatus(status);
   return addDoc(tasksRef, {
@@ -97,6 +109,7 @@ export function createTask({
     dueDate: Timestamp.fromDate(dueDate),
     assigneeIds: Array.isArray(assigneeIds) ? assigneeIds : [],
     progress: clampProgress(progress, normStatus),
+    recurrence: normalizeRecurrence(recurrence),
     completedAt: normStatus === 'completed' ? serverTimestamp() : null,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -115,8 +128,33 @@ export function updateTask(id, fields) {
     assigneeIds,
     progress,
     previousStatus,
+    recurrence,
   } = fields;
   const normStatus = normalizeStatus(status);
+  const normRec = normalizeRecurrence(recurrence);
+
+  // Recurring task being marked completed → roll forward to next occurrence
+  // and reset to "planned" instead of finishing the series.
+  if (normStatus === 'completed' && previousStatus !== 'completed' && normRec) {
+    const next = nextOccurrenceAfter(dueDate, normRec);
+    if (next) {
+      return updateDoc(doc(db, 'tasks', id), {
+        title: title.trim(),
+        description: description?.trim() || '',
+        status: 'planned',
+        priority: normalizePriority(priority),
+        category: normalizeCategory(category),
+        points: Math.max(0, Number(points) || 0),
+        dueDate: Timestamp.fromDate(next),
+        assigneeIds: Array.isArray(assigneeIds) ? assigneeIds : [],
+        progress: 0,
+        recurrence: normRec,
+        completedAt: null,
+        updatedAt: serverTimestamp(),
+      });
+    }
+  }
+
   const payload = {
     title: title.trim(),
     description: description?.trim() || '',
@@ -127,6 +165,7 @@ export function updateTask(id, fields) {
     dueDate: Timestamp.fromDate(dueDate),
     assigneeIds: Array.isArray(assigneeIds) ? assigneeIds : [],
     progress: clampProgress(progress, normStatus),
+    recurrence: normRec,
     updatedAt: serverTimestamp(),
   };
   if (normStatus === 'completed' && previousStatus !== 'completed') {
@@ -139,10 +178,26 @@ export function updateTask(id, fields) {
 
 // Lightweight status-only update for drag-and-drop. Handles the same
 // completedAt/progress transitions as updateTask without requiring the full
-// task payload.
-export function updateTaskStatus(id, status, previousStatus) {
+// task payload. For recurring tasks moved to "completed", roll forward to
+// the next occurrence and reset to "planned".
+export function updateTaskStatus(id, status, previousStatus, task = null) {
   const normStatus = normalizeStatus(status);
   if (normStatus === previousStatus) return Promise.resolve();
+
+  const rec = normalizeRecurrence(task?.recurrence);
+  if (normStatus === 'completed' && previousStatus !== 'completed' && rec && task?.dueDate) {
+    const next = nextOccurrenceAfter(task.dueDate, rec);
+    if (next) {
+      return updateDoc(doc(db, 'tasks', id), {
+        status: 'planned',
+        progress: 0,
+        completedAt: null,
+        dueDate: Timestamp.fromDate(next),
+        updatedAt: serverTimestamp(),
+      });
+    }
+  }
+
   const payload = {
     status: normStatus,
     updatedAt: serverTimestamp(),

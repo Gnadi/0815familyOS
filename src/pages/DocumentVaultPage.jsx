@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { FileText, Trophy } from 'lucide-react';
+import { FileText, Search, Trophy, X } from 'lucide-react';
 import TopBar from '../components/layout/TopBar';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
@@ -86,9 +86,22 @@ export default function DocumentVaultPage() {
 
   const [activeTab, setActiveTab] = useState('documents');
   const [modal, setModal] = useState(null); // null | { type, initial? }
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const docs = documents.filter((d) => d.type === 'document');
-  const trophies = documents.filter((d) => d.type === 'trophy');
+  const filteredDocuments = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return documents;
+    return documents.filter((d) => {
+      const haystack = [d.title, d.category, d.notes, d.kidName]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [documents, searchQuery]);
+
+  const docs = filteredDocuments.filter((d) => d.type === 'document');
+  const trophies = filteredDocuments.filter((d) => d.type === 'trophy');
 
   useEffect(() => {
     setVaultAdd?.(() => () =>
@@ -120,6 +133,27 @@ export default function DocumentVaultPage() {
     <>
       <TopBar title="Document Vault" showBell={false} />
       <main className="mx-auto max-w-md space-y-5 px-5 py-6">
+        <div className="relative">
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search documents and trophies…"
+            className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-9 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              aria-label="Clear search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
         <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
           <button
             onClick={() => setActiveTab('documents')}

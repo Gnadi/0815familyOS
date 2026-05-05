@@ -98,6 +98,20 @@ service cloud.firestore {
         && request.auth.uid in familyMembers(resource.data.familyId);
     }
 
+    // Shopping list: shared per family, every member may read/write.
+    match /shoppingItems/{itemId} {
+      function familyMembers(fid) {
+        return get(/databases/$(database)/documents/families/$(fid)).data.memberIds;
+      }
+      allow read: if request.auth != null
+        && request.auth.uid in familyMembers(resource.data.familyId);
+      allow create: if request.auth != null
+        && request.auth.uid in familyMembers(request.resource.data.familyId)
+        && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null
+        && request.auth.uid in familyMembers(resource.data.familyId);
+    }
+
     // Vaccinations: only family members may read or write records.
     // Each record is tied to a kidId (child within the family) and the
     // creating user. Any family member can edit or delete any record so

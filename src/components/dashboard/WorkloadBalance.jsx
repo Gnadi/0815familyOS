@@ -4,6 +4,7 @@ import useAuth from '../../hooks/useAuth';
 import useEvents from '../../hooks/useEvents';
 import useFamilyMembers from '../../hooks/useFamilyMembers';
 import { getWeekDays } from '../../utils/date';
+import { expandEventsInRange } from '../../utils/recurrence';
 
 const EFFORT_SCORE = { low: 1, medium: 2, high: 3 };
 
@@ -25,9 +26,8 @@ export default function WorkloadBalance() {
     const weekEnd = new Date(weekDays[6]);
     weekEnd.setHours(23, 59, 59, 999);
 
-    const weekEvents = events.filter(
-      (e) => e.date >= weekStart && e.date <= weekEnd && e.responsibleParent
-    );
+    const expanded = expandEventsInRange(events, weekStart, weekEnd);
+    const weekEvents = expanded.filter((e) => e.responsibleParent);
 
     const accumulator = {};
     for (const e of weekEvents) {
