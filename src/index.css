@@ -2,6 +2,57 @@
 @tailwind components;
 @tailwind utilities;
 
+:root,
+[data-theme="blue"] {
+  --brand-50:  239 246 255;
+  --brand-100: 219 234 254;
+  --brand-200: 191 219 254;
+  --brand-400: 96  165 250;
+  --brand-500: 59  130 246;
+  --brand-600: 37  99  235;
+  --brand-700: 29  78  216;
+}
+
+[data-theme="emerald"] {
+  --brand-50:  236 253 245;
+  --brand-100: 209 250 229;
+  --brand-200: 167 243 208;
+  --brand-400: 52  211 153;
+  --brand-500: 16  185 129;
+  --brand-600: 5   150 105;
+  --brand-700: 4   120 87;
+}
+
+[data-theme="rose"] {
+  --brand-50:  255 241 242;
+  --brand-100: 255 228 230;
+  --brand-200: 254 205 211;
+  --brand-400: 251 113 133;
+  --brand-500: 244 63  94;
+  --brand-600: 225 29  72;
+  --brand-700: 190 18  60;
+}
+
+[data-theme="violet"] {
+  --brand-50:  245 243 255;
+  --brand-100: 237 233 254;
+  --brand-200: 221 214 254;
+  --brand-400: 167 139 250;
+  --brand-500: 139 92  246;
+  --brand-600: 124 58  237;
+  --brand-700: 109 40  217;
+}
+
+[data-theme="amber"] {
+  --brand-50:  255 251 235;
+  --brand-100: 254 243 199;
+  --brand-200: 253 230 138;
+  --brand-400: 251 191 36;
+  --brand-500: 245 158 11;
+  --brand-600: 217 119 6;
+  --brand-700: 180 83  9;
+}
+
 html, body, #root {
   height: 100%;
 }
@@ -12,6 +63,70 @@ body {
   background-color: #F3F4F6;
   color: #0F172A;
 }
+
+[data-mode="dark"] {
+  color-scheme: dark;
+}
+
+[data-mode="dark"] body {
+  background-color: rgb(15 23 42);
+  color: rgb(241 245 249);
+}
+
+[data-mode="dark"] .bg-white         { background-color: rgb(30 41 59);  }
+[data-mode="dark"] .bg-slate-50      { background-color: rgb(15 23 42);  }
+[data-mode="dark"] .bg-slate-100     { background-color: rgb(51 65 85);  }
+[data-mode="dark"] .bg-slate-200     { background-color: rgb(71 85 105); }
+[data-mode="dark"] .bg-slate-300     { background-color: rgb(100 116 139); }
+
+[data-mode="dark"] .hover\:bg-slate-50:hover  { background-color: rgb(30 41 59);  }
+[data-mode="dark"] .hover\:bg-slate-100:hover { background-color: rgb(51 65 85);  }
+[data-mode="dark"] .hover\:bg-slate-200:hover { background-color: rgb(71 85 105); }
+
+[data-mode="dark"] .text-slate-900   { color: rgb(241 245 249); }
+[data-mode="dark"] .text-slate-800   { color: rgb(226 232 240); }
+[data-mode="dark"] .text-slate-700   { color: rgb(226 232 240); }
+[data-mode="dark"] .text-slate-600   { color: rgb(203 213 225); }
+[data-mode="dark"] .text-slate-500   { color: rgb(148 163 184); }
+[data-mode="dark"] .text-slate-400   { color: rgb(148 163 184); }
+[data-mode="dark"] .text-slate-300   { color: rgb(100 116 139); }
+
+[data-mode="dark"] .hover\:text-slate-700:hover { color: rgb(226 232 240); }
+[data-mode="dark"] .hover\:text-slate-600:hover { color: rgb(203 213 225); }
+[data-mode="dark"] .hover\:text-slate-900:hover { color: rgb(248 250 252); }
+
+[data-mode="dark"] .border-slate-100 { border-color: rgb(51 65 85);  }
+[data-mode="dark"] .border-slate-200 { border-color: rgb(51 65 85);  }
+[data-mode="dark"] .border-slate-300 { border-color: rgb(71 85 105); }
+[data-mode="dark"] .hover\:border-slate-400:hover { border-color: rgb(100 116 139); }
+
+[data-mode="dark"] .bg-white\/60 { background-color: rgb(30 41 59 / 0.6); }
+[data-mode="dark"] .bg-white\/80 { background-color: rgb(30 41 59 / 0.8); }
+[data-mode="dark"] .bg-white\/90 { background-color: rgb(30 41 59 / 0.9); }
+
+[data-mode="dark"] .bg-emerald-50  { background-color: rgb(6   78  59);  }
+[data-mode="dark"] .bg-emerald-100 { background-color: rgb(6   95  70);  }
+[data-mode="dark"] .bg-violet-50   { background-color: rgb(76  29  149); }
+[data-mode="dark"] .bg-violet-100  { background-color: rgb(91  33  182); }
+[data-mode="dark"] .bg-red-50      { background-color: rgb(127 29  29);  }
+[data-mode="dark"] .bg-red-100     { background-color: rgb(153 27  27);  }
+[data-mode="dark"] .bg-rose-100    { background-color: rgb(136 19  55);  }
+[data-mode="dark"] .bg-amber-50    { background-color: rgb(120 53  15);  }
+[data-mode="dark"] .bg-amber-100   { background-color: rgb(146 64  14);  }
+[data-mode="dark"] .bg-pink-50     { background-color: rgb(131 24  67);  }
+[data-mode="dark"] .bg-pink-100    { background-color: rgb(157 23  77);  }
+[data-mode="dark"] .bg-cyan-50     { background-color: rgb(22  78  99);  }
+[data-mode="dark"] .bg-teal-50     { background-color: rgb(19  78  74);  }
+[data-mode="dark"] .bg-teal-100    { background-color: rgb(17  94  89);  }
+[data-mode="dark"] .bg-sky-50      { background-color: rgb(12  74  110); }
+[data-mode="dark"] .bg-sky-100     { background-color: rgb(7   89  133); }
+[data-mode="dark"] .bg-orange-50   { background-color: rgb(124 45  18);  }
+[data-mode="dark"] .bg-orange-100  { background-color: rgb(154 52  18);  }
+[data-mode="dark"] .bg-indigo-50   { background-color: rgb(49  46  129); }
+[data-mode="dark"] .bg-indigo-100  { background-color: rgb(55  48  163); }
+[data-mode="dark"] .bg-blue-50     { background-color: rgb(30  58  138); }
+[data-mode="dark"] .bg-blue-100    { background-color: rgb(30  64  175); }
+[data-mode="dark"] .bg-green-100   { background-color: rgb(22  101 52);  }
 
 @layer utilities {
   .safe-bottom {

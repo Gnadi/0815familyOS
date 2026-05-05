@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
 import { Calendar, CheckCircle2, Gift, Home, Plus, Settings, Vault } from 'lucide-react';
+import useUIPreferences from '../../hooks/useUIPreferences';
 
 const items = [
-  { to: '/dashboard', label: 'Dashboard', Icon: Home },
-  { to: '/calendar',  label: 'Schedule',  Icon: Calendar },
-  { to: '/vault',     label: 'Vault',     Icon: Vault },
+  { to: '/dashboard', label: 'Home',     Icon: Home },
+  { to: '/calendar',  label: 'Schedule', Icon: Calendar },
+  { to: '/vault',     label: 'Vault',    Icon: Vault },
 ];
 const itemsRight = [
   { to: '/tasks',    label: 'Tasks',    Icon: CheckCircle2 },
@@ -12,28 +13,30 @@ const itemsRight = [
   { to: '/settings', label: 'Settings', Icon: Settings },
 ];
 
-function NavItem({ to, label, Icon }) {
+function NavItem({ to, label, Icon, showLabels }) {
   return (
     <NavLink
       to={to}
+      aria-label={label}
       className={({ isActive }) =>
-        `flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs ${
+        `flex min-h-[3.5rem] flex-1 flex-col items-center justify-center gap-1 py-2 text-xs ${
           isActive ? 'text-brand-600' : 'text-slate-500'
         }`
       }
     >
-      <Icon size={22} />
-      <span className="font-medium">{label}</span>
+      <Icon size={showLabels ? 22 : 26} />
+      {showLabels && <span className="font-medium">{label}</span>}
     </NavLink>
   );
 }
 
 export default function BottomNav({ onAdd }) {
+  const { showLabels } = useUIPreferences();
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white safe-bottom">
       <div className="mx-auto flex max-w-md items-center">
         {items.map((it) => (
-          <NavItem key={it.to} {...it} />
+          <NavItem key={it.to} {...it} showLabels={showLabels} />
         ))}
         <div className="flex flex-1 items-center justify-center">
           <button
@@ -45,7 +48,7 @@ export default function BottomNav({ onAdd }) {
           </button>
         </div>
         {itemsRight.map((it) => (
-          <NavItem key={it.to} {...it} />
+          <NavItem key={it.to} {...it} showLabels={showLabels} />
         ))}
       </div>
     </nav>
