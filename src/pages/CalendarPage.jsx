@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Download } from 'lucide-react';
+import { Download, RefreshCw } from 'lucide-react';
 import TopBar from '../components/layout/TopBar';
 import ViewToggle from '../components/calendar/ViewToggle';
 import FilterChips from '../components/calendar/FilterChips';
@@ -13,6 +13,7 @@ import useFamilyMembers from '../hooks/useFamilyMembers';
 import { createEvent, deleteEvent, updateEvent } from '../services/events';
 import { downloadICS } from '../utils/ics';
 import { expandEventsInRange } from '../utils/recurrence';
+import { syncSubscription } from '../services/calendarSubscriptions';
 
 const MEMBER_PALETTE = ['red', 'blue', 'emerald', 'amber', 'violet', 'pink', 'cyan'];
 
@@ -26,6 +27,7 @@ export default function CalendarPage() {
   const [selected, setSelected] = useState(new Date());
   const [editing, setEditing] = useState(null); // event object or 'new' or null
   const [activeFilters, setActiveFilters] = useState(new Set());
+  const [syncing, setSyncing] = useState(false);
 
   const chips = useMemo(() => [
     { id: 'all', label: 'All', colorKey: 'slate' },
@@ -118,6 +120,34 @@ export default function CalendarPage() {
     });
   }
 
+  const subs = family?.calendarSubscriptions || [];
+
+  async function handleSyncAll() {
+    if (!family?.id || !user?.uid || !subs.length || syncing) return;
+    setSyncing(true);
+    try {
+      await Promise.allSettled(
+        subs.map((sub) =>
+          syncSubscription({ familyId: family.id, userId: user.uid, subscription: sub }),
+        ),
+      );
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  const syncButton = subs.length > 0 ? (
+    <button
+      onClick={handleSyncAll}
+      disabled={syncing}
+      aria-label="Sync external calendars"
+      title="Sync external calendars"
+      className="rounded-full p-2 text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+    >
+      <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
+    </button>
+  ) : null;
+
   const exportButton = (
     <button
       onClick={handleExport}
@@ -129,9 +159,16 @@ export default function CalendarPage() {
     </button>
   );
 
+  const topBarActions = (
+    <>
+      {syncButton}
+      {exportButton}
+    </>
+  );
+
   return (
     <>
-      <TopBar title={view === 'week' ? 'This Week' : 'Family Calendar'} right={exportButton} />
+      <TopBar title={view === 'week' ? 'This Week' : 'Family Calendar'} right={topBarActions} />
       <main className="mx-auto max-w-md space-y-5 px-5 py-5">
         <ViewToggle value={view} onChange={setView} />
         <FilterChips chips={chips} selected={activeFilters} onToggle={handleToggle} />
