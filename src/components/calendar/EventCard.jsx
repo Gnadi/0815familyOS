@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { User } from 'lucide-react';
+import { ExternalLink, User } from 'lucide-react';
 import useCategories from '../../hooks/useCategories';
 import useAuth from '../../hooks/useAuth';
 
@@ -45,7 +45,16 @@ export default function EventCard({ event, onClick }) {
       <div className={`w-1 flex-shrink-0 rounded-full ${barClass}`} />
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="truncate text-base font-semibold text-slate-900">{event.title}</h3>
+          <h3 className="flex min-w-0 items-center gap-1.5 truncate text-base font-semibold text-slate-900">
+            {event.source === 'subscription' && (
+              <ExternalLink
+                size={12}
+                className="flex-shrink-0 text-slate-400"
+                aria-label="Synced from external calendar"
+              />
+            )}
+            <span className="truncate">{event.title}</span>
+          </h3>
           {effort ? (
             <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${effort.badge}`}>
               {effort.label}

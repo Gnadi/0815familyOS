@@ -13,6 +13,7 @@ import {
   DEFAULT_CATEGORY,
   PALETTE_COLORS,
 } from '../../constants/eventCategories';
+import RecurrenceField from '../common/RecurrenceField';
 
 function toDateInput(d) {
   return format(d, 'yyyy-MM-dd');
@@ -184,6 +185,7 @@ export default function EventFormModal({
   const [kids, setKids] = useState([]);
   const [responsibleParent, setResponsibleParent] = useState('');
   const [effortLevel, setEffortLevel] = useState('');
+  const [recurrence, setRecurrence] = useState(null);
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [addingKid, setAddingKid] = useState(false);
   const [deletingCategoryId, setDeletingCategoryId] = useState(null);
@@ -204,6 +206,7 @@ export default function EventFormModal({
       setKids(initial.kids || []);
       setResponsibleParent(initial.responsibleParent || '');
       setEffortLevel(initial.effortLevel || '');
+      setRecurrence(initial.recurrence || null);
     } else {
       setTitle('');
       setDescription('');
@@ -213,6 +216,7 @@ export default function EventFormModal({
       setKids([]);
       setResponsibleParent('');
       setEffortLevel('medium');
+      setRecurrence(null);
     }
     setCreatingCategory(false);
     setAddingKid(false);
@@ -266,7 +270,7 @@ export default function EventFormModal({
     setError('');
     setSaving(true);
     try {
-      await onSubmit({ title, description, date: when, category, kids, responsibleParent, effortLevel });
+      await onSubmit({ title, description, date: when, category, kids, responsibleParent, effortLevel, recurrence });
     } catch (err) {
       setError(err.message || 'Could not save event.');
     } finally {
@@ -288,9 +292,18 @@ export default function EventFormModal({
   const allKidsSelected =
     familyKids.length >= 2 && familyKids.every((k) => kids.includes(k.id));
 
+  const isSubscribed = Boolean(initial?.source === 'subscription');
+
   return (
     <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Event' : 'New Event'}>
       <form onSubmit={handleSubmit} className="space-y-4">
+        {isSubscribed && (
+          <div className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            This event is synced from an external calendar. Any edits here will
+            be overwritten the next time it syncs — change it in the original
+            calendar instead.
+          </div>
+        )}
         <Input
           label="Title"
           value={title}
@@ -490,6 +503,8 @@ export default function EventFormModal({
             />
           )}
         </div>
+
+        <RecurrenceField value={recurrence} onChange={setRecurrence} />
 
         <label className="block">
           <span className="mb-1.5 block text-sm font-medium text-slate-700">

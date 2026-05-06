@@ -22,6 +22,15 @@ function normalizeCategory(category) {
   return typeof category === 'string' && category.trim() ? category : DEFAULT_CATEGORY;
 }
 
+function normalizeRecurrence(rec) {
+  if (!rec || !rec.freq) return null;
+  const freq = ['daily', 'weekly', 'monthly', 'yearly'].includes(rec.freq) ? rec.freq : null;
+  if (!freq) return null;
+  const interval = Math.max(1, Math.min(99, Math.round(Number(rec.interval) || 1)));
+  const until = rec.until ? String(rec.until) : null;
+  return { freq, interval, until };
+}
+
 export function subscribeEvents(familyId, cb) {
   const q = query(eventsRef, where('familyId', '==', familyId), orderBy('date', 'asc'));
   return onSnapshot(q, (snap) => {
@@ -35,13 +44,14 @@ export function subscribeEvents(familyId, cb) {
         kids: data.kids || [],
         responsibleParent: data.responsibleParent || '',
         effortLevel: data.effortLevel || '',
+        recurrence: normalizeRecurrence(data.recurrence),
       };
     });
     cb(list);
   });
 }
 
-export function createEvent({ familyId, userId, title, description, date, category, kids, responsibleParent, effortLevel }) {
+export function createEvent({ familyId, userId, title, description, date, category, kids, responsibleParent, effortLevel, recurrence }) {
   return addDoc(eventsRef, {
     familyId,
     userId,
@@ -52,12 +62,13 @@ export function createEvent({ familyId, userId, title, description, date, catego
     kids: kids || [],
     responsibleParent: responsibleParent || '',
     effortLevel: effortLevel || '',
+    recurrence: normalizeRecurrence(recurrence),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 }
 
-export function updateEvent(id, { title, description, date, category, kids, responsibleParent, effortLevel }) {
+export function updateEvent(id, { title, description, date, category, kids, responsibleParent, effortLevel, recurrence }) {
   return updateDoc(doc(db, 'events', id), {
     title: title.trim(),
     description: description?.trim() || '',
@@ -66,6 +77,7 @@ export function updateEvent(id, { title, description, date, category, kids, resp
     kids: kids || [],
     responsibleParent: responsibleParent || '',
     effortLevel: effortLevel || '',
+    recurrence: normalizeRecurrence(recurrence),
     updatedAt: serverTimestamp(),
   });
 }

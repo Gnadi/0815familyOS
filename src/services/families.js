@@ -103,6 +103,23 @@ export async function removeKid(familyId, kid) {
   await updateDoc(famRef, { kids: list });
 }
 
+// Update a single kid's editable fields (currently: name, birthday).
+// `birthday` is stored as an ISO date string YYYY-MM-DD or null.
+export async function updateKid(familyId, kidId, fields) {
+  const famRef = doc(db, 'families', familyId);
+  const snap = await getDoc(famRef);
+  const list = (snap.data()?.kids || []).map((k) => {
+    if (!k || k.id !== kidId) return k;
+    const next = { ...k };
+    if (fields.name !== undefined) next.name = String(fields.name).trim() || k.name;
+    if (fields.birthday !== undefined) {
+      next.birthday = fields.birthday ? String(fields.birthday) : null;
+    }
+    return next;
+  });
+  await updateDoc(famRef, { kids: list });
+}
+
 // Delete a category. Built-ins are hidden via `disabledBuiltins`; customs are
 // removed from `customCategories`. Any events still pointing at the deleted
 // category are reassigned to `general` so they never render as "unknown".

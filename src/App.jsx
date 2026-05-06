@@ -14,6 +14,7 @@ import SettingsPage from './pages/SettingsPage';
 import DocumentVaultPage from './pages/DocumentVaultPage';
 import GiftPlannerPage from './pages/GiftPlannerPage';
 import VaccinationPage from './pages/VaccinationPage';
+import ShoppingPage from './pages/ShoppingPage';
 
 export default function App() {
   return (
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="/gifts" element={<GiftPlannerPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/health" element={<VaccinationPage />} />
+          <Route path="/shopping" element={<ShoppingPage />} />
         </Route>
         <Route path="*" element={<LandingPage />} />
       </Routes>

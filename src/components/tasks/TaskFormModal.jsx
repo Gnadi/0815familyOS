@@ -10,6 +10,7 @@ import {
   TASK_STATUSES,
   DEFAULT_TASK_CATEGORY,
 } from '../../constants/taskCategories';
+import RecurrenceField from '../common/RecurrenceField';
 
 function toDateInput(d) {
   return format(d, 'yyyy-MM-dd');
@@ -47,6 +48,7 @@ export default function TaskFormModal({
   const [dueDate, setDueDate] = useState(toDateInput(new Date()));
   const [assigneeIds, setAssigneeIds] = useState([]);
   const [progress, setProgress] = useState(0);
+  const [recurrence, setRecurrence] = useState(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -63,6 +65,7 @@ export default function TaskFormModal({
       setDueDate(toDateInput(initial.dueDate || new Date()));
       setAssigneeIds(Array.isArray(initial.assigneeIds) ? initial.assigneeIds : []);
       setProgress(Number(initial.progress) || 0);
+      setRecurrence(initial.recurrence || null);
     } else {
       setTitle('');
       setDescription('');
@@ -73,6 +76,7 @@ export default function TaskFormModal({
       setDueDate(toDateInput(new Date()));
       setAssigneeIds([]);
       setProgress(0);
+      setRecurrence(null);
     }
     setError('');
   }, [open, initial]);
@@ -102,6 +106,7 @@ export default function TaskFormModal({
         dueDate: when,
         assigneeIds,
         progress: Number(progress) || 0,
+        recurrence,
         previousStatus: initial?.status,
       });
     } catch (err) {
@@ -261,6 +266,8 @@ export default function TaskFormModal({
             </div>
           </div>
         )}
+
+        <RecurrenceField value={recurrence} onChange={setRecurrence} />
 
         <label className="block">
           <span className="mb-1.5 block text-sm font-medium text-slate-700">

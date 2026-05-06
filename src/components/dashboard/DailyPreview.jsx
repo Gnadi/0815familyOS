@@ -8,6 +8,7 @@ import useTasks from '../../hooks/useTasks';
 import useCategories from '../../hooks/useCategories';
 import useFamilyMembers from '../../hooks/useFamilyMembers';
 import { getTaskCategory, TASK_PRIORITY_MAP } from '../../constants/taskCategories';
+import { expandEventsInRange } from '../../utils/recurrence';
 import QuickAddModal from './QuickAddModal';
 
 const PRIORITY_WEIGHT = { urgent: 0, high: 1, normal: 2, low: 3 };
@@ -24,7 +25,10 @@ export default function DailyPreview() {
   const todayLabel = format(today, 'EEE, MMM d');
   const familyKids = family?.kids || [];
 
-  const todayEvents = eventsOnDay(events, today).sort((a, b) => a.date - b.date);
+  const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const dayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+  const expandedToday = expandEventsInRange(events, dayStart, dayEnd);
+  const todayEvents = eventsOnDay(expandedToday, today).sort((a, b) => a.date - b.date);
   const todayTasks = tasks
     .filter((t) => t.dueDate && isSameDay(t.dueDate, today) && t.status !== 'completed')
     .sort((a, b) => (PRIORITY_WEIGHT[a.priority] ?? 2) - (PRIORITY_WEIGHT[b.priority] ?? 2));

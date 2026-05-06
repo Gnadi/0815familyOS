@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { Download } from 'lucide-react';
 import TopBar from '../components/layout/TopBar';
 import ViewToggle from '../components/calendar/ViewToggle';
 import FilterChips from '../components/calendar/FilterChips';
@@ -10,6 +11,8 @@ import useAuth from '../hooks/useAuth';
 import useEvents from '../hooks/useEvents';
 import useFamilyMembers from '../hooks/useFamilyMembers';
 import { createEvent, deleteEvent, updateEvent } from '../services/events';
+import { downloadICS } from '../utils/ics';
+import { expandEventsInRange } from '../utils/recurrence';
 
 const MEMBER_PALETTE = ['red', 'blue', 'emerald', 'amber', 'violet', 'pink', 'cyan'];
 
@@ -40,16 +43,22 @@ export default function CalendarPage() {
     })),
   ], [members, family?.kids]);
 
+  const expandedEvents = useMemo(() => {
+    const from = new Date(anchor.getFullYear(), anchor.getMonth() - 6, 1);
+    const to = new Date(anchor.getFullYear(), anchor.getMonth() + 6, 31, 23, 59, 59);
+    return expandEventsInRange(events, from, to);
+  }, [events, anchor]);
+
   const filteredEvents = useMemo(() => {
-    if (activeFilters.size === 0) return events;
+    if (activeFilters.size === 0) return expandedEvents;
     const memberChips = chips.filter((c) => c.id.startsWith('member:') && activeFilters.has(c.id));
     const kidChips = chips.filter((c) => c.id.startsWith('kid:') && activeFilters.has(c.id));
-    return events.filter((ev) => {
+    return expandedEvents.filter((ev) => {
       if (memberChips.some((c) => ev.responsibleParent === c.displayName)) return true;
       if (kidChips.some((c) => (ev.kids || []).includes(c.kidId))) return true;
       return false;
     });
-  }, [events, activeFilters, chips]);
+  }, [expandedEvents, activeFilters, chips]);
 
   function handleToggle(id) {
     if (id === 'all') {
@@ -71,6 +80,15 @@ export default function CalendarPage() {
     return () => setCreateDefaultDate(null);
   }, [selected, setCreateDefaultDate]);
 
+  function handleEventClick(ev) {
+    if (ev?.isRecurringInstance) {
+      const master = events.find((e) => e.id === ev.masterId) || ev;
+      setEditing(master);
+    } else {
+      setEditing(ev);
+    }
+  }
+
   async function handleSubmit(values) {
     if (editing && editing !== 'new') {
       await updateEvent(editing.id, values);
@@ -90,9 +108,30 @@ export default function CalendarPage() {
     setEditing(null);
   }
 
+  function handleExport() {
+    if (!filteredEvents.length) return;
+    const today = new Date();
+    const horizon = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30);
+    const future = filteredEvents.filter((ev) => ev.date && ev.date >= horizon);
+    downloadICS(future, `family-calendar-${today.toISOString().slice(0, 10)}.ics`, {
+      calendarName: family?.name ? `${family.name} (FamilyOS)` : 'FamilyOS',
+    });
+  }
+
+  const exportButton = (
+    <button
+      onClick={handleExport}
+      aria-label="Export calendar"
+      title="Export to .ics"
+      className="rounded-full p-2 text-slate-600 hover:bg-slate-100"
+    >
+      <Download size={18} />
+    </button>
+  );
+
   return (
     <>
-      <TopBar title={view === 'week' ? 'This Week' : 'Family Calendar'} />
+      <TopBar title={view === 'week' ? 'This Week' : 'Family Calendar'} right={exportButton} />
       <main className="mx-auto max-w-md space-y-5 px-5 py-5">
         <ViewToggle value={view} onChange={setView} />
         <FilterChips chips={chips} selected={activeFilters} onToggle={handleToggle} />
@@ -108,7 +147,7 @@ export default function CalendarPage() {
             }}
             onSelect={setSelected}
             events={filteredEvents}
-            onEventClick={setEditing}
+            onEventClick={handleEventClick}
           />
         ) : (
           <MonthView
@@ -120,7 +159,7 @@ export default function CalendarPage() {
             }}
             onSelect={setSelected}
             events={filteredEvents}
-            onEventClick={setEditing}
+            onEventClick={handleEventClick}
           />
         )}
       </main>

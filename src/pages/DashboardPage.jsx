@@ -4,6 +4,7 @@ import WeeklyPreview from '../components/dashboard/WeeklyPreview';
 import WorkloadBalance from '../components/dashboard/WorkloadBalance';
 import HealthAlerts from '../components/dashboard/HealthAlerts';
 import QuickAccess from '../components/dashboard/QuickAccess';
+import UpcomingBirthdays from '../components/dashboard/UpcomingBirthdays';
 import useAuth from '../hooks/useAuth';
 
 export default function DashboardPage() {
@@ -20,6 +21,7 @@ export default function DashboardPage() {
         </div>
         <DailyPreview />
         <WeeklyPreview />
+        <UpcomingBirthdays />
         <WorkloadBalance />
         <HealthAlerts />
         <QuickAccess />

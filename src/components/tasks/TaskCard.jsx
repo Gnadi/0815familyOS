@@ -1,9 +1,10 @@
-import { Calendar, Check, GripVertical, Users } from 'lucide-react';
+import { Calendar, Check, GripVertical, Repeat, Users } from 'lucide-react';
 import { format, isBefore, isSameDay, startOfDay } from 'date-fns';
 import { useDraggable } from '@dnd-kit/core';
 import AvatarStack from '../common/AvatarStack';
 import { getTaskCategory, TASK_PRIORITY_MAP } from '../../constants/taskCategories';
 import { formatRelativeDay } from '../../utils/date';
+import { describeRecurrence } from '../../utils/recurrence';
 
 function dueChipClasses(task) {
   if (task.status === 'completed') {
@@ -116,6 +117,12 @@ function TaskCardBody({ task, members, dragging = false, overlay = false }) {
           <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-600">
             {task.points || 0} pts
           </span>
+          {describeRecurrence(task.recurrence) && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 text-[11px] font-semibold text-indigo-700">
+              <Repeat size={11} />
+              {describeRecurrence(task.recurrence)}
+            </span>
+          )}
         </div>
         <AvatarStack members={assigned} max={3} size="sm" />
       </div>
