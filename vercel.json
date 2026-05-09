@@ -1,5 +1,8 @@
 {
   "rewrites": [
     { "source": "/((?!assets/|api/).*)", "destination": "/index.html" }
+  ],
+  "crons": [
+    { "path": "/api/notify-cron", "schedule": "0 7 * * *" }
   ]
 }
