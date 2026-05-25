@@ -4,6 +4,7 @@ import {
   setPersistence,
   browserLocalPersistence,
   GoogleAuthProvider,
+  OAuthProvider,
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
@@ -22,6 +23,9 @@ const app = initializeApp(config);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
+export const appleProvider = new OAuthProvider('apple.com');
+appleProvider.addScope('email');
+appleProvider.addScope('name');
 
 setPersistence(auth, browserLocalPersistence).catch(() => {
   // Persistence failures are non-fatal; session simply won't survive reloads.

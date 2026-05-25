@@ -3,7 +3,8 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import Input from '../components/common/Input';
 import Button from '../components/common/Button';
 import useAuth from '../hooks/useAuth';
-import { signInWithEmail, signInWithGoogle, toFriendlyError } from '../services/auth';
+import { signInWithEmail, signInWithGoogle, signInWithApple, toFriendlyError } from '../services/auth';
+import { isIOS } from '../lib/platform';
 
 export default function LoginPage() {
   const { user } = useAuth();
@@ -13,6 +14,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
 
   if (user) return <Navigate to="/dashboard" replace />;
 
@@ -40,6 +42,19 @@ export default function LoginPage() {
       setError(toFriendlyError(err));
     } finally {
       setGoogleLoading(false);
+    }
+  }
+
+  async function handleApple() {
+    setError('');
+    setAppleLoading(true);
+    try {
+      await signInWithApple();
+      navigate('/dashboard', { replace: true });
+    } catch (err) {
+      setError(toFriendlyError(err));
+    } finally {
+      setAppleLoading(false);
     }
   }
 
@@ -90,6 +105,20 @@ export default function LoginPage() {
           </svg>
           Continue with Google
         </Button>
+
+        {isIOS && (
+          <Button
+            variant="secondary"
+            onClick={handleApple}
+            loading={appleLoading}
+            className="mt-3 w-full bg-black text-white hover:bg-black/90"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden fill="currentColor">
+              <path d="M16.365 1.43c0 1.14-.41 2.12-1.23 2.94-.99.99-2.18 1.56-3.47 1.46-.04-1.1.43-2.16 1.23-2.94.84-.82 2.13-1.4 3.47-1.46zm4.06 17.06c-.55 1.27-1.21 2.46-2.13 3.42-.83.88-1.66 1.45-2.78 1.47-1.05.02-1.4-.62-2.86-.62-1.46 0-1.84.6-2.85.64-1.12.04-1.97-.66-2.82-1.54C5.51 19.4 3.5 14.78 5.74 11.6c1.11-1.56 2.94-2.55 4.88-2.58 1.07-.02 2.07.72 2.73.72.65 0 1.91-.89 3.21-.76.55.02 2.1.22 3.09 1.7-.08.05-1.86 1.09-1.84 3.25.02 2.6 2.28 3.46 2.31 3.47-.02.06-.36 1.23-1.19 2.44z"/>
+            </svg>
+            Sign in with Apple
+          </Button>
+        )}
 
         <p className="mt-8 text-center text-sm text-slate-500">
           No account yet?{' '}
