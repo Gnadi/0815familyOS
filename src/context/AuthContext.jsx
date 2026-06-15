@@ -2,7 +2,7 @@ import { createContext, useEffect, useMemo, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
-import { subscribeUserDoc } from '../services/users';
+import { ensureUserDoc, subscribeUserDoc } from '../services/users';
 import { subscribeFamily } from '../services/families';
 import { signOut as fbSignOut } from '../services/auth';
 import { generateEncryptionKey, importEncryptionKey } from '../utils/encryption';
@@ -31,6 +31,8 @@ export function AuthProvider({ children }) {
         setFamily(null);
         setEncryptionKey(null);
         setLoading(false);
+      } else {
+        ensureUserDoc(u).catch(console.error);
       }
     });
     return unsub;

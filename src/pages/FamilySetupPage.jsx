@@ -7,6 +7,7 @@ import Spinner from '../components/common/Spinner';
 import useAuth from '../hooks/useAuth';
 import { createFamily, joinFamilyByCode } from '../services/families';
 import { signOut } from '../services/auth';
+import { ensureUserDoc } from '../services/users';
 
 function ModeCard({ icon: Icon, title, description, onClick }) {
   return (
@@ -45,6 +46,7 @@ export default function FamilySetupPage() {
     setError('');
     setBusy(true);
     try {
+      await ensureUserDoc(user);
       const { inviteCode } = await createFamily({ name: familyName, uid: user.uid });
       setCreatedCode(inviteCode);
     } catch (err) {
@@ -60,6 +62,7 @@ export default function FamilySetupPage() {
     setError('');
     setBusy(true);
     try {
+      await ensureUserDoc(user);
       await joinFamilyByCode({ code: joinCode, uid: user.uid });
       navigate('/dashboard', { replace: true });
     } catch (err) {
