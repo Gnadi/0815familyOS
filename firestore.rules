@@ -131,5 +131,12 @@ service cloud.firestore {
       allow update, delete: if request.auth != null
         && request.auth.uid in familyMembers(resource.data.familyId);
     }
+    // Notifications: family members can read and mark-read their notifications.
+    // Only the server-side cron (Firebase Admin SDK) can create or delete them.
+    match /notifications/{notId} {
+      allow read, update: if request.auth != null
+        && request.auth.uid in get(/databases/$(database)/documents/families/$(resource.data.familyId)).data.memberIds;
+      allow create, delete: if false;
+    }
   }
 }
