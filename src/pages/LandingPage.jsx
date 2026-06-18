@@ -1,8 +1,10 @@
-import { Link, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Calendar, FileText, Gift, ListChecks } from 'lucide-react';
 import FeatureCard from '../components/landing/FeatureCard';
+import Seo from '../components/seo/Seo';
 import useAuth from '../hooks/useAuth';
-import Spinner from '../components/common/Spinner';
+import { SITE_URL, SITE_NAME } from '../config/site';
 
 const features = [
   {
@@ -39,15 +41,42 @@ const features = [
   },
 ];
 
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: SITE_NAME,
+  applicationCategory: 'LifestyleApplication',
+  operatingSystem: 'Web',
+  url: SITE_URL,
+  description:
+    'Family OS keeps your household organized with a shared calendar, secure document vault, gift planner, and task manager — all in one place.',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+};
+
 export default function LandingPage() {
   const { user, userDoc, loading } = useAuth();
-  if (loading) return <Spinner fullscreen />;
-  if (user && userDoc?.familyId) return <Navigate to="/dashboard" replace />;
-  if (user && userDoc && !userDoc.familyId)
-    return <Navigate to="/family-setup" replace />;
+  const navigate = useNavigate();
+
+  // Authenticated visitors are redirected away from the marketing page. This
+  // runs as a post-hydration effect (not during render) so the initial render
+  // is always the static marketing content — identical on the server and the
+  // client's first paint, avoiding any hydration mismatch with the pre-rendered
+  // HTML. Crawlers and logged-out visitors see the full content immediately.
+  useEffect(() => {
+    if (loading) return;
+    if (user && userDoc?.familyId) navigate('/dashboard', { replace: true });
+    else if (user && userDoc && !userDoc.familyId)
+      navigate('/family-setup', { replace: true });
+  }, [user, userDoc, loading, navigate]);
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <Seo
+        title="Family OS — Organize Your Family Life"
+        description="Manage schedules, tasks, and child documentation in one secure place. Family OS gives your household a shared calendar, document vault, gift planner, and task manager."
+        path="/"
+        jsonLd={jsonLd}
+      />
       <header className="border-b border-slate-200 bg-white px-5 py-4">
         <div className="mx-auto max-w-md">
           <h1 className="text-base font-bold text-slate-900">Family OS</h1>

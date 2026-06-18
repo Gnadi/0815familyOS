@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite-react-ssg build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -16,7 +16,8 @@
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.27.0"
+    "react-router-dom": "^6.27.0",
+    "vite-react-ssg": "^0.9.1-beta.1"
   },
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.9",

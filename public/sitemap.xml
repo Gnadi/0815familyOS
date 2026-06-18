@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Public, indexable URLs only. The login/signup/app routes are client-side
+     and intentionally excluded. Keep the host in sync with SITE_URL
+     (src/config/site.js) when the production domain is finalized. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://familyos.example/</loc>
+    <lastmod>2026-06-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

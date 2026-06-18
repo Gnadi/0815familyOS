@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+# Update the host below to the production brand domain (must match SITE_URL
+# in src/config/site.js). Do not point this at a *.vercel.app preview domain.
+Sitemap: https://familyos.example/sitemap.xml
