@@ -1,16 +1,8 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
-import App from './App.jsx';
-import { UIPreferencesProvider } from './context/UIPreferencesContext';
+import { ViteReactSSG } from 'vite-react-ssg';
+import { routes } from './routes';
 import './index.css';
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <UIPreferencesProvider>
-        <App />
-      </UIPreferencesProvider>
-    </BrowserRouter>
-  </React.StrictMode>
-);
+// vite-react-ssg owns the router (it swaps between a static router at build
+// time and a browser router on the client) and the HelmetProvider used by the
+// <Head> component. App-wide providers live in RootLayout (the root route).
+export const createRoot = ViteReactSSG({ routes });

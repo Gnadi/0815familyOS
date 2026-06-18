@@ -19,10 +19,19 @@ const config = {
 export const firebaseConfigured = Boolean(config.apiKey && config.projectId);
 
 const app = initializeApp(config);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const googleProvider = new GoogleAuthProvider();
 
-setPersistence(auth, browserLocalPersistence).catch(() => {
-  // Persistence failures are non-fatal; session simply won't survive reloads.
-});
+// Firestore can be created in Node: getFirestore() and the module-level
+// collection() refs in src/services/* are inert (no network, no browser APIs)
+// until a service is actually called from a client effect/handler. Auth,
+// however, eagerly validates the API key / touches browser storage, so it is
+// only initialized on the client. It is exclusively used inside effects and
+// handlers, so the null SSR fallbacks are never dereferenced during the build.
+export const db = getFirestore(app);
+export const auth = import.meta.env.SSR ? null : getAuth(app);
+export const googleProvider = import.meta.env.SSR ? null : new GoogleAuthProvider();
+
+if (!import.meta.env.SSR) {
+  setPersistence(auth, browserLocalPersistence).catch(() => {
+    // Persistence failures are non-fatal; session simply won't survive reloads.
+  });
+}
