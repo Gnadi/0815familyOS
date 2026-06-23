@@ -83,7 +83,7 @@ export default function AppShell() {
             open={adding}
             onClose={() => setAdding(false)}
             onSubmit={handleCreateGift}
-            kids={family?.kids ?? []}
+            recipients={[...(family?.kids ?? []), ...(family?.giftRecipients ?? [])]}
           />
         ) : isTasksRoute ? (
           <TaskFormModal

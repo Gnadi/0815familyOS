@@ -15,7 +15,7 @@ const STATUS_ACTIVE = {
   gifted: 'bg-white text-emerald-700 shadow-sm',
 };
 
-export default function GiftFormModal({ open, onClose, onSubmit, onDelete, initial, kids }) {
+export default function GiftFormModal({ open, onClose, onSubmit, onDelete, initial, recipients }) {
   const [title, setTitle] = useState('');
   const [kidId, setKidId] = useState('');
   const [price, setPrice] = useState('');
@@ -35,13 +35,13 @@ export default function GiftFormModal({ open, onClose, onSubmit, onDelete, initi
       setNotes(initial.notes || '');
     } else {
       setTitle('');
-      setKidId(kids[0]?.id || '');
+      setKidId(recipients[0]?.id || '');
       setPrice('');
       setStatus('idea');
       setNotes('');
     }
     setError('');
-  }, [open, initial, kids]);
+  }, [open, initial, recipients]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -86,22 +86,24 @@ export default function GiftFormModal({ open, onClose, onSubmit, onDelete, initi
 
         <div>
           <span className="mb-1.5 block text-sm font-medium text-slate-700">For</span>
-          {kids.length === 0 ? (
-            <p className="text-sm text-slate-400">No kids added yet. Add them in Settings first.</p>
+          {recipients.length === 0 ? (
+            <p className="text-sm text-slate-400">
+              No recipients yet. Add kids in Settings or a person in the Gift Planner first.
+            </p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {kids.map((kid) => (
+              {recipients.map((recipient) => (
                 <button
-                  key={kid.id}
+                  key={recipient.id}
                   type="button"
-                  onClick={() => setKidId(kid.id)}
+                  onClick={() => setKidId(recipient.id)}
                   className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
-                    kidId === kid.id
+                    kidId === recipient.id
                       ? 'border-brand-500 bg-brand-500 text-white'
                       : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  {kid.name}
+                  {recipient.name}
                 </button>
               ))}
             </div>
