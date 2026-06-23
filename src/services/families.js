@@ -103,6 +103,48 @@ export async function removeKid(familyId, kid) {
   await updateDoc(famRef, { kids: list });
 }
 
+// Gift-only recipients (e.g. grandparents) that exist solely in the Gift
+// Planner. Stored separately from `kids` so they never surface in the
+// calendar, health, or other kid-aware features. Mirrors the kids CRUD.
+export async function addGiftRecipient(familyId, name, existingCount = 0, birthday = null) {
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error('Recipient name is required.');
+  const recipient = {
+    id: `recip_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+    name: trimmed,
+    color: KID_COLORS[existingCount % KID_COLORS.length],
+    birthday: birthday ? String(birthday) : null,
+  };
+  await updateDoc(doc(db, 'families', familyId), {
+    giftRecipients: arrayUnion(recipient),
+  });
+  return recipient;
+}
+
+export async function updateGiftRecipient(familyId, recipientId, fields) {
+  const famRef = doc(db, 'families', familyId);
+  const snap = await getDoc(famRef);
+  const list = (snap.data()?.giftRecipients || []).map((r) => {
+    if (!r || r.id !== recipientId) return r;
+    const next = { ...r };
+    if (fields.name !== undefined) next.name = String(fields.name).trim() || r.name;
+    if (fields.birthday !== undefined) {
+      next.birthday = fields.birthday ? String(fields.birthday) : null;
+    }
+    return next;
+  });
+  await updateDoc(famRef, { giftRecipients: list });
+}
+
+export async function removeGiftRecipient(familyId, recipient) {
+  const famRef = doc(db, 'families', familyId);
+  const snap = await getDoc(famRef);
+  const list = (snap.data()?.giftRecipients || []).filter(
+    (r) => r && r.id !== recipient.id
+  );
+  await updateDoc(famRef, { giftRecipients: list });
+}
+
 // Update a single kid's editable fields (currently: name, birthday).
 // `birthday` is stored as an ISO date string YYYY-MM-DD or null.
 export async function updateKid(familyId, kidId, fields) {

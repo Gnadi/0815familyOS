@@ -1,3 +1,4 @@
+import { Pencil } from 'lucide-react';
 import GiftItem from './GiftItem';
 
 const COLOR_DOT = {
@@ -9,7 +10,7 @@ const COLOR_DOT = {
   indigo: 'bg-indigo-500',
 };
 
-export default function GiftRecipientSection({ kid, gifts, onEdit }) {
+export default function GiftRecipientSection({ kid, gifts, onEdit, onEditRecipient }) {
   const spent = gifts
     .filter((g) => g.status === 'bought' || g.status === 'gifted')
     .reduce((sum, g) => sum + g.price, 0);
@@ -22,6 +23,16 @@ export default function GiftRecipientSection({ kid, gifts, onEdit }) {
         <div className="flex items-center gap-2">
           <span className={`h-3 w-3 rounded-full ${dotColor}`} />
           <h3 className="text-base font-bold text-slate-900">{kid.name}</h3>
+          {onEditRecipient && (
+            <button
+              type="button"
+              onClick={() => onEditRecipient(kid)}
+              aria-label={`Edit ${kid.name}`}
+              className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            >
+              <Pencil size={14} />
+            </button>
+          )}
         </div>
         <span className="text-sm text-slate-500">${spent.toFixed(2)} Spent</span>
       </div>
