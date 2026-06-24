@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
@@ -49,6 +50,7 @@ export default function TaskFormModal({
   const [assigneeIds, setAssigneeIds] = useState([]);
   const [progress, setProgress] = useState(0);
   const [recurrence, setRecurrence] = useState(null);
+  const [showMore, setShowMore] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -78,6 +80,7 @@ export default function TaskFormModal({
       setProgress(0);
       setRecurrence(null);
     }
+    setShowMore(false);
     setError('');
   }, [open, initial]);
 
@@ -183,62 +186,13 @@ export default function TaskFormModal({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            label="Due date"
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            required
-          />
-          <Input
-            label="Story points"
-            type="number"
-            min={0}
-            max={50}
-            value={points}
-            onChange={(e) => setPoints(e.target.value)}
-            required
-          />
-        </div>
-
-        <div>
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">Status</span>
-          <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
-            {TASK_STATUSES.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => setStatus(s.id)}
-                className={`flex-1 whitespace-nowrap rounded-lg px-1 py-2 text-xs font-medium transition ${
-                  status === s.id ? STATUS_ACTIVE[s.id] : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {status === 'inProgress' && (
-          <div>
-            <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-700">Progress</span>
-              <span className="text-sm font-semibold tabular-nums text-brand-600">
-                {progress}%
-              </span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={5}
-              value={progress}
-              onChange={(e) => setProgress(Number(e.target.value))}
-              className="w-full accent-brand-500"
-            />
-          </div>
-        )}
+        <Input
+          label="Due date"
+          type="date"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
+          required
+        />
 
         {familyMembers.length > 0 && (
           <div>
@@ -267,7 +221,68 @@ export default function TaskFormModal({
           </div>
         )}
 
-        <RecurrenceField value={recurrence} onChange={setRecurrence} />
+        {showMore && (
+          <>
+            <Input
+              label="Story points"
+              type="number"
+              min={0}
+              max={50}
+              value={points}
+              onChange={(e) => setPoints(e.target.value)}
+              required
+            />
+
+            <div>
+              <span className="mb-1.5 block text-sm font-medium text-slate-700">Status</span>
+              <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+                {TASK_STATUSES.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setStatus(s.id)}
+                    className={`flex-1 whitespace-nowrap rounded-lg px-1 py-2 text-xs font-medium transition ${
+                      status === s.id ? STATUS_ACTIVE[s.id] : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {status === 'inProgress' && (
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-700">Progress</span>
+                  <span className="text-sm font-semibold tabular-nums text-brand-600">
+                    {progress}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={progress}
+                  onChange={(e) => setProgress(Number(e.target.value))}
+                  className="w-full accent-brand-500"
+                />
+              </div>
+            )}
+
+            <RecurrenceField value={recurrence} onChange={setRecurrence} />
+          </>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setShowMore((v) => !v)}
+          className="flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700"
+        >
+          {showMore ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          {showMore ? 'Fewer options' : 'More options'}
+        </button>
 
         <label className="block">
           <span className="mb-1.5 block text-sm font-medium text-slate-700">
