@@ -1,17 +1,17 @@
 import { useState } from 'react';
-import { Cake, Check, Copy, Download, LogOut, Moon, Palette, Plus, Sun, Trash2, Users } from 'lucide-react';
+import { Cake, Check, Copy, Download, LogOut, Moon, Palette, Plus, Smartphone, Sun, Trash2, Users } from 'lucide-react';
 import TopBar from '../components/layout/TopBar';
 import Button from '../components/common/Button';
 import useAuth from '../hooks/useAuth';
 import useUIPreferences from '../hooks/useUIPreferences';
-import { THEMES } from '../context/UIPreferencesContext';
+import { SKINS, THEMES } from '../context/UIPreferencesContext';
 import { addKid, removeKid, updateKid } from '../services/families';
 import { exportFamilyData } from '../utils/exportFamily';
 import CalendarImportSection from '../components/settings/CalendarImportSection';
 
 export default function SettingsPage() {
   const { user, userDoc, family, signOut } = useAuth();
-  const { theme, setTheme, mode, setMode, showLabels, setShowLabels } = useUIPreferences();
+  const { theme, setTheme, mode, setMode, skin, setSkin, showLabels, setShowLabels } = useUIPreferences();
   const [newKidName, setNewKidName] = useState('');
   const [exportBusy, setExportBusy] = useState(false);
   const [exportError, setExportError] = useState('');
@@ -67,6 +67,24 @@ export default function SettingsPage() {
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <p className="text-sm font-medium text-slate-700">Design style</p>
+            <div className="mt-2 flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+              {SKINS.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setSkin(s.id)}
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition ${
+                    skin === s.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {s.id === 'ios' ? <Smartphone size={15} /> : <Palette size={15} />} {s.label}
+                </button>
+              ))}
             </div>
           </div>
 

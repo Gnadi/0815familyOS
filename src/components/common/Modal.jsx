@@ -1,7 +1,10 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
+import useUIPreferences from '../../hooks/useUIPreferences';
 
 export default function Modal({ open, onClose, title, children, footer }) {
+  const { skin } = useUIPreferences();
+  const ios = skin === 'ios';
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => {
@@ -26,14 +29,23 @@ export default function Modal({ open, onClose, title, children, footer }) {
         className="w-full max-w-md rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 pt-5">
+        {ios && (
+          <div className="flex justify-center pt-2.5">
+            <span className="h-1 w-9 rounded-full bg-slate-300" />
+          </div>
+        )}
+        <div className={`flex items-center justify-between px-5 ${ios ? 'pt-3' : 'pt-5'}`}>
           <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
           <button
             onClick={onClose}
-            className="rounded-full p-1.5 text-slate-500 hover:bg-slate-100"
+            className={
+              ios
+                ? 'flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-500 active:opacity-60'
+                : 'rounded-full p-1.5 text-slate-500 hover:bg-slate-100'
+            }
             aria-label="Close"
           >
-            <X size={18} />
+            <X size={ios ? 16 : 18} />
           </button>
         </div>
         <div className="px-5 py-4">{children}</div>

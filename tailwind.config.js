@@ -5,6 +5,17 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        // Apple system font stack — renders SF Pro natively on Apple devices.
+        // SF Pro cannot be legally self-hosted as a webfont, so the system
+        // stack is the correct way to get an authentic iOS feel on the web.
+        ios: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"SF Pro Text"',
+          '"SF Pro Display"',
+          'system-ui',
+          'sans-serif',
+        ],
       },
       colors: {
         brand: {

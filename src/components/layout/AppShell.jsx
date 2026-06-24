@@ -5,6 +5,7 @@ import EventFormModal from '../calendar/EventFormModal';
 import TaskFormModal from '../tasks/TaskFormModal';
 import GiftFormModal from '../gifts/GiftFormModal';
 import useAuth from '../../hooks/useAuth';
+import { AddActionContext } from '../../context/AddActionContext';
 import { createEvent } from '../../services/events';
 import { createTask } from '../../services/tasks';
 import { createGift } from '../../services/gifts';
@@ -75,7 +76,9 @@ export default function AppShell() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
-      <Outlet context={{ setCreateDefaultDate, setVaultAdd, setHealthFabCallback }} />
+      <AddActionContext.Provider value={handleFab}>
+        <Outlet context={{ setCreateDefaultDate, setVaultAdd, setHealthFabCallback }} />
+      </AddActionContext.Provider>
       <BottomNav onAdd={handleFab} />
       {!isVaultRoute && !isHealthRoute && (
         isGiftsRoute ? (
