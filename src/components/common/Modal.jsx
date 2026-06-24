@@ -26,15 +26,15 @@ export default function Modal({ open, onClose, title, children, footer }) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
+        className="flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:max-h-[88vh] sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
         {ios && (
-          <div className="flex justify-center pt-2.5">
+          <div className="flex shrink-0 justify-center pt-2.5">
             <span className="h-1 w-9 rounded-full bg-slate-300" />
           </div>
         )}
-        <div className={`flex items-center justify-between px-5 ${ios ? 'pt-3' : 'pt-5'}`}>
+        <div className={`flex shrink-0 items-center justify-between px-5 ${ios ? 'pt-3' : 'pt-5'}`}>
           <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
           <button
             onClick={onClose}
@@ -48,8 +48,8 @@ export default function Modal({ open, onClose, title, children, footer }) {
             <X size={ios ? 16 : 18} />
           </button>
         </div>
-        <div className="px-5 py-4">{children}</div>
-        {footer && <div className="border-t border-slate-100 px-5 py-4">{footer}</div>}
+        <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
+        {footer && <div className="shrink-0 border-t border-slate-100 px-5 py-4">{footer}</div>}
       </div>
     </div>
   );

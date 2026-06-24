@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Check, Plus, X } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Plus, X } from 'lucide-react';
 import { format } from 'date-fns';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
@@ -186,6 +186,7 @@ export default function EventFormModal({
   const [responsibleParent, setResponsibleParent] = useState('');
   const [effortLevel, setEffortLevel] = useState('');
   const [recurrence, setRecurrence] = useState(null);
+  const [showMore, setShowMore] = useState(false);
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [addingKid, setAddingKid] = useState(false);
   const [deletingCategoryId, setDeletingCategoryId] = useState(null);
@@ -218,6 +219,7 @@ export default function EventFormModal({
       setEffortLevel('medium');
       setRecurrence(null);
     }
+    setShowMore(false);
     setCreatingCategory(false);
     setAddingKid(false);
     setDeletingCategoryId(null);
@@ -389,56 +391,6 @@ export default function EventFormModal({
           </div>
         )}
 
-        {/* Responsible */}
-        {familyMembers.length > 0 && (
-          <div>
-            <span className="mb-1.5 block text-sm font-medium text-slate-700">
-              Responsible <span className="font-normal text-slate-400">(optional)</span>
-            </span>
-            <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
-              {familyMembers.map((member) => (
-                <button
-                  key={member.uid}
-                  type="button"
-                  onClick={() => toggleParent(member.displayName)}
-                  className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
-                    responsibleParent === member.displayName
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  {member.displayName}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Effort Level */}
-        <div>
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Effort Level <span className="font-normal text-slate-400">(optional)</span>
-          </span>
-          <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
-            {[
-              { value: 'low', label: 'Low', active: 'bg-white text-green-700 shadow-sm' },
-              { value: 'medium', label: 'Medium', active: 'bg-white text-amber-600 shadow-sm' },
-              { value: 'high', label: 'High', active: 'bg-white text-rose-600 shadow-sm' },
-            ].map(({ value, label, active }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => toggleEffort(value)}
-                className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
-                  effortLevel === value ? active : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         <div>
           <span className="mb-1.5 block text-sm font-medium text-slate-700">Category</span>
           <div className="flex flex-wrap gap-2">
@@ -504,11 +456,74 @@ export default function EventFormModal({
           )}
         </div>
 
-        <RecurrenceField value={recurrence} onChange={setRecurrence} />
+        {showMore && (
+          <>
+            {/* Responsible */}
+            {familyMembers.length > 0 && (
+              <div>
+                <span className="mb-1.5 block text-sm font-medium text-slate-700">
+                  Responsible <span className="font-normal text-slate-400">(optional)</span>
+                </span>
+                <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+                  {familyMembers.map((member) => (
+                    <button
+                      key={member.uid}
+                      type="button"
+                      onClick={() => toggleParent(member.displayName)}
+                      className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
+                        responsibleParent === member.displayName
+                          ? 'bg-white text-slate-900 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      {member.displayName}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Effort Level */}
+            <div>
+              <span className="mb-1.5 block text-sm font-medium text-slate-700">
+                Effort Level <span className="font-normal text-slate-400">(optional)</span>
+              </span>
+              <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+                {[
+                  { value: 'low', label: 'Low', active: 'bg-white text-green-700 shadow-sm' },
+                  { value: 'medium', label: 'Medium', active: 'bg-white text-amber-600 shadow-sm' },
+                  { value: 'high', label: 'High', active: 'bg-white text-rose-600 shadow-sm' },
+                ].map(({ value, label, active }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => toggleEffort(value)}
+                    className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
+                      effortLevel === value ? active : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <RecurrenceField value={recurrence} onChange={setRecurrence} />
+          </>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setShowMore((v) => !v)}
+          className="flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700"
+        >
+          {showMore ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          {showMore ? 'Fewer options' : 'More options'}
+        </button>
 
         <label className="block">
           <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Notes (optional)
+            Notes <span className="font-normal text-slate-400">(optional)</span>
           </span>
           <textarea
             value={description}
