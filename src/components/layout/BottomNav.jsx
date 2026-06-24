@@ -30,8 +30,42 @@ function NavItem({ to, label, Icon, showLabels }) {
   );
 }
 
+// iOS tab bar: flat, translucent, no floating action button. All sections sit
+// side by side with a small icon over a tiny label, active item picks up the
+// brand tint. The "add" action moves to a "+" in the navigation bar (TopBar).
+function IOSTabItem({ to, label, Icon }) {
+  return (
+    <NavLink
+      to={to}
+      aria-label={label}
+      className={({ isActive }) =>
+        `flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 ${
+          isActive ? 'text-brand-600' : 'text-slate-500'
+        }`
+      }
+    >
+      <Icon size={24} strokeWidth={2} />
+      <span className="text-[10px] font-medium leading-none">{label}</span>
+    </NavLink>
+  );
+}
+
 export default function BottomNav({ onAdd }) {
-  const { showLabels } = useUIPreferences();
+  const { showLabels, skin } = useUIPreferences();
+
+  if (skin === 'ios') {
+    const all = [...items, ...itemsRight];
+    return (
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/80 backdrop-blur-xl safe-bottom">
+        <div className="mx-auto flex max-w-md items-stretch">
+          {all.map((it) => (
+            <IOSTabItem key={it.to} {...it} />
+          ))}
+        </div>
+      </nav>
+    );
+  }
+
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white safe-bottom">
       <div className="mx-auto flex max-w-md items-center">

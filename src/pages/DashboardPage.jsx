@@ -6,19 +6,26 @@ import HealthAlerts from '../components/dashboard/HealthAlerts';
 import QuickAccess from '../components/dashboard/QuickAccess';
 import UpcomingBirthdays from '../components/dashboard/UpcomingBirthdays';
 import useAuth from '../hooks/useAuth';
+import useUIPreferences from '../hooks/useUIPreferences';
 
 export default function DashboardPage() {
   const { userDoc } = useAuth();
+  const { skin } = useUIPreferences();
   const name = userDoc?.displayName?.split(' ')[0] || 'there';
+  const ios = skin === 'ios';
 
   return (
     <>
-      <TopBar />
+      {/* iOS folds the greeting into the large navigation title; Material keeps
+          the in-body heading under the generic app bar. */}
+      <TopBar title={ios ? `Hello, ${name}` : 'Family OS'} />
       <main className="mx-auto max-w-md space-y-7 px-5 py-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Hello, {name}</h1>
-          <p className="mt-1 text-sm text-slate-500">Here's what's happening today.</p>
-        </div>
+        {!ios && (
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Hello, {name}</h1>
+            <p className="mt-1 text-sm text-slate-500">Here's what's happening today.</p>
+          </div>
+        )}
         <DailyPreview />
         <WeeklyPreview />
         <UpcomingBirthdays />

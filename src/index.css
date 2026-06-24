@@ -128,6 +128,63 @@ body {
 [data-mode="dark"] .bg-blue-100    { background-color: rgb(30  64  175); }
 [data-mode="dark"] .bg-green-100   { background-color: rgb(22  101 52);  }
 
+/* ============================================================================
+   iOS SKIN  ([data-skin="ios"])
+   A selectable "iOS" look layered on top of the default Material skin, wired
+   the same way as dark mode. Most screens restyle automatically through these
+   attribute-selector overrides; structurally different pieces (tab bar, nav
+   bar, sheets, buttons) branch on `skin` inside their components.
+   ============================================================================ */
+
+/* Typography + grouped background — flips the whole app to the Apple system
+   font (SF Pro on Apple devices) and iOS systemGroupedBackground. */
+[data-skin="ios"] body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display',
+    system-ui, sans-serif;
+  background-color: #f2f2f7;
+  letter-spacing: -0.01em; /* subtle SF-style optical tightening */
+}
+
+/* iOS prefers flat surfaces + hairlines over Material elevation. Flatten the
+   card-level shadows app-wide; keep a soft depth only for floating overlays. */
+[data-skin="ios"] .shadow-card,
+[data-skin="ios"] .shadow-sm,
+[data-skin="ios"] .shadow-md {
+  box-shadow: none;
+}
+[data-skin="ios"] .shadow-lg {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+[data-skin="ios"] .shadow-xl {
+  box-shadow: 0 -1px 24px rgba(0, 0, 0, 0.14);
+}
+
+/* Default (blue) theme maps to authentic iOS systemBlue (#007AFF). The other
+   brand themes stay available as accent tints. */
+[data-skin="ios"][data-theme="blue"] {
+  --brand-50:  235 245 255;
+  --brand-100: 215 235 255;
+  --brand-200: 179 215 255;
+  --brand-400: 51  153 255;
+  --brand-500: 0   122 255;
+  --brand-600: 0   112 235;
+  --brand-700: 0   96  200;
+}
+
+/* iOS dark mode: true blacks + grouped surfaces, overriding the slate-based
+   Material dark palette. Higher specificity wins over [data-mode="dark"]. */
+[data-skin="ios"][data-mode="dark"] body {
+  background-color: rgb(0 0 0);
+}
+[data-skin="ios"][data-mode="dark"] .bg-white     { background-color: rgb(28 28 30); }
+[data-skin="ios"][data-mode="dark"] .bg-slate-50  { background-color: rgb(0  0  0);  }
+[data-skin="ios"][data-mode="dark"] .bg-slate-100 { background-color: rgb(44 44 46); }
+[data-skin="ios"][data-mode="dark"] .bg-slate-200 { background-color: rgb(58 58 60); }
+[data-skin="ios"][data-mode="dark"] .border-slate-100,
+[data-skin="ios"][data-mode="dark"] .border-slate-200 { border-color: rgb(58 58 60); }
+[data-skin="ios"][data-mode="dark"] .bg-white\/80 { background-color: rgb(28 28 30 / 0.8); }
+[data-skin="ios"][data-mode="dark"] .bg-white\/90 { background-color: rgb(28 28 30 / 0.9); }
+
 @layer utilities {
   .safe-bottom {
     padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
