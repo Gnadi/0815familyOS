@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, X } from 'lucide-react';
 import Modal from '../common/Modal';
 import Button from '../common/Button';
 import { getSlotLabel } from '../../constants/mealSlots';
@@ -19,6 +19,7 @@ export default function MealEntryModal({
   members = [],
   cooks = [],
   onAddCook,
+  onRemoveCook,
 }) {
   const [mode, setMode] = useState('recipe'); // 'recipe' | 'text'
   const [recipeId, setRecipeId] = useState('');
@@ -93,6 +94,18 @@ export default function MealEntryModal({
       setError(err.message || 'Could not add person.');
     } finally {
       setAddingCook(false);
+    }
+  }
+
+  async function handleRemoveCook(c) {
+    if (!onRemoveCook) return;
+    const ok = window.confirm(`Remove ${c.name} from the cook list?`);
+    if (!ok) return;
+    if (cook?.id === c.id && cook?.type === 'external') setCook(null);
+    try {
+      await onRemoveCook(c);
+    } catch (err) {
+      setError(err.message || 'Could not remove person.');
     }
   }
 
@@ -194,16 +207,38 @@ export default function MealEntryModal({
                 {m.displayName}
               </button>
             ))}
-            {cooks.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setCook({ id: c.id, type: 'external', name: c.name })}
-                className={chip(isSelected(c.id, 'external'))}
-              >
-                {c.name}
-              </button>
-            ))}
+            {cooks.map((c) => {
+              const active = isSelected(c.id, 'external');
+              return (
+                <span
+                  key={c.id}
+                  className={`inline-flex items-center gap-1 rounded-full border py-1.5 pl-3 pr-1.5 text-sm font-medium transition ${
+                    active
+                      ? 'border-brand-500 bg-brand-500 text-white'
+                      : 'border-slate-200 bg-white text-slate-600'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setCook({ id: c.id, type: 'external', name: c.name })}
+                  >
+                    {c.name}
+                  </button>
+                  {onRemoveCook && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCook(c)}
+                      aria-label={`Remove ${c.name}`}
+                      className={`flex h-4 w-4 items-center justify-center rounded-full ${
+                        active ? 'hover:bg-white/25' : 'text-slate-400 hover:bg-slate-200'
+                      }`}
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </span>
+              );
+            })}
           </div>
 
           {onAddCook && (

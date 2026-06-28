@@ -10,7 +10,7 @@ import useRecipes from '../hooks/useRecipes';
 import useMealPlan from '../hooks/useMealPlan';
 import { createRecipe, updateRecipe, deleteRecipe } from '../services/recipes';
 import { createMealEntry, updateMealEntry, deleteMealEntry } from '../services/mealPlan';
-import { addCook } from '../services/families';
+import { addCook, removeCook } from '../services/families';
 
 const TABS = [
   { id: 'plan', label: 'Week Plan' },
@@ -81,6 +81,10 @@ export default function FoodPage() {
     return addCook(familyId, name, cooks.length);
   }
 
+  function handleRemoveCook(cook) {
+    return removeCook(familyId, cook);
+  }
+
   return (
     <>
       <TopBar title="Meals" showBell={false} />
@@ -111,6 +115,7 @@ export default function FoodPage() {
             members={members}
             cooks={cooks}
             onAddCook={handleAddCook}
+            onRemoveCook={handleRemoveCook}
           />
         ) : (
           <RecipeList

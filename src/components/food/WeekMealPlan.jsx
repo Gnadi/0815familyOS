@@ -16,6 +16,7 @@ export default function WeekMealPlan({
   members = [],
   cooks = [],
   onAddCook,
+  onRemoveCook,
 }) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [cell, setCell] = useState(null); // { date, slot }
@@ -172,6 +173,7 @@ export default function WeekMealPlan({
         members={members}
         cooks={cooks}
         onAddCook={onAddCook}
+        onRemoveCook={onRemoveCook}
       />
     </div>
   );
