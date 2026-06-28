@@ -5,10 +5,12 @@ import WeekMealPlan from '../components/food/WeekMealPlan';
 import RecipeList from '../components/food/RecipeList';
 import RecipeFormModal from '../components/food/RecipeFormModal';
 import useAuth from '../hooks/useAuth';
+import useFamilyMembers from '../hooks/useFamilyMembers';
 import useRecipes from '../hooks/useRecipes';
 import useMealPlan from '../hooks/useMealPlan';
 import { createRecipe, updateRecipe, deleteRecipe } from '../services/recipes';
 import { createMealEntry, updateMealEntry, deleteMealEntry } from '../services/mealPlan';
+import { addCook } from '../services/families';
 
 const TABS = [
   { id: 'plan', label: 'Week Plan' },
@@ -16,9 +18,12 @@ const TABS = [
 ];
 
 export default function FoodPage() {
-  const { user, userDoc } = useAuth();
+  const { user, userDoc, family } = useAuth();
   const familyId = userDoc?.familyId;
   const { setFoodFabCallback } = useOutletContext() || {};
+
+  const members = useFamilyMembers();
+  const cooks = family?.cooks ?? [];
 
   const { recipes, loading: recipesLoading } = useRecipes(familyId);
   const { entries, loading: entriesLoading } = useMealPlan(familyId);
@@ -52,12 +57,28 @@ export default function FoodPage() {
     setRecipeModal(null);
   }
 
-  async function handleMealSave({ date, slot, entry, recipeId, text }) {
+  async function handleMealSave({ date, slot, entry, recipeId, text, cookId, cookType, cookName }) {
     if (entry) {
-      await updateMealEntry(entry.id, { recipeId, text });
+      await updateMealEntry(entry.id, { recipeId, text, cookId, cookType, cookName });
     } else {
-      await createMealEntry({ familyId, userId: user.uid, date, slot, recipeId, text });
+      await createMealEntry({
+        familyId,
+        userId: user.uid,
+        date,
+        slot,
+        recipeId,
+        text,
+        cookId,
+        cookType,
+        cookName,
+      });
     }
+  }
+
+  // Add a new external cook to the family's cook list and return it so the
+  // modal can immediately select it.
+  function handleAddCook(name) {
+    return addCook(familyId, name, cooks.length);
   }
 
   return (
@@ -87,6 +108,9 @@ export default function FoodPage() {
             onSave={handleMealSave}
             onDelete={deleteMealEntry}
             addSignal={planAddSignal}
+            members={members}
+            cooks={cooks}
+            onAddCook={handleAddCook}
           />
         ) : (
           <RecipeList

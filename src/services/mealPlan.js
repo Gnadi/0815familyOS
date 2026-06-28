@@ -33,6 +33,9 @@ export function subscribeMealPlan(familyId, cb) {
         slot: data.slot || 'dinner',
         recipeId: data.recipeId || null,
         text: data.text || '',
+        cookId: data.cookId || null,
+        cookType: data.cookType || null,
+        cookName: data.cookName || '',
         date: toDate(data.date),
       };
     });
@@ -40,7 +43,7 @@ export function subscribeMealPlan(familyId, cb) {
   });
 }
 
-export function createMealEntry({ familyId, userId, date, slot, recipeId, text }) {
+export function createMealEntry({ familyId, userId, date, slot, recipeId, text, cookId, cookType, cookName }) {
   return addDoc(entriesRef, {
     familyId,
     userId,
@@ -48,15 +51,21 @@ export function createMealEntry({ familyId, userId, date, slot, recipeId, text }
     slot,
     recipeId: recipeId || null,
     text: (text || '').trim(),
+    cookId: cookId || null,
+    cookType: cookType || null,
+    cookName: (cookName || '').trim(),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 }
 
-export function updateMealEntry(id, { recipeId, text }) {
+export function updateMealEntry(id, { recipeId, text, cookId, cookType, cookName }) {
   return updateDoc(doc(db, 'mealPlanEntries', id), {
     recipeId: recipeId || null,
     text: (text || '').trim(),
+    cookId: cookId || null,
+    cookType: cookType || null,
+    cookName: (cookName || '').trim(),
     updatedAt: serverTimestamp(),
   });
 }

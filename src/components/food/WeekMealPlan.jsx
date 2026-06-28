@@ -2,10 +2,21 @@ import { useEffect, useMemo, useState } from 'react';
 import { addDays, addWeeks, format, isSameDay, isToday, startOfWeek } from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import Spinner from '../common/Spinner';
+import AvatarStack from '../common/AvatarStack';
 import MealEntryModal from './MealEntryModal';
-import { MEAL_SLOTS, getSlotLabel } from '../../constants/mealSlots';
+import { MEAL_SLOTS } from '../../constants/mealSlots';
 
-export default function WeekMealPlan({ entries, recipes, loading, onSave, onDelete, addSignal }) {
+export default function WeekMealPlan({
+  entries,
+  recipes,
+  loading,
+  onSave,
+  onDelete,
+  addSignal,
+  members = [],
+  cooks = [],
+  onAddCook,
+}) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [cell, setCell] = useState(null); // { date, slot }
 
@@ -18,6 +29,24 @@ export default function WeekMealPlan({ entries, recipes, loading, onSave, onDele
     () => Object.fromEntries(recipes.map((r) => [r.id, r])),
     [recipes],
   );
+
+  const memberById = useMemo(
+    () => Object.fromEntries(members.map((m) => [m.uid, m])),
+    [members],
+  );
+
+  // Resolve the cook's display name: live from the member list when it's a
+  // family member, otherwise the snapshot stored on the entry (robust even if
+  // an external cook was later removed from the family's cook list).
+  function cookFor(entry) {
+    if (!entry?.cookId) return null;
+    const name =
+      entry.cookType === 'member'
+        ? memberById[entry.cookId]?.displayName || entry.cookName
+        : entry.cookName;
+    if (!name) return null;
+    return { uid: entry.cookId, displayName: name };
+  }
 
   // The page's FAB bumps `addSignal`; open "plan a meal" for today's dinner (or
   // the first day shown if the current week is in the past/future).
@@ -104,6 +133,7 @@ export default function WeekMealPlan({ entries, recipes, loading, onSave, onDele
                 {MEAL_SLOTS.map((slot) => {
                   const entry = entryFor(day, slot.id);
                   const label = labelFor(entry);
+                  const cook = cookFor(entry);
                   return (
                     <button
                       key={slot.id}
@@ -121,6 +151,7 @@ export default function WeekMealPlan({ entries, recipes, loading, onSave, onDele
                           <Plus size={14} /> Add
                         </span>
                       )}
+                      {cook && <AvatarStack members={[cook]} max={1} size="sm" />}
                     </button>
                   );
                 })}
@@ -138,6 +169,9 @@ export default function WeekMealPlan({ entries, recipes, loading, onSave, onDele
         cell={cell}
         entry={current}
         recipes={recipes}
+        members={members}
+        cooks={cooks}
+        onAddCook={onAddCook}
       />
     </div>
   );
