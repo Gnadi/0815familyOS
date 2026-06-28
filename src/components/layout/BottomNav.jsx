@@ -1,11 +1,13 @@
 import { NavLink } from 'react-router-dom';
-import { Calendar, CheckCircle2, Gift, Home, Plus, Settings, Vault } from 'lucide-react';
+import { Calendar, CheckCircle2, Gift, Home, Plus, Settings, UtensilsCrossed } from 'lucide-react';
 import useUIPreferences from '../../hooks/useUIPreferences';
 
+// Note: the Document Vault used to sit here; it now lives in the Dashboard's
+// Quick Access since the Meal planner is reached far more often.
 const items = [
   { to: '/dashboard', label: 'Home',     Icon: Home },
   { to: '/calendar',  label: 'Schedule', Icon: Calendar },
-  { to: '/vault',     label: 'Vault',    Icon: Vault },
+  { to: '/meals',     label: 'Meals',    Icon: UtensilsCrossed },
 ];
 const itemsRight = [
   { to: '/tasks',    label: 'Tasks',    Icon: CheckCircle2 },

@@ -20,6 +20,7 @@ export default function AppShell() {
   const isGiftsRoute  = location.pathname.startsWith('/gifts');
   const isVaultRoute  = location.pathname.startsWith('/vault');
   const isHealthRoute = location.pathname.startsWith('/health');
+  const isFoodRoute   = location.pathname.startsWith('/meals');
 
   const [adding, setAdding] = useState(false);
   const [createDefaultDate, setCreateDefaultDate] = useState(null);
@@ -29,6 +30,10 @@ export default function AppShell() {
 
   // VaccinationPage registers a callback to open its own add-vaccination modal
   const [healthFabCallback, setHealthFabCallback] = useState(null);
+
+  // FoodPage registers a callback whose behaviour depends on its active tab
+  // (add a recipe vs. plan a meal).
+  const [foodFabCallback, setFoodFabCallback] = useState(null);
 
   // Re-sync any stale calendar subscriptions in the background once per
   // session. Intentionally fire-and-forget; errors land in the subscription's
@@ -71,16 +76,17 @@ export default function AppShell() {
   function handleFab() {
     if (isVaultRoute)  { vaultAdd?.(); return; }
     if (isHealthRoute) { healthFabCallback?.(); return; }
+    if (isFoodRoute)   { foodFabCallback?.(); return; }
     setAdding(true);
   }
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
       <AddActionContext.Provider value={handleFab}>
-        <Outlet context={{ setCreateDefaultDate, setVaultAdd, setHealthFabCallback }} />
+        <Outlet context={{ setCreateDefaultDate, setVaultAdd, setHealthFabCallback, setFoodFabCallback }} />
       </AddActionContext.Provider>
       <BottomNav onAdd={handleFab} />
-      {!isVaultRoute && !isHealthRoute && (
+      {!isVaultRoute && !isHealthRoute && !isFoodRoute && (
         isGiftsRoute ? (
           <GiftFormModal
             open={adding}
