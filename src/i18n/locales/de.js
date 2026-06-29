@@ -35,7 +35,7 @@ export default {
     meals: 'Essen',
     tasks: 'Aufgaben',
     gifts: 'Geschenke',
-    settings: 'Einstellungen',
+    settings: 'Konto',
     addEvent: 'Termin hinzufügen',
     add: 'Hinzufügen',
   },

@@ -23,13 +23,20 @@ function NavItem({ to, label, Icon, showLabels }) {
       to={to}
       aria-label={label}
       className={({ isActive }) =>
-        `flex min-h-[3.5rem] flex-1 flex-col items-center justify-center gap-1 py-2 text-xs ${
+        `flex min-h-[3.5rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 py-2 ${
           isActive ? 'text-brand-600' : 'text-slate-500'
         }`
       }
     >
       <Icon size={showLabels ? 22 : 26} />
-      {showLabels && <span className="font-medium">{label}</span>}
+      {showLabels && (
+        // Keep labels on a single line. Nav labels are kept short per locale
+        // (e.g. "Konto" instead of "Einstellungen") so they fit the narrow
+        // column without wrapping into the neighbouring item.
+        <span className="block w-full px-0.5 text-center text-[11px] font-medium leading-tight whitespace-nowrap">
+          {label}
+        </span>
+      )}
     </NavLink>
   );
 }
@@ -43,13 +50,15 @@ function IOSTabItem({ to, label, Icon }) {
       to={to}
       aria-label={label}
       className={({ isActive }) =>
-        `flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 ${
+        `flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 py-1.5 ${
           isActive ? 'text-brand-600' : 'text-slate-500'
         }`
       }
     >
       <Icon size={24} strokeWidth={2} />
-      <span className="text-[10px] font-medium leading-none">{label}</span>
+      <span className="block w-full px-0.5 text-center text-[10px] font-medium leading-none whitespace-nowrap">
+        {label}
+      </span>
     </NavLink>
   );
 }
