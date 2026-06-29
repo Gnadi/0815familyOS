@@ -28,6 +28,8 @@ export default {
     none: 'None',
     create: 'Create',
     remove: 'Remove',
+    previous: 'Previous',
+    next: 'Next',
   },
   nav: {
     home: 'Home',
@@ -375,6 +377,8 @@ export default {
     replaceFile: 'Replace file',
     attachFile: 'Attach file',
     uploadNotConfigured: 'File upload is not configured — document saved without attachment.',
+    errFileTooLarge: 'File exceeds the 2 GB size limit.',
+    errFileType: 'Only PDF, DOCX, XLS, and XLSX files are allowed.',
     notes: 'Notes',
     notesPlaceholderTrophy: 'Level 3 completed — June 2025',
     notesPlaceholderDoc: 'Expires June 2030',

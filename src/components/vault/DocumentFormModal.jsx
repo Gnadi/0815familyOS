@@ -150,7 +150,13 @@ export default function DocumentFormModal({
       setFile(chosen);
     } catch (err) {
       setFile(null);
-      setFileError(err.message);
+      const key =
+        err.code === 'file/too-large'
+          ? 'vault.errFileTooLarge'
+          : err.code === 'file/bad-type'
+            ? 'vault.errFileType'
+            : null;
+      setFileError(key ? t(key) : err.message);
     }
   }
 

@@ -26,6 +26,8 @@ export default {
     none: 'Keine',
     create: 'Erstellen',
     remove: 'Entfernen',
+    previous: 'Zurück',
+    next: 'Weiter',
   },
   nav: {
     home: 'Start',
@@ -373,6 +375,8 @@ export default {
     replaceFile: 'Datei ersetzen',
     attachFile: 'Datei anhängen',
     uploadNotConfigured: 'Datei-Upload ist nicht konfiguriert — Dokument ohne Anhang gespeichert.',
+    errFileTooLarge: 'Die Datei überschreitet das Limit von 2 GB.',
+    errFileType: 'Nur PDF-, DOCX-, XLS- und XLSX-Dateien sind erlaubt.',
     notes: 'Notizen',
     notesPlaceholderTrophy: 'Stufe 3 abgeschlossen — Juni 2025',
     notesPlaceholderDoc: 'Läuft im Juni 2030 ab',

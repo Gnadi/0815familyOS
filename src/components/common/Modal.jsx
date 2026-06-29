@@ -2,10 +2,12 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import useUIPreferences from '../../hooks/useUIPreferences';
+import useT from '../../hooks/useT';
 import { lockBodyScroll } from '../../utils/scrollLock';
 
 export default function Modal({ open, onClose, title, children, footer }) {
   const { skin } = useUIPreferences();
+  const { t } = useT();
   const ios = skin === 'ios';
 
   // Escape-to-close.
@@ -54,7 +56,7 @@ export default function Modal({ open, onClose, title, children, footer }) {
                 ? 'flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-500 active:opacity-60'
                 : 'rounded-full p-1.5 text-slate-500 hover:bg-slate-100'
             }
-            aria-label="Close"
+            aria-label={t('common.close')}
           >
             <X size={ios ? 16 : 18} />
           </button>

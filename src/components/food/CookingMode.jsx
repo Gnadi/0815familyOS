@@ -166,7 +166,7 @@ export default function CookingMode({ open, onClose, recipe }) {
           onClick={back}
           disabled={screen === 0}
           className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-700 transition active:scale-95 disabled:opacity-30"
-          aria-label="Previous"
+          aria-label={t('common.previous')}
         >
           <ChevronLeft size={26} />
         </button>

@@ -5,13 +5,19 @@ const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const MAX_SIZE_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB
 const ALLOWED_EXTENSIONS = ['pdf', 'docx', 'xls', 'xlsx'];
 
+// Errors carry a `code` so callers can render a localized message; the English
+// `message` remains as a fallback for non-UI callers.
 export function validateFile(file) {
   if (file.size > MAX_SIZE_BYTES) {
-    throw new Error('File exceeds the 2 GB size limit.');
+    const err = new Error('File exceeds the 2 GB size limit.');
+    err.code = 'file/too-large';
+    throw err;
   }
   const ext = file.name.split('.').pop().toLowerCase();
   if (!ALLOWED_EXTENSIONS.includes(ext)) {
-    throw new Error('Only PDF, DOCX, XLS, and XLSX files are allowed.');
+    const err = new Error('Only PDF, DOCX, XLS, and XLSX files are allowed.');
+    err.code = 'file/bad-type';
+    throw err;
   }
 }
 
