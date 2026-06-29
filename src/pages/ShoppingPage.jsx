@@ -53,7 +53,7 @@ export default function ShoppingPage() {
 
   return (
     <>
-      <TopBar title={t('shopping.title')} showBell={false} />
+      <TopBar title={t('shopping.title')} />
       <main className="mx-auto max-w-md space-y-6 px-5 pt-5">
         <form onSubmit={handleAdd} className="flex items-center gap-2">
           <input

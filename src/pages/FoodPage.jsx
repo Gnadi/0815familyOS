@@ -99,7 +99,7 @@ export default function FoodPage() {
 
   return (
     <>
-      <TopBar title={t('food.title')} showBell={false} />
+      <TopBar title={t('food.title')} />
       <main className="mx-auto max-w-md space-y-5 px-5 py-5">
         <div className="flex rounded-xl bg-slate-100 p-1">
           {TABS.map((tabItem) => (

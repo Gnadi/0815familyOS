@@ -1,11 +1,10 @@
-import { ArrowLeft, Bell, ChevronLeft, Home, Plus } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, Home, Plus } from 'lucide-react';
 import useUIPreferences from '../../hooks/useUIPreferences';
 import useT from '../../hooks/useT';
 import { useAddAction } from '../../context/AddActionContext';
 
 export default function TopBar({
   title,
-  showBell = true,
   showAdd = true,
   right = null,
   onBack = null,
@@ -33,12 +32,6 @@ export default function TopBar({
             )}
             <div className="flex items-center gap-1">
               {right}
-              {showBell && (
-                <button className="relative rounded-full p-1.5 text-brand-600 active:opacity-60">
-                  <Bell size={20} />
-                  <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
-                </button>
-              )}
               {showAdd && onAdd && (
                 <button
                   onClick={onAdd}
@@ -74,12 +67,6 @@ export default function TopBar({
         </div>
         <div className="flex items-center gap-2">
           {right}
-          {showBell && (
-            <button className="relative rounded-full p-2 text-slate-600 hover:bg-slate-100">
-              <Bell size={20} />
-              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
-            </button>
-          )}
         </div>
       </div>
     </header>
