@@ -1,18 +1,20 @@
 import { NavLink } from 'react-router-dom';
 import { Calendar, CheckCircle2, Gift, Home, Plus, Settings, UtensilsCrossed } from 'lucide-react';
 import useUIPreferences from '../../hooks/useUIPreferences';
+import useT from '../../hooks/useT';
 
 // Note: the Document Vault used to sit here; it now lives in the Dashboard's
-// Quick Access since the Meal planner is reached far more often.
+// Quick Access since the Meal planner is reached far more often. `labelKey`
+// points at a nav.* translation key resolved at render time.
 const items = [
-  { to: '/dashboard', label: 'Home',     Icon: Home },
-  { to: '/calendar',  label: 'Schedule', Icon: Calendar },
-  { to: '/meals',     label: 'Meals',    Icon: UtensilsCrossed },
+  { to: '/dashboard', labelKey: 'nav.home',     Icon: Home },
+  { to: '/calendar',  labelKey: 'nav.schedule', Icon: Calendar },
+  { to: '/meals',     labelKey: 'nav.meals',    Icon: UtensilsCrossed },
 ];
 const itemsRight = [
-  { to: '/tasks',    label: 'Tasks',    Icon: CheckCircle2 },
-  { to: '/gifts',    label: 'Gifts',    Icon: Gift },
-  { to: '/settings', label: 'Settings', Icon: Settings },
+  { to: '/tasks',    labelKey: 'nav.tasks',    Icon: CheckCircle2 },
+  { to: '/gifts',    labelKey: 'nav.gifts',    Icon: Gift },
+  { to: '/settings', labelKey: 'nav.settings', Icon: Settings },
 ];
 
 function NavItem({ to, label, Icon, showLabels }) {
@@ -54,6 +56,7 @@ function IOSTabItem({ to, label, Icon }) {
 
 export default function BottomNav({ onAdd }) {
   const { showLabels, skin } = useUIPreferences();
+  const { t } = useT();
 
   if (skin === 'ios') {
     const all = [...items, ...itemsRight];
@@ -61,7 +64,7 @@ export default function BottomNav({ onAdd }) {
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/80 backdrop-blur-xl safe-bottom">
         <div className="mx-auto flex max-w-md items-stretch">
           {all.map((it) => (
-            <IOSTabItem key={it.to} {...it} />
+            <IOSTabItem key={it.to} to={it.to} Icon={it.Icon} label={t(it.labelKey)} />
           ))}
         </div>
       </nav>
@@ -72,19 +75,19 @@ export default function BottomNav({ onAdd }) {
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white safe-bottom">
       <div className="mx-auto flex max-w-md items-center">
         {items.map((it) => (
-          <NavItem key={it.to} {...it} showLabels={showLabels} />
+          <NavItem key={it.to} to={it.to} Icon={it.Icon} label={t(it.labelKey)} showLabels={showLabels} />
         ))}
         <div className="flex flex-1 items-center justify-center">
           <button
             onClick={onAdd}
-            aria-label="Add event"
+            aria-label={t('nav.addEvent')}
             className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full bg-brand-500 text-white shadow-lg hover:bg-brand-600"
           >
             <Plus size={26} />
           </button>
         </div>
         {itemsRight.map((it) => (
-          <NavItem key={it.to} {...it} showLabels={showLabels} />
+          <NavItem key={it.to} to={it.to} Icon={it.Icon} label={t(it.labelKey)} showLabels={showLabels} />
         ))}
       </div>
     </nav>
