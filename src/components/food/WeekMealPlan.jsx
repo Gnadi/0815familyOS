@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { addDays, addWeeks, format, isSameDay, isToday, startOfWeek } from 'date-fns';
-import { ChevronLeft, ChevronRight, ExternalLink, Plus } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, ExternalLink, Plus } from 'lucide-react';
 import Spinner from '../common/Spinner';
 import AvatarStack from '../common/AvatarStack';
 import MealEntryModal from './MealEntryModal';
@@ -24,6 +24,7 @@ export default function WeekMealPlan({
   cooks = [],
   onAddCook,
   onRemoveCook,
+  onViewRecipe,
 }) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [cell, setCell] = useState(null); // { date, slot }
@@ -179,18 +180,31 @@ export default function WeekMealPlan({
                         )}
                         {cook && <AvatarStack members={[cook]} max={1} size="md" />}
                       </button>
-                      {href && (
-                        <a
-                          href={href}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          aria-label={`Open recipe link for ${label}`}
-                          className="shrink-0 rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-brand-600"
-                        >
-                          <ExternalLink size={18} />
-                        </a>
-                      )}
+                      {recipe &&
+                        (href ? (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label={`Open recipe link for ${label}`}
+                            className="shrink-0 rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-brand-600"
+                          >
+                            <ExternalLink size={18} />
+                          </a>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onViewRecipe?.(recipe);
+                            }}
+                            aria-label={`View recipe ${label}`}
+                            className="shrink-0 rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-brand-600"
+                          >
+                            <BookOpen size={18} />
+                          </button>
+                        ))}
                     </div>
                   );
                 })}

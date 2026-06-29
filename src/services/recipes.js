@@ -28,6 +28,14 @@ function normalizeUrl(url) {
   return `https://${trimmed}`;
 }
 
+// Normalize ingredients/steps to an array of non-empty trimmed strings.
+// Accepts the new array shape as well as the legacy newline-joined string,
+// so older recipes keep working without a migration.
+export function toList(value) {
+  const arr = Array.isArray(value) ? value : String(value || '').split('\n');
+  return arr.map((s) => String(s).trim()).filter(Boolean);
+}
+
 export function subscribeRecipes(familyId, cb) {
   const q = query(recipesRef, where('familyId', '==', familyId));
   return onSnapshot(q, (snap) => {
@@ -39,8 +47,8 @@ export function subscribeRecipes(familyId, cb) {
           ...data,
           title: data.title || '',
           sourceUrl: data.sourceUrl || '',
-          ingredients: data.ingredients || '',
-          instructions: data.instructions || '',
+          ingredients: toList(data.ingredients),
+          instructions: toList(data.instructions),
           category: data.category || DEFAULT_RECIPE_CATEGORY,
           notes: data.notes || '',
           createdAt: toDate(data.createdAt),
@@ -69,8 +77,8 @@ export function createRecipe({
     userId,
     title: title.trim(),
     sourceUrl: normalizeUrl(sourceUrl),
-    ingredients: (ingredients || '').trim(),
-    instructions: (instructions || '').trim(),
+    ingredients: toList(ingredients),
+    instructions: toList(instructions),
     category: category || DEFAULT_RECIPE_CATEGORY,
     notes: (notes || '').trim(),
     createdAt: serverTimestamp(),
@@ -82,8 +90,8 @@ export function updateRecipe(id, { title, sourceUrl, ingredients, instructions, 
   return updateDoc(doc(db, 'recipes', id), {
     title: title.trim(),
     sourceUrl: normalizeUrl(sourceUrl),
-    ingredients: (ingredients || '').trim(),
-    instructions: (instructions || '').trim(),
+    ingredients: toList(ingredients),
+    instructions: toList(instructions),
     category: category || DEFAULT_RECIPE_CATEGORY,
     notes: (notes || '').trim(),
     updatedAt: serverTimestamp(),

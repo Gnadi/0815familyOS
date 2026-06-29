@@ -19,9 +19,9 @@ export default function RecipeCard({ recipe, onClick }) {
           <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${cat.chipBg} ${cat.chipText}`}>
             {cat.label}
           </span>
-          {recipe.ingredients && (
+          {recipe.ingredients.length > 0 && (
             <span className="truncate text-xs text-slate-400">
-              {recipe.ingredients.split('\n')[0]}
+              {recipe.ingredients[0]}
             </span>
           )}
         </div>

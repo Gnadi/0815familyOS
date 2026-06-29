@@ -14,7 +14,7 @@ export default function RecipeList({ recipes, loading, onSelect }) {
     ? recipes.filter(
         (r) =>
           r.title.toLowerCase().includes(q) ||
-          r.ingredients.toLowerCase().includes(q),
+          r.ingredients.join(' ').toLowerCase().includes(q),
       )
     : recipes;
 
