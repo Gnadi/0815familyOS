@@ -163,30 +163,17 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Hero visual: a stylized app preview */}
-          <div className="relative mx-auto w-full max-w-sm lg:max-w-md">
-            <div className="absolute -inset-4 -z-10 rounded-[2.5rem] bg-gradient-to-br from-brand-400/30 to-brand-600/20 blur-2xl" />
-            <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/10">
-              <div className="flex items-center justify-between bg-brand-500 px-5 py-4 text-white">
-                <div>
-                  <p className="text-xs font-medium text-white/80">{t('landing.previewThisWeek')}</p>
-                  <p className="text-lg font-bold">{t('landing.previewFamily')}</p>
-                </div>
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20">
-                  <Calendar size={18} />
-                </span>
-              </div>
-              <div className="space-y-3 p-5">
-                <PreviewRow Icon={Calendar} label={t('landing.previewSoccer')} meta={t('landing.previewSoccerMeta')} tone="bg-brand-50 text-brand-600" />
-                <PreviewRow Icon={ListChecks} label={t('landing.previewRecycling')} meta={t('landing.previewRecyclingMeta')} tone="bg-emerald-50 text-emerald-600" />
-                <PreviewRow Icon={UtensilsCrossed} label={t('landing.previewPasta')} meta={t('landing.previewPastaMeta')} tone="bg-amber-50 text-amber-600" />
-                <PreviewRow Icon={ShoppingBasket} label={t('landing.previewGroceries')} meta={t('landing.previewGroceriesMeta')} tone="bg-violet-50 text-violet-600" />
-                <div className="flex items-center gap-2 rounded-2xl border border-dashed border-slate-200 px-4 py-3 text-sm text-slate-400">
-                  <Zap size={16} className="text-brand-400" />
-                  {t('landing.previewSynced')}
-                </div>
-              </div>
-            </div>
+          {/* Hero visual: real product screenshot */}
+          <div className="relative mx-auto w-full max-w-[280px] sm:max-w-[320px]">
+            <div className="absolute -inset-6 -z-10 rounded-[3rem] bg-gradient-to-br from-brand-400/30 to-brand-600/20 blur-3xl" />
+            <img
+              src="/screenshots/dashboard.png"
+              alt={t('landing.heroShotAlt')}
+              width={390}
+              height={844}
+              loading="eager"
+              className="w-full drop-shadow-2xl"
+            />
           </div>
         </div>
       </section>
@@ -245,6 +232,45 @@ export default function LandingPage() {
               </ul>
             </article>
           ))}
+        </div>
+      </section>
+
+      {/* Screenshot gallery */}
+      <section className="border-y border-slate-100 bg-slate-50">
+        <div className="mx-auto max-w-6xl px-5 py-20">
+          <div className="mx-auto max-w-2xl text-center">
+            <span className="text-sm font-semibold uppercase tracking-wide text-brand-600">
+              {t('landing.galleryKicker')}
+            </span>
+            <h2 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+              {t('landing.galleryTitle')}
+            </h2>
+            <p className="mt-4 text-base leading-relaxed text-slate-600">
+              {t('landing.gallerySubtitle')}
+            </p>
+          </div>
+          <div className="mt-12 grid grid-cols-2 gap-6 sm:gap-8 lg:grid-cols-4">
+            {[
+              { src: '/screenshots/dashboard.png', cap: 'shotDashboardCap' },
+              { src: '/screenshots/calendar.png', cap: 'shotCalendarCap' },
+              { src: '/screenshots/tasks.png', cap: 'shotTasksCap' },
+              { src: '/screenshots/meals.png', cap: 'shotMealsCap' },
+            ].map((s) => (
+              <figure key={s.src} className="flex flex-col items-center text-center">
+                <img
+                  src={s.src}
+                  alt={t(`landing.${s.cap}`)}
+                  width={390}
+                  height={844}
+                  loading="lazy"
+                  className="w-full drop-shadow-xl transition hover:-translate-y-1"
+                />
+                <figcaption className="mt-4 text-sm font-medium text-slate-600">
+                  {t(`landing.${s.cap}`)}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -391,20 +417,6 @@ export default function LandingPage() {
           </p>
         </div>
       </footer>
-    </div>
-  );
-}
-
-function PreviewRow({ Icon, label, meta, tone }) {
-  return (
-    <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-card">
-      <span className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl ${tone}`}>
-        <Icon size={18} />
-      </span>
-      <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-slate-900">{label}</p>
-        <p className="truncate text-xs text-slate-400">{meta}</p>
-      </div>
     </div>
   );
 }

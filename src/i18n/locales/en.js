@@ -812,5 +812,13 @@ export default {
     featGiftsP1: 'Idea collection',
     featGiftsP2: 'Birthdays & holidays',
     featGiftsP3: 'No more last-minute panic',
+    galleryKicker: 'See it in action',
+    galleryTitle: 'A calm, focused app your family will actually use',
+    gallerySubtitle: 'Clean screens, real-time sync, and a design that gets out of your way.',
+    heroShotAlt: 'Family OS dashboard on a phone',
+    shotDashboardCap: 'Your whole day at a glance',
+    shotCalendarCap: "Everyone's schedule, in sync",
+    shotTasksCap: 'A fair, visual task board',
+    shotMealsCap: "The week's meals, planned ahead",
   },
 };
