@@ -7,6 +7,8 @@ import Button from '../common/Button';
 import useAuth from '../../hooks/useAuth';
 import useFamilyMembers from '../../hooks/useFamilyMembers';
 import useVaultCategories from '../../hooks/useVaultCategories';
+import useT from '../../hooks/useT';
+import { tLabel } from '../../i18n/labels';
 import { DEFAULT_DOC_CATEGORY, DEFAULT_TROPHY_CATEGORY } from '../../constants/documentCategories';
 import { COLOR_PALETTE, PALETTE_COLORS } from '../../constants/eventCategories';
 import { addVaultCategory, deleteVaultCategory } from '../../services/families';
@@ -17,6 +19,7 @@ function toDateInput(d) {
 }
 
 function NewCategoryForm({ onCreated, onCancel, familyId, vaultType }) {
+  const { t } = useT();
   const [label, setLabel] = useState('');
   const [color, setColor] = useState(PALETTE_COLORS[1]);
   const [saving, setSaving] = useState(false);
@@ -26,14 +29,14 @@ function NewCategoryForm({ onCreated, onCancel, familyId, vaultType }) {
     e.preventDefault();
     e.stopPropagation();
     const trimmed = label.trim();
-    if (!trimmed) return setError('Name is required.');
+    if (!trimmed) return setError(t('vault.nameRequired'));
     setError('');
     setSaving(true);
     try {
       const created = await addVaultCategory(familyId, vaultType, { label: trimmed, color });
       onCreated(created);
     } catch (err) {
-      setError(err.message || 'Could not add category.');
+      setError(err.message || t('vault.couldNotAddCategory'));
     } finally {
       setSaving(false);
     }
@@ -42,7 +45,7 @@ function NewCategoryForm({ onCreated, onCancel, familyId, vaultType }) {
   return (
     <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-slate-700">New category</span>
+        <span className="text-sm font-medium text-slate-700">{t('vault.newCategory')}</span>
         <button type="button" onClick={onCancel} className="rounded-full p-1 text-slate-500 hover:bg-slate-200">
           <X size={14} />
         </button>
@@ -50,7 +53,7 @@ function NewCategoryForm({ onCreated, onCancel, familyId, vaultType }) {
       <input
         value={label}
         onChange={(e) => setLabel(e.target.value)}
-        placeholder="e.g. Tax, Awards, Hobbies"
+        placeholder={t('vault.categoryPlaceholder')}
         maxLength={24}
         autoFocus
         className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
@@ -63,7 +66,7 @@ function NewCategoryForm({ onCreated, onCancel, familyId, vaultType }) {
               key={c}
               type="button"
               onClick={() => setColor(c)}
-              aria-label={`Color ${c}`}
+              aria-label={t('vault.colorAria', { color: c })}
               className={`flex h-7 w-7 items-center justify-center rounded-full ${COLOR_PALETTE[c].swatch} ring-offset-2 transition ${
                 active ? 'ring-2 ring-slate-900' : 'hover:opacity-80'
               }`}
@@ -76,7 +79,7 @@ function NewCategoryForm({ onCreated, onCancel, familyId, vaultType }) {
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
       <div className="mt-3 flex justify-end">
         <Button type="button" size="sm" onClick={handleSave} loading={saving}>
-          Add category
+          {t('vault.addCategory')}
         </Button>
       </div>
     </div>
@@ -94,6 +97,7 @@ export default function DocumentFormModal({
 }) {
   const { userDoc, family } = useAuth();
   const familyMembers = useFamilyMembers();
+  const { t } = useT();
   const fileInputRef = useRef(null);
 
   const isTrophy = type === 'trophy';
@@ -158,14 +162,14 @@ export default function DocumentFormModal({
 
   async function handleDeleteCategory(cat) {
     if (!userDoc?.familyId) return;
-    const ok = window.confirm(`Delete category "${cat.label}"? Documents in this category will fall back to Other.`);
+    const ok = window.confirm(t('vault.confirmDeleteCategory', { name: tLabel(t, cat) }));
     if (!ok) return;
     setDeletingCategoryId(cat.id);
     try {
       await deleteVaultCategory(userDoc.familyId, type, cat);
       if (category === cat.id) setCategory(defaultCat);
     } catch (err) {
-      setError(err.message || 'Could not delete category.');
+      setError(err.message || t('vault.couldNotDeleteCategory'));
     } finally {
       setDeletingCategoryId(null);
     }
@@ -178,8 +182,8 @@ export default function DocumentFormModal({
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!title.trim()) return setError('Please enter a title.');
-    if (!date) return setError('Please pick a date.');
+    if (!title.trim()) return setError(t('vault.errTitle'));
+    if (!date) return setError(t('vault.errDate'));
     const [y, m, d] = date.split('-').map(Number);
     const parsedDate = new Date(y, m - 1, d, 9, 0);
     setError('');
@@ -198,7 +202,7 @@ export default function DocumentFormModal({
         fileName = file.name;
       } catch (err) {
         if (err.message === 'Cloudinary is not configured.') {
-          setFileWarning('File upload is not configured — document saved without attachment.');
+          setFileWarning(t('vault.uploadNotConfigured'));
           fileUrl = null;
           filePublicId = null;
           fileName = null;
@@ -223,7 +227,7 @@ export default function DocumentFormModal({
         awardedTo: isTrophy ? awardedTo : null,
       });
     } catch (err) {
-      setError(err.message || 'Could not save.');
+      setError(err.message || t('vault.errSave'));
     } finally {
       setSaving(false);
     }
@@ -231,7 +235,7 @@ export default function DocumentFormModal({
 
   async function handleDelete() {
     if (!onDelete) return;
-    const ok = window.confirm('Delete this entry? This cannot be undone.');
+    const ok = window.confirm(t('vault.confirmDelete'));
     if (!ok) return;
     setDeleting(true);
     try {
@@ -247,20 +251,24 @@ export default function DocumentFormModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={isEdit ? `Edit ${isTrophy ? 'Trophy' : 'Document'}` : `New ${isTrophy ? 'Trophy' : 'Document'}`}
+      title={
+        isEdit
+          ? isTrophy ? t('vault.editTrophy') : t('vault.editDocument')
+          : isTrophy ? t('vault.newTrophy') : t('vault.newDocument')
+      }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
-          label="Title"
+          label={t('vault.titleLabel')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder={isTrophy ? 'Baby Swim Course Certificate' : 'Passport — Maria'}
+          placeholder={isTrophy ? t('vault.titlePlaceholderTrophy') : t('vault.titlePlaceholderDoc')}
           required
           autoFocus
         />
 
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">Category</span>
+          <span className="mb-1.5 block text-sm font-medium text-slate-700">{t('vault.category')}</span>
           <div className="flex flex-wrap gap-2">
             {cats.map((cat) => {
               const active = category === cat.id;
@@ -281,14 +289,14 @@ export default function DocumentFormModal({
                     className={`flex items-center gap-2 py-1.5 pl-3 ${isDeletable ? 'pr-1.5' : 'pr-3'}`}
                   >
                     <span className={`h-2.5 w-2.5 rounded-full ${cat.dot}`} />
-                    {cat.label}
+                    {tLabel(t, cat)}
                   </button>
                   {isDeletable && (
                     <button
                       type="button"
                       onClick={() => handleDeleteCategory(cat)}
                       disabled={isDeleting}
-                      aria-label={`Delete ${cat.label}`}
+                      aria-label={t('vault.deleteCategoryAria', { name: tLabel(t, cat) })}
                       className="mr-1 flex h-6 w-6 items-center justify-center rounded-full opacity-60 hover:bg-black/5 hover:opacity-100 disabled:cursor-not-allowed"
                     >
                       <X size={12} />
@@ -303,7 +311,7 @@ export default function DocumentFormModal({
                 onClick={() => setCreatingCategory(true)}
                 className="flex items-center gap-1 rounded-full border border-dashed border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-50"
               >
-                <Plus size={14} /> New
+                <Plus size={14} /> {t('vault.newShort')}
               </button>
             )}
           </div>
@@ -321,7 +329,7 @@ export default function DocumentFormModal({
         </div>
 
         <Input
-          label="Date"
+          label={t('vault.dateLabel')}
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
@@ -331,7 +339,7 @@ export default function DocumentFormModal({
         {isTrophy && peopleOptions.length > 0 && (
           <div>
             <span className="mb-1.5 block text-sm font-medium text-slate-700">
-              Awarded to <span className="font-normal text-slate-400">(optional)</span>
+              {t('vault.awardedTo')} <span className="font-normal text-slate-400">({t('common.optional')})</span>
             </span>
             <div className="flex flex-wrap gap-2">
               {peopleOptions.map((name) => {
@@ -357,7 +365,7 @@ export default function DocumentFormModal({
 
         <div>
           <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Attachment <span className="font-normal text-slate-400">(optional · PDF, DOCX, XLS, XLSX · max 2 GB)</span>
+            {t('vault.attachment')} <span className="font-normal text-slate-400">({t('vault.attachmentHint')})</span>
           </span>
           {file ? (
             <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
@@ -373,7 +381,7 @@ export default function DocumentFormModal({
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm text-slate-500 hover:border-slate-400 hover:bg-slate-50 transition"
             >
               <Paperclip size={16} />
-              {initial?.fileUrl ? 'Replace file' : 'Attach file'}
+              {initial?.fileUrl ? t('vault.replaceFile') : t('vault.attachFile')}
             </button>
           )}
           <input
@@ -389,14 +397,14 @@ export default function DocumentFormModal({
 
         <label className="block">
           <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Notes <span className="font-normal text-slate-400">(optional)</span>
+            {t('vault.notes')} <span className="font-normal text-slate-400">({t('common.optional')})</span>
           </span>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
             className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
-            placeholder={isTrophy ? 'Level 3 completed — June 2025' : 'Expires June 2030'}
+            placeholder={isTrophy ? t('vault.notesPlaceholderTrophy') : t('vault.notesPlaceholderDoc')}
           />
         </label>
 
@@ -405,11 +413,11 @@ export default function DocumentFormModal({
         <div className="flex gap-2 pt-2">
           {isEdit && onDelete && (
             <Button type="button" variant="danger" onClick={handleDelete} loading={deleting}>
-              Delete
+              {t('common.delete')}
             </Button>
           )}
           <Button type="submit" loading={saving} className="ml-auto">
-            {isEdit ? 'Save Changes' : isTrophy ? 'Add Trophy' : 'Add Document'}
+            {isEdit ? t('vault.saveChanges') : isTrophy ? t('vault.addTrophy') : t('vault.addDocument')}
           </Button>
         </div>
       </form>

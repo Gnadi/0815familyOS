@@ -9,29 +9,31 @@ import DocumentCard from '../components/vault/DocumentCard';
 import TrophyCard from '../components/vault/TrophyCard';
 import DocumentFormModal from '../components/vault/DocumentFormModal';
 import useAuth from '../hooks/useAuth';
+import useT from '../hooks/useT';
 import useDocuments from '../hooks/useDocuments';
 import { createDocument, updateDocument, deleteDocument } from '../services/documents';
 
 function DocumentsSection({ docs, onAdd, onEdit, encryptionKey }) {
+  const { t, tn } = useT();
   return (
     <div className="space-y-3">
       {docs.length === 0 ? (
         <EmptyState
           icon={FileText}
-          title="No documents yet"
-          description="Store passports, medical records, insurance policies and more."
+          title={t('vault.noDocuments')}
+          description={t('vault.noDocumentsDesc')}
           action={
             <Button variant="secondary" onClick={onAdd}>
-              Add Document
+              {t('vault.addDocument')}
             </Button>
           }
         />
       ) : (
         <>
           <div className="flex items-center justify-between">
-            <p className="text-sm text-slate-500">{docs.length} document{docs.length !== 1 ? 's' : ''}</p>
+            <p className="text-sm text-slate-500">{tn('vault.docCount', docs.length)}</p>
             <Button variant="secondary" onClick={onAdd}>
-              Add Document
+              {t('vault.addDocument')}
             </Button>
           </div>
           <div className="space-y-2">
@@ -46,25 +48,26 @@ function DocumentsSection({ docs, onAdd, onEdit, encryptionKey }) {
 }
 
 function TrophiesSection({ trophies, onAdd, onEdit, encryptionKey }) {
+  const { t, tn } = useT();
   return (
     <div className="space-y-3">
       {trophies.length === 0 ? (
         <EmptyState
           icon={Trophy}
-          title="No trophies yet"
-          description="Celebrate achievements — swim certificates, riding courses, sports medals and more."
+          title={t('vault.noTrophies')}
+          description={t('vault.noTrophiesDesc')}
           action={
             <Button variant="secondary" onClick={onAdd}>
-              Add Trophy
+              {t('vault.addTrophy')}
             </Button>
           }
         />
       ) : (
         <>
           <div className="flex items-center justify-between">
-            <p className="text-sm text-slate-500">{trophies.length} {trophies.length !== 1 ? 'trophies' : 'trophy'}</p>
+            <p className="text-sm text-slate-500">{tn('vault.trophyCount', trophies.length)}</p>
             <Button variant="secondary" onClick={onAdd}>
-              Add Trophy
+              {t('vault.addTrophy')}
             </Button>
           </div>
           <div className="space-y-2">
@@ -80,6 +83,7 @@ function TrophiesSection({ trophies, onAdd, onEdit, encryptionKey }) {
 
 export default function DocumentVaultPage() {
   const { user, userDoc, encryptionKey } = useAuth();
+  const { t } = useT();
   const { documents, loading } = useDocuments(userDoc?.familyId);
   const outletContext = useOutletContext() || {};
   const { setVaultAdd } = outletContext;
@@ -131,7 +135,7 @@ export default function DocumentVaultPage() {
 
   return (
     <>
-      <TopBar title="Document Vault" showBell={false} />
+      <TopBar title={t('vault.title')} showBell={false} />
       <main className="mx-auto max-w-md space-y-5 px-5 py-6">
         <div className="relative">
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -139,14 +143,14 @@ export default function DocumentVaultPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search documents and trophies…"
+            placeholder={t('vault.searchPlaceholder')}
             className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-9 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              aria-label="Clear search"
+              aria-label={t('vault.clearSearch')}
               className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
             >
               <X size={14} />
@@ -164,7 +168,7 @@ export default function DocumentVaultPage() {
             }`}
           >
             <FileText size={16} />
-            Documents
+            {t('vault.tabDocuments')}
           </button>
           <button
             onClick={() => setActiveTab('trophies')}
@@ -175,7 +179,7 @@ export default function DocumentVaultPage() {
             }`}
           >
             <Trophy size={16} />
-            Trophies
+            {t('vault.tabTrophies')}
           </button>
         </div>
 
