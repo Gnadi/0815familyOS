@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { CalendarPlus, FileUp, Link as LinkIcon, RefreshCw, Trash2, UploadCloud } from 'lucide-react';
 import Button from '../common/Button';
 import useAuth from '../../hooks/useAuth';
+import useT from '../../hooks/useT';
 import { parseICS } from '../../utils/icsParser';
 import {
   addSubscription,
@@ -13,28 +14,28 @@ import {
 } from '../../services/calendarSubscriptions';
 import ProviderInstructions from './ProviderInstructions';
 
-function formatRelative(iso) {
-  if (!iso) return 'never';
-  const t = new Date(iso).getTime();
-  const diff = Date.now() - t;
-  if (diff < 60_000) return 'just now';
-  if (diff < 3_600_000) return `${Math.round(diff / 60_000)} min ago`;
-  if (diff < 86_400_000) return `${Math.round(diff / 3_600_000)} h ago`;
-  return `${Math.round(diff / 86_400_000)} d ago`;
+function formatRelative(iso, t) {
+  if (!iso) return t('calImport.never');
+  const ts = new Date(iso).getTime();
+  const diff = Date.now() - ts;
+  if (diff < 60_000) return t('calImport.justNow');
+  if (diff < 3_600_000) return t('calImport.minAgo', { n: Math.round(diff / 60_000) });
+  if (diff < 86_400_000) return t('calImport.hAgo', { n: Math.round(diff / 3_600_000) });
+  return t('calImport.dAgo', { n: Math.round(diff / 86_400_000) });
 }
 
 export default function CalendarImportSection() {
   const { user, userDoc, family } = useAuth();
+  const { t } = useT();
   const [tab, setTab] = useState('file');
 
   return (
     <section className="rounded-2xl bg-white p-5 shadow-card">
       <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
-        <CalendarPlus size={14} /> Calendar Import
+        <CalendarPlus size={14} /> {t('calImport.title')}
       </h2>
       <p className="mt-2 text-sm text-slate-600">
-        Bring events from Google, iCloud, Outlook or any iCal source into your
-        family calendar.
+        {t('calImport.intro')}
       </p>
 
       <div className="mt-4 flex rounded-xl border border-slate-200 bg-slate-100 p-1">
@@ -45,7 +46,7 @@ export default function CalendarImportSection() {
             tab === 'file' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          <FileUp size={15} /> One-time file
+          <FileUp size={15} /> {t('calImport.tabFile')}
         </button>
         <button
           type="button"
@@ -54,7 +55,7 @@ export default function CalendarImportSection() {
             tab === 'url' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          <LinkIcon size={15} /> Auto-sync URL
+          <LinkIcon size={15} /> {t('calImport.tabUrl')}
         </button>
       </div>
 
@@ -74,6 +75,7 @@ export default function CalendarImportSection() {
 }
 
 function FileImportPane({ familyId, userId }) {
+  const { t, tn } = useT();
   const [parsed, setParsed] = useState(null);
   const [skipPast, setSkipPast] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -90,13 +92,13 @@ function FileImportPane({ familyId, userId }) {
       const text = await file.text();
       const out = parseICS(text);
       if (out.events.length === 0) {
-        setError('No events found in this file.');
+        setError(t('calImport.noEventsInFile'));
         setParsed(null);
         return;
       }
       setParsed({ ...out, fileName: file.name });
     } catch {
-      setError('Could not read this file.');
+      setError(t('calImport.couldNotReadFile'));
       setParsed(null);
     }
   }
@@ -110,7 +112,7 @@ function FileImportPane({ familyId, userId }) {
       setResult(out);
       setParsed(null);
     } catch (err) {
-      setError(err.message || 'Import failed.');
+      setError(err.message || t('calImport.importFailed'));
     } finally {
       setBusy(false);
     }
@@ -119,18 +121,16 @@ function FileImportPane({ familyId, userId }) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-slate-600">
-        Export your existing calendar as an <strong>.ics</strong> file and upload
-        it here. Re-importing the same file will update events in place — no
-        duplicates.
+        {t('calImport.fileIntro')}
       </p>
 
       <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-5 text-center text-sm text-slate-600 hover:border-brand-300 hover:bg-brand-50/30">
         <UploadCloud size={22} className="text-slate-400" />
         <span className="font-semibold text-slate-900">
-          {parsed ? parsed.fileName : 'Choose .ics file'}
+          {parsed ? parsed.fileName : t('calImport.chooseIcs')}
         </span>
         <span className="text-xs text-slate-500">
-          {parsed ? `${parsed.events.length} events found` : 'Click to browse'}
+          {parsed ? t('calImport.eventsFound', { n: parsed.events.length }) : t('calImport.clickToBrowse')}
         </span>
         <input type="file" accept=".ics,text/calendar" onChange={handleFile} className="hidden" />
       </label>
@@ -144,10 +144,10 @@ function FileImportPane({ familyId, userId }) {
               onChange={(e) => setSkipPast(e.target.checked)}
               className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
             />
-            Skip events from before today
+            {t('calImport.skipPast')}
           </label>
           <p className="mt-2 text-xs text-slate-500">
-            Recurring events are kept regardless of their original start date.
+            {t('calImport.recurringKept')}
           </p>
         </div>
       )}
@@ -155,15 +155,15 @@ function FileImportPane({ familyId, userId }) {
       {error && <p className="text-sm text-red-600">{error}</p>}
       {result && (
         <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-          Imported {result.created} new event{result.created === 1 ? '' : 's'}
-          {result.updated > 0 ? `, updated ${result.updated}` : ''}
-          {result.skipped > 0 ? `, skipped ${result.skipped} past` : ''}.
+          {tn('calImport.importedCount', result.created)}
+          {result.updated > 0 ? t('calImport.resultUpdated', { n: result.updated }) : ''}
+          {result.skipped > 0 ? t('calImport.resultSkipped', { n: result.skipped }) : ''}.
         </p>
       )}
 
       {parsed && (
         <Button onClick={handleConfirm} loading={busy} className="w-full">
-          Import {parsed.events.length} events
+          {t('calImport.importEvents', { n: parsed.events.length })}
         </Button>
       )}
     </div>
@@ -171,6 +171,7 @@ function FileImportPane({ familyId, userId }) {
 }
 
 function UrlSubscriptionPane({ family, userId }) {
+  const { t } = useT();
   const [showHelp, setShowHelp] = useState(true);
   const [label, setLabel] = useState('');
   const [url, setUrl] = useState('');
@@ -192,14 +193,14 @@ function UrlSubscriptionPane({ family, userId }) {
         await syncSubscription({ familyId: family.id, userId, subscription: sub });
       } catch (syncErr) {
         await updateSubscriptionMeta(family.id, sub.id, {
-          lastError: syncErr.message || 'Initial sync failed.',
+          lastError: syncErr.message || t('calImport.initialSyncFailed'),
         });
         throw syncErr;
       }
       setLabel('');
       setUrl('');
     } catch (err) {
-      setError(err.message || 'Could not subscribe to that calendar.');
+      setError(err.message || t('calImport.couldNotSubscribe'));
     } finally {
       setBusy(false);
     }
@@ -212,7 +213,7 @@ function UrlSubscriptionPane({ family, userId }) {
       await syncSubscription({ familyId: family.id, userId, subscription: sub });
     } catch (err) {
       await updateSubscriptionMeta(family.id, sub.id, {
-        lastError: err.message || 'Sync failed.',
+        lastError: err.message || t('calImport.syncFailed'),
       });
     } finally {
       setBusyId(null);
@@ -221,7 +222,7 @@ function UrlSubscriptionPane({ family, userId }) {
 
   async function handleRemove(sub) {
     if (!family?.id) return;
-    if (!confirm(`Remove "${sub.label}" and delete its synced events?`)) return;
+    if (!confirm(t('calImport.removeConfirm', { label: sub.label }))) return;
     setBusyId(sub.id);
     try {
       await removeSubscription(family.id, sub.id);
@@ -233,12 +234,12 @@ function UrlSubscriptionPane({ family, userId }) {
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm text-blue-900">
-        <p className="font-semibold">How auto-sync works</p>
+        <p className="font-semibold">{t('calImport.howAutoSyncTitle')}</p>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-xs">
-          <li>You paste a private iCal link from your existing calendar.</li>
-          <li>FamilyOS fetches it now and keeps it refreshed in the background.</li>
-          <li>Synced events are <strong>read-only mirrors</strong>: they update or disappear when the source changes. Edit them in the original calendar, not here.</li>
-          <li>The link is stored only inside your family. Treat it like a password.</li>
+          <li>{t('calImport.howAutoSync1')}</li>
+          <li>{t('calImport.howAutoSync2')}</li>
+          <li>{t('calImport.howAutoSync3')}</li>
+          <li>{t('calImport.howAutoSync4')}</li>
         </ul>
       </div>
 
@@ -248,7 +249,7 @@ function UrlSubscriptionPane({ family, userId }) {
           onClick={() => setShowHelp((v) => !v)}
           className="text-sm font-semibold text-brand-600 hover:text-brand-700"
         >
-          {showHelp ? 'Hide' : 'Show'} step-by-step guide
+          {showHelp ? t('calImport.hideGuide') : t('calImport.showGuide')}
         </button>
         {showHelp && (
           <div className="mt-2">
@@ -262,27 +263,27 @@ function UrlSubscriptionPane({ family, userId }) {
           type="text"
           value={label}
           onChange={(e) => setLabel(e.target.value)}
-          placeholder="Label (e.g. Mom's Google)"
+          placeholder={t('calImport.labelPlaceholder')}
           className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
         />
         <input
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://… or webcal://…"
+          placeholder={t('calImport.urlPlaceholder')}
           required
           className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
         />
         {error && <p className="text-sm text-red-600">{error}</p>}
         <Button type="submit" loading={busy} className="w-full">
-          Test &amp; subscribe
+          {t('calImport.testSubscribe')}
         </Button>
       </form>
 
       {subs.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Active subscriptions
+            {t('calImport.activeSubscriptions')}
           </p>
           {subs.map((sub) => (
             <div key={sub.id} className="rounded-xl bg-slate-50 p-3">
@@ -293,7 +294,7 @@ function UrlSubscriptionPane({ family, userId }) {
                   </p>
                   <p className="truncate text-xs text-slate-500">{sub.url}</p>
                   <p className="mt-1 text-xs text-slate-500">
-                    Last synced: {formatRelative(sub.lastSyncAt)}
+                    {t('calImport.lastSynced', { when: formatRelative(sub.lastSyncAt, t) })}
                   </p>
                   {sub.lastError && (
                     <p className="mt-1 text-xs text-red-600">⚠ {sub.lastError}</p>
@@ -304,7 +305,7 @@ function UrlSubscriptionPane({ family, userId }) {
                     type="button"
                     onClick={() => handleSyncNow(sub)}
                     disabled={busyId === sub.id}
-                    aria-label={`Sync ${sub.label} now`}
+                    aria-label={t('calImport.syncNow', { label: sub.label })}
                     className="rounded-full p-2 text-slate-500 hover:bg-slate-200 hover:text-slate-900 disabled:opacity-50"
                   >
                     <RefreshCw
@@ -316,7 +317,7 @@ function UrlSubscriptionPane({ family, userId }) {
                     type="button"
                     onClick={() => handleRemove(sub)}
                     disabled={busyId === sub.id}
-                    aria-label={`Remove ${sub.label}`}
+                    aria-label={t('calImport.removeSub', { label: sub.label })}
                     className="rounded-full p-2 text-slate-400 hover:bg-slate-200 hover:text-red-600 disabled:opacity-50"
                   >
                     <Trash2 size={16} />
