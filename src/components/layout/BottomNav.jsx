@@ -23,13 +23,21 @@ function NavItem({ to, label, Icon, showLabels }) {
       to={to}
       aria-label={label}
       className={({ isActive }) =>
-        `flex min-h-[3.5rem] flex-1 flex-col items-center justify-center gap-1 py-2 text-xs ${
+        `flex min-h-[3.5rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 py-2 ${
           isActive ? 'text-brand-600' : 'text-slate-500'
         }`
       }
     >
       <Icon size={showLabels ? 22 : 26} />
-      {showLabels && <span className="font-medium">{label}</span>}
+      {showLabels && (
+        // Long locales (e.g. German "Einstellungen") overflow the narrow
+        // column. Allow the label to hyphenate/wrap within its width instead
+        // of colliding with the neighbouring item. <html lang> tracks the
+        // active locale, so hyphens-auto breaks at proper points.
+        <span className="block w-full px-0.5 text-center text-[11px] font-medium leading-tight hyphens-auto [overflow-wrap:break-word]">
+          {label}
+        </span>
+      )}
     </NavLink>
   );
 }
@@ -43,13 +51,15 @@ function IOSTabItem({ to, label, Icon }) {
       to={to}
       aria-label={label}
       className={({ isActive }) =>
-        `flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 ${
+        `flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 py-1.5 ${
           isActive ? 'text-brand-600' : 'text-slate-500'
         }`
       }
     >
       <Icon size={24} strokeWidth={2} />
-      <span className="text-[10px] font-medium leading-none">{label}</span>
+      <span className="block w-full px-0.5 text-center text-[10px] font-medium leading-tight hyphens-auto [overflow-wrap:break-word]">
+        {label}
+      </span>
     </NavLink>
   );
 }
