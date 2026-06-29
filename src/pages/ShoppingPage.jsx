@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Plus, ShoppingBasket, BadgePercent, Footprints, Hourglass } from 'lucide-react';
 import TopBar from '../components/layout/TopBar';
 import Spinner from '../components/common/Spinner';
@@ -18,8 +19,10 @@ export default function ShoppingPage() {
   const { user, userDoc } = useAuth();
   const { t } = useT();
   const { items, loading } = useShoppingItems(userDoc?.familyId);
+  const { setShoppingFabCallback } = useOutletContext() || {};
   const [title, setTitle] = useState('');
   const [editingId, setEditingId] = useState(null);
+  const inputRef = useRef(null);
 
   const toBuy = items.filter((i) => !i.done);
   const recent = items.filter((i) => i.done);
@@ -37,10 +40,40 @@ export default function ShoppingPage() {
     setTitle('');
   }
 
+  // Wire the shared "+" in the nav bar to this page's add field so it adds a
+  // grocery rather than opening the event form.
+  const focusInput = useCallback(() => {
+    inputRef.current?.focus();
+    inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, []);
+  useEffect(() => {
+    setShoppingFabCallback?.(() => focusInput);
+    return () => setShoppingFabCallback?.(null);
+  }, [setShoppingFabCallback, focusInput]);
+
   return (
     <>
       <TopBar title={t('shopping.title')} showBell={false} />
-      <main className="mx-auto max-w-md space-y-6 px-5 pb-28 pt-5">
+      <main className="mx-auto max-w-md space-y-6 px-5 pt-5">
+        <form onSubmit={handleAdd} className="flex items-center gap-2">
+          <input
+            ref={inputRef}
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={t('shopping.whatNeed')}
+            className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 shadow-card focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          />
+          <button
+            type="submit"
+            disabled={!title.trim()}
+            aria-label={t('shopping.addItem')}
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white shadow-sm hover:bg-brand-600 disabled:opacity-40"
+          >
+            <Plus size={22} />
+          </button>
+        </form>
+
         {loading ? (
           <Spinner />
         ) : items.length === 0 ? (
@@ -76,30 +109,6 @@ export default function ShoppingPage() {
           </>
         )}
       </main>
-
-      {/* Add bar pinned to the bottom of the viewport, like the design. */}
-      <form
-        onSubmit={handleAdd}
-        className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/90 px-5 py-3 backdrop-blur"
-      >
-        <div className="mx-auto flex max-w-md items-center gap-2">
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={t('shopping.whatNeed')}
-            className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-          />
-          <button
-            type="submit"
-            disabled={!title.trim()}
-            aria-label={t('shopping.addItem')}
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white shadow-sm hover:bg-brand-600 disabled:opacity-40"
-          >
-            <Plus size={22} />
-          </button>
-        </div>
-      </form>
 
       <ShoppingItemModal item={editingItem} onClose={() => setEditingId(null)} />
     </>
