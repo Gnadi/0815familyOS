@@ -31,6 +31,10 @@ export function subscribeShoppingItems(familyId, cb) {
           ...data,
           done: Boolean(data.done),
           quantity: data.quantity || '',
+          icon: data.icon || '',
+          urgent: Boolean(data.urgent),
+          offer: Boolean(data.offer),
+          ifConvenient: Boolean(data.ifConvenient),
           createdAt: toDate(data.createdAt),
           completedAt: toDate(data.completedAt),
         };
@@ -45,12 +49,16 @@ export function subscribeShoppingItems(familyId, cb) {
   });
 }
 
-export function createShoppingItem({ familyId, userId, title, quantity }) {
+export function createShoppingItem({ familyId, userId, title, quantity, icon }) {
   return addDoc(itemsRef, {
     familyId,
     userId,
     title: title.trim(),
     quantity: (quantity || '').trim(),
+    icon: icon || '',
+    urgent: false,
+    offer: false,
+    ifConvenient: false,
     done: false,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -66,12 +74,15 @@ export function setShoppingItemDone(id, done) {
   });
 }
 
-export function updateShoppingItem(id, { title, quantity }) {
-  return updateDoc(doc(db, 'shoppingItems', id), {
-    title: title.trim(),
-    quantity: (quantity || '').trim(),
-    updatedAt: serverTimestamp(),
-  });
+export function updateShoppingItem(id, fields) {
+  const patch = { updatedAt: serverTimestamp() };
+  if (fields.title !== undefined) patch.title = fields.title.trim();
+  if (fields.quantity !== undefined) patch.quantity = (fields.quantity || '').trim();
+  if (fields.icon !== undefined) patch.icon = fields.icon || '';
+  if (fields.urgent !== undefined) patch.urgent = Boolean(fields.urgent);
+  if (fields.offer !== undefined) patch.offer = Boolean(fields.offer);
+  if (fields.ifConvenient !== undefined) patch.ifConvenient = Boolean(fields.ifConvenient);
+  return updateDoc(doc(db, 'shoppingItems', id), patch);
 }
 
 export function deleteShoppingItem(id) {
