@@ -5,6 +5,8 @@ import Modal from '../common/Modal';
 import Input from '../common/Input';
 import Button from '../common/Button';
 import useFamilyMembers from '../../hooks/useFamilyMembers';
+import useT from '../../hooks/useT';
+import { tLabel } from '../../i18n/labels';
 import {
   TASK_CATEGORY_LIST,
   TASK_PRIORITIES,
@@ -39,6 +41,7 @@ export default function TaskFormModal({
   initial,
 }) {
   const familyMembers = useFamilyMembers();
+  const { t } = useT();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -92,8 +95,8 @@ export default function TaskFormModal({
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!title.trim()) return setError('Please enter a title.');
-    if (!dueDate) return setError('Please pick a due date.');
+    if (!title.trim()) return setError(t('tasks.errTitle'));
+    if (!dueDate) return setError(t('tasks.errDueDate'));
     const [y, m, d] = dueDate.split('-').map(Number);
     const when = new Date(y, m - 1, d, 9, 0);
     setError('');
@@ -113,7 +116,7 @@ export default function TaskFormModal({
         previousStatus: initial?.status,
       });
     } catch (err) {
-      setError(err.message || 'Could not save task.');
+      setError(err.message || t('tasks.errSaveTask'));
     } finally {
       setSaving(false);
     }
@@ -121,7 +124,7 @@ export default function TaskFormModal({
 
   async function handleDelete() {
     if (!onDelete) return;
-    const ok = window.confirm('Delete this task? This cannot be undone.');
+    const ok = window.confirm(t('tasks.confirmDelete'));
     if (!ok) return;
     setDeleting(true);
     try {
@@ -134,19 +137,19 @@ export default function TaskFormModal({
   const isEdit = Boolean(initial);
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Task' : 'New Task'}>
+    <Modal open={open} onClose={onClose} title={isEdit ? t('tasks.modalEdit') : t('tasks.modalNew')}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
-          label="Title"
+          label={t('tasks.titleLabel')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Winter Gear Inventory"
+          placeholder={t('tasks.titlePlaceholder')}
           required
           autoFocus
         />
 
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">Category</span>
+          <span className="mb-1.5 block text-sm font-medium text-slate-700">{t('tasks.category')}</span>
           <div className="flex flex-wrap gap-2">
             {TASK_CATEGORY_LIST.map((cat) => {
               const active = category === cat.id;
@@ -161,7 +164,7 @@ export default function TaskFormModal({
                   className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition ${chip}`}
                 >
                   <span className={`h-2.5 w-2.5 rounded-full ${cat.dot}`} />
-                  {cat.label}
+                  {tLabel(t, cat)}
                 </button>
               );
             })}
@@ -169,7 +172,7 @@ export default function TaskFormModal({
         </div>
 
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">Priority</span>
+          <span className="mb-1.5 block text-sm font-medium text-slate-700">{t('tasks.priority')}</span>
           <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
             {TASK_PRIORITIES.map((p) => (
               <button
@@ -180,14 +183,14 @@ export default function TaskFormModal({
                   priority === p.id ? PRIORITY_ACTIVE[p.id] : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
-                {p.label}
+                {tLabel(t, p)}
               </button>
             ))}
           </div>
         </div>
 
         <Input
-          label="Due date"
+          label={t('tasks.dueDate')}
           type="date"
           value={dueDate}
           onChange={(e) => setDueDate(e.target.value)}
@@ -197,7 +200,7 @@ export default function TaskFormModal({
         {familyMembers.length > 0 && (
           <div>
             <span className="mb-1.5 block text-sm font-medium text-slate-700">
-              Assignees <span className="font-normal text-slate-400">(optional)</span>
+              {t('tasks.assignees')} <span className="font-normal text-slate-400">({t('common.optional')})</span>
             </span>
             <div className="flex flex-wrap gap-2">
               {familyMembers.map((m) => {
@@ -224,7 +227,7 @@ export default function TaskFormModal({
         {showMore && (
           <>
             <Input
-              label="Story points"
+              label={t('tasks.points')}
               type="number"
               min={0}
               max={50}
@@ -234,7 +237,7 @@ export default function TaskFormModal({
             />
 
             <div>
-              <span className="mb-1.5 block text-sm font-medium text-slate-700">Status</span>
+              <span className="mb-1.5 block text-sm font-medium text-slate-700">{t('tasks.status')}</span>
               <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
                 {TASK_STATUSES.map((s) => (
                   <button
@@ -245,7 +248,7 @@ export default function TaskFormModal({
                       status === s.id ? STATUS_ACTIVE[s.id] : 'text-slate-500 hover:text-slate-700'
                     }`}
                   >
-                    {s.label}
+                    {tLabel(t, s)}
                   </button>
                 ))}
               </div>
@@ -254,7 +257,7 @@ export default function TaskFormModal({
             {status === 'inProgress' && (
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <span className="text-sm font-medium text-slate-700">Progress</span>
+                  <span className="text-sm font-medium text-slate-700">{t('tasks.progressLabel')}</span>
                   <span className="text-sm font-semibold tabular-nums text-brand-600">
                     {progress}%
                   </span>
@@ -281,19 +284,19 @@ export default function TaskFormModal({
           className="flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700"
         >
           {showMore ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          {showMore ? 'Fewer options' : 'More options'}
+          {showMore ? t('tasks.fewerOptions') : t('tasks.moreOptions')}
         </button>
 
         <label className="block">
           <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Notes <span className="font-normal text-slate-400">(optional)</span>
+            {t('tasks.notes')} <span className="font-normal text-slate-400">({t('common.optional')})</span>
           </span>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
             className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
-            placeholder="Schedule the technician for annual filter change and inspection."
+            placeholder={t('tasks.notesPlaceholder')}
           />
         </label>
 
@@ -307,11 +310,11 @@ export default function TaskFormModal({
               onClick={handleDelete}
               loading={deleting}
             >
-              Delete
+              {t('common.delete')}
             </Button>
           )}
           <Button type="submit" loading={saving} className="ml-auto">
-            {isEdit ? 'Save Changes' : 'Create Task'}
+            {isEdit ? t('tasks.saveChanges') : t('tasks.createTask')}
           </Button>
         </div>
       </form>

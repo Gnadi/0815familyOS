@@ -55,7 +55,9 @@ export function computeCapacityLoad(tasks, monday = currentSprintMonday()) {
   });
 }
 
-// Column summary row: "Est. Points · 24 pts · High Priority" etc.
+// Column summary row. Returns i18n keys (leftKey / rightKey, with optional
+// rightParams) rather than English text, so the component resolves them with
+// the active language via t().
 export function summaryForColumn(status, tasks) {
   const filtered = tasks.filter((t) => t.status === status);
   const points = filtered.reduce((sum, t) => sum + (Number(t.points) || 0), 0);
@@ -68,8 +70,8 @@ export function summaryForColumn(status, tasks) {
     return {
       count,
       points,
-      leftLabel: 'Est. Points',
-      rightLabel: hasUrgent ? 'High Priority' : 'Queued',
+      leftKey: 'tasks.estPoints',
+      rightKey: hasUrgent ? 'tasks.highPriority' : 'tasks.queued',
       rightTone: hasUrgent ? 'text-red-600' : 'text-slate-500',
     };
   }
@@ -81,8 +83,8 @@ export function summaryForColumn(status, tasks) {
     return {
       count,
       points,
-      leftLabel: 'Sprint Scope',
-      rightLabel: hasUrgent ? 'High Priority' : 'Ready',
+      leftKey: 'tasks.sprintScope',
+      rightKey: hasUrgent ? 'tasks.highPriority' : 'tasks.ready',
       rightTone: hasUrgent ? 'text-red-600' : 'text-cyan-600',
     };
   }
@@ -92,8 +94,8 @@ export function summaryForColumn(status, tasks) {
     return {
       count,
       points,
-      leftLabel: 'Active Load',
-      rightLabel: peak ? 'Peak Phase' : 'Flowing',
+      leftKey: 'tasks.activeLoad',
+      rightKey: peak ? 'tasks.peakPhase' : 'tasks.flowing',
       rightTone: peak ? 'text-amber-600' : 'text-brand-600',
     };
   }
@@ -110,8 +112,9 @@ export function summaryForColumn(status, tasks) {
   return {
     count,
     points,
-    leftLabel: 'Output',
-    rightLabel: best ? `${best[0]} Best` : 'Fresh Sprint',
+    leftKey: 'tasks.output',
+    rightKey: best ? 'tasks.bestDay' : 'tasks.freshSprint',
+    rightParams: best ? { day: best[0] } : undefined,
     rightTone: 'text-emerald-600',
   };
 }

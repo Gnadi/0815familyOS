@@ -5,6 +5,8 @@ import AvatarStack from '../common/AvatarStack';
 import { getTaskCategory, TASK_PRIORITY_MAP } from '../../constants/taskCategories';
 import { formatRelativeDay } from '../../utils/date';
 import { describeRecurrence } from '../../utils/recurrence';
+import useT from '../../hooks/useT';
+import { tLabel } from '../../i18n/labels';
 
 function dueChipClasses(task) {
   if (task.status === 'completed') {
@@ -18,16 +20,16 @@ function dueChipClasses(task) {
   return 'bg-slate-50 text-slate-600';
 }
 
-function formatDueLabel(task) {
+function formatDueLabel(task, t) {
   if (!task.dueDate) return '—';
   const today = startOfDay(new Date());
   const due = startOfDay(task.dueDate);
-  if (isSameDay(due, today)) return 'Today';
-  if (isBefore(due, today)) return `Overdue · ${format(task.dueDate, 'MMM d')}`;
+  if (isSameDay(due, today)) return t('common.today');
+  if (isBefore(due, today)) return t('tasks.overdue', { date: format(task.dueDate, 'MMM d') });
   return format(task.dueDate, 'MMM d');
 }
 
-function TaskCardBody({ task, members, dragging = false, overlay = false }) {
+function TaskCardBody({ task, members, t, tn, dragging = false, overlay = false }) {
   const category = getTaskCategory(task.category);
   const priority = TASK_PRIORITY_MAP[task.priority] || TASK_PRIORITY_MAP.normal;
   const assigned = (task.assigneeIds || [])
@@ -38,7 +40,7 @@ function TaskCardBody({ task, members, dragging = false, overlay = false }) {
   const isShared = assigned.length >= 2;
 
   const completedLine = isCompleted && task.completedAt
-    ? `Completed ${formatRelativeDay(task.completedAt)} ${format(task.completedAt, 'h:mm a')}`
+    ? t('tasks.completedAt', { when: `${formatRelativeDay(task.completedAt, t)} ${format(task.completedAt, 'p')}` })
     : null;
 
   return (
@@ -48,7 +50,7 @@ function TaskCardBody({ task, members, dragging = false, overlay = false }) {
           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${category.chipBg} ${category.chipText}`}
         >
           <span className={`h-1.5 w-1.5 rounded-full ${priority.dot}`} />
-          {category.label}
+          {tLabel(t, category)}
         </span>
         <div className="flex items-center gap-1">
           {isCompleted && (
@@ -83,7 +85,7 @@ function TaskCardBody({ task, members, dragging = false, overlay = false }) {
       {isInProgress && (
         <div className="mt-3">
           <div className="flex items-center justify-between text-[11px] font-medium text-slate-500">
-            <span>Progress</span>
+            <span>{t('tasks.progress')}</span>
             <span className="tabular-nums text-slate-900">{task.progress || 0}%</span>
           </div>
           <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
@@ -95,7 +97,7 @@ function TaskCardBody({ task, members, dragging = false, overlay = false }) {
           {isShared && (
             <div className="mt-2 flex items-center justify-end">
               <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-violet-700">
-                <Users size={10} /> Shared Task
+                <Users size={10} /> {t('tasks.sharedTask')}
               </span>
             </div>
           )}
@@ -112,15 +114,15 @@ function TaskCardBody({ task, members, dragging = false, overlay = false }) {
             className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ${dueChipClasses(task)}`}
           >
             <Calendar size={12} />
-            {formatDueLabel(task)}
+            {formatDueLabel(task, t)}
           </span>
           <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-600">
-            {task.points || 0} pts
+            {task.points || 0} {t('tasks.pts')}
           </span>
-          {describeRecurrence(task.recurrence) && (
+          {describeRecurrence(task.recurrence, t, tn) && (
             <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 text-[11px] font-semibold text-indigo-700">
               <Repeat size={11} />
-              {describeRecurrence(task.recurrence)}
+              {describeRecurrence(task.recurrence, t, tn)}
             </span>
           )}
         </div>
@@ -133,14 +135,16 @@ function TaskCardBody({ task, members, dragging = false, overlay = false }) {
 // Plain card rendered inside a DragOverlay (no drag hooks — the overlay
 // already handles its own positioning).
 export function TaskCardPreview({ task, members }) {
+  const { t, tn } = useT();
   return (
     <div className="w-full cursor-grabbing rounded-2xl bg-white p-4 text-left shadow-xl ring-2 ring-brand-400">
-      <TaskCardBody task={task} members={members} overlay />
+      <TaskCardBody task={task} members={members} t={t} tn={tn} overlay />
     </div>
   );
 }
 
 export default function TaskCard({ task, members, onClick }) {
+  const { t, tn } = useT();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.id,
     data: { status: task.status },
@@ -157,7 +161,7 @@ export default function TaskCard({ task, members, onClick }) {
         isDragging ? 'opacity-30' : ''
       }`}
     >
-      <TaskCardBody task={task} members={members} dragging={isDragging} />
+      <TaskCardBody task={task} members={members} t={t} tn={tn} dragging={isDragging} />
     </button>
   );
 }

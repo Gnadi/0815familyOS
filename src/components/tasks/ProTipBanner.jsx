@@ -1,8 +1,11 @@
 import { format } from 'date-fns';
 import { Sparkles } from 'lucide-react';
 import { computeCapacityLoad, currentSprintMonday } from '../../utils/tasks';
+import useT from '../../hooks/useT';
 
-function pickTip(tasks) {
+// Picks a tip and returns i18n keys/params so the banner renders it in the
+// active language.
+function pickTip(tasks, t) {
   const capacity = computeCapacityLoad(tasks, currentSprintMonday());
   const heaviest = [...capacity]
     .filter((d) => d.level === 'high')
@@ -10,33 +13,29 @@ function pickTip(tasks) {
 
   if (heaviest && heaviest.tasks.length > 0) {
     const suggestion = heaviest.tasks.reduce(
-      (top, t) => ((t.points || 0) > (top?.points || 0) ? t : top),
+      (top, task) => ((task.points || 0) > (top?.points || 0) ? task : top),
       null
     );
     return {
-      text: `${format(heaviest.date, 'EEEE')} is looking heavy. Consider rebalancing "${
-        suggestion?.title || 'a task'
-      }" to a lighter day.`,
-      action: 'Rebalance Board',
+      text: t('tasks.tipHeavyDay', {
+        day: format(heaviest.date, 'EEEE'),
+        task: suggestion?.title || t('tasks.tipTaskFallback'),
+      }),
+      action: t('tasks.actionRebalance'),
     };
   }
 
   const midDays = capacity.filter((d) => d.level === 'mid');
   if (midDays.length >= 3) {
-    return {
-      text: 'Load is trending steady this week. Good time to tackle a backlog item.',
-      action: 'Open Backlog',
-    };
+    return { text: t('tasks.tipSteady'), action: t('tasks.actionOpenBacklog') };
   }
 
-  return {
-    text: 'Balanced load across the week. Keep shipping and close out the sprint.',
-    action: 'Open Backlog',
-  };
+  return { text: t('tasks.tipBalanced'), action: t('tasks.actionOpenBacklog') };
 }
 
 export default function ProTipBanner({ tasks, onRebalance }) {
-  const tip = pickTip(tasks);
+  const { t } = useT();
+  const tip = pickTip(tasks, t);
 
   return (
     <div className="rounded-2xl bg-slate-50 p-4">
@@ -46,7 +45,7 @@ export default function ProTipBanner({ tasks, onRebalance }) {
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm leading-snug text-slate-700">
-            <span className="font-semibold text-slate-900">Pro-tip:</span> {tip.text}
+            <span className="font-semibold text-slate-900">{t('tasks.proTip')}</span> {tip.text}
           </p>
         </div>
         <button
