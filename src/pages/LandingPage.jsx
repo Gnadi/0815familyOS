@@ -12,6 +12,7 @@ import {
   Sparkles,
   ShieldCheck,
   Heart,
+  Home,
   Zap,
   Bell,
   Users,
@@ -85,7 +86,7 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
           <Link to="/" className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-500 text-white shadow-sm">
-              <Heart size={18} fill="currentColor" />
+              <Home size={18} />
             </span>
             <span className="text-base font-bold tracking-tight">{t('common.appName')}</span>
           </Link>
@@ -392,7 +393,7 @@ export default function LandingPage() {
           <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
             <Link to="/" className="flex items-center gap-2">
               <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-500 text-white">
-                <Heart size={18} fill="currentColor" />
+                <Home size={18} />
               </span>
               <span className="text-base font-bold tracking-tight">{t('common.appName')}</span>
             </Link>
