@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Calendar, FileText, Gift, ListChecks } from 'lucide-react';
+import { Calendar, FileText, Gift, ListChecks, UtensilsCrossed } from 'lucide-react';
 import FeatureCard from '../components/landing/FeatureCard';
 import Seo from '../components/seo/Seo';
 import useAuth from '../hooks/useAuth';
@@ -39,6 +39,14 @@ const features = [
     iconBg: 'bg-brand-50',
     iconColor: 'text-brand-500',
   },
+  {
+    Icon: UtensilsCrossed,
+    title: 'Meal Plan & Recipes',
+    description:
+      'Plan the week’s meals, save your favorite recipes, and decide who cooks — so dinner is sorted ahead of time.',
+    iconBg: 'bg-brand-50',
+    iconColor: 'text-brand-500',
+  },
 ];
 
 const jsonLd = {
@@ -49,7 +57,7 @@ const jsonLd = {
   operatingSystem: 'Web',
   url: SITE_URL,
   description:
-    'Family OS keeps your household organized with a shared calendar, secure document vault, gift planner, and task manager — all in one place.',
+    'Family OS keeps your household organized with a shared calendar, secure document vault, gift planner, task manager, and weekly meal plan with recipes — all in one place.',
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
 };
 
