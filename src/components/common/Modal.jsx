@@ -22,7 +22,11 @@ export default function Modal({ open, onClose, title, children, footer }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 sm:items-center"
+      className="fixed inset-x-0 bottom-0 z-50 flex items-end justify-center bg-slate-900/40 sm:items-center"
+      // With viewport-fit=cover the page background paints into the top
+      // safe area (status bar / notch). Pull the backdrop up by that inset so
+      // it covers the full screen on mobile instead of leaving a light strip.
+      style={{ top: 'calc(-1 * env(safe-area-inset-top, 0px))' }}
       onClick={onClose}
     >
       <div
