@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { addDays, addWeeks, format, isSameDay, isToday, startOfWeek } from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ExternalLink, Plus } from 'lucide-react';
 import Spinner from '../common/Spinner';
 import AvatarStack from '../common/AvatarStack';
 import MealEntryModal from './MealEntryModal';
 import { MEAL_SLOTS } from '../../constants/mealSlots';
+
+// Normalise a user-entered recipe link into an openable absolute URL.
+function recipeHref(url) {
+  const trimmed = (url || '').trim();
+  if (!trimmed) return null;
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
 
 export default function WeekMealPlan({
   entries,
@@ -84,76 +91,107 @@ export default function WeekMealPlan({
   if (loading) return <Spinner />;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5">
+      <div className="flex items-center justify-between rounded-2xl bg-white px-3 py-2.5 shadow-card">
         <button
           type="button"
           onClick={() => setWeekStart((w) => addWeeks(w, -1))}
           aria-label="Previous week"
-          className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
+          className="rounded-full p-2.5 text-slate-500 transition hover:bg-slate-100 active:scale-95"
         >
-          <ChevronLeft size={20} />
+          <ChevronLeft size={22} />
         </button>
         <div className="text-center">
-          <p className="text-sm font-semibold text-slate-900">
+          <p className="text-lg font-bold tracking-tight text-slate-900">
             {format(weekStart, 'MMM d')} – {format(addDays(weekStart, 6), 'MMM d')}
           </p>
           <button
             type="button"
             onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
-            className="text-xs font-medium text-brand-600 hover:underline"
+            className="text-sm font-semibold text-brand-600 hover:underline"
           >
-            Today
+            Jump to today
           </button>
         </div>
         <button
           type="button"
           onClick={() => setWeekStart((w) => addWeeks(w, 1))}
           aria-label="Next week"
-          className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
+          className="rounded-full p-2.5 text-slate-500 transition hover:bg-slate-100 active:scale-95"
         >
-          <ChevronRight size={20} />
+          <ChevronRight size={22} />
         </button>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {days.map((day) => {
           const today = isToday(day);
           return (
             <div
               key={day.toISOString()}
-              className={`rounded-2xl bg-white p-4 shadow-card ${today ? 'ring-2 ring-brand-200' : ''}`}
+              className={`overflow-hidden rounded-3xl bg-white shadow-card ${
+                today ? 'ring-2 ring-brand-300' : ''
+              }`}
             >
-              <div className="mb-2 flex items-baseline justify-between">
-                <h3 className={`text-sm font-semibold ${today ? 'text-brand-600' : 'text-slate-900'}`}>
+              <div
+                className={`flex items-center justify-between px-5 py-3.5 ${
+                  today ? 'bg-brand-50' : 'bg-slate-50/60'
+                }`}
+              >
+                <h3
+                  className={`text-lg font-bold tracking-tight ${
+                    today ? 'text-brand-700' : 'text-slate-900'
+                  }`}
+                >
                   {format(day, 'EEEE')}
                 </h3>
-                <span className="text-xs text-slate-400">{format(day, 'MMM d')}</span>
+                <span
+                  className={`text-sm font-semibold ${today ? 'text-brand-600' : 'text-slate-400'}`}
+                >
+                  {today ? 'Today' : format(day, 'MMM d')}
+                </span>
               </div>
-              <div className="space-y-1.5">
+              <div className="divide-y divide-slate-100">
                 {MEAL_SLOTS.map((slot) => {
                   const entry = entryFor(day, slot.id);
+                  const recipe = entry?.recipeId ? recipeById[entry.recipeId] : null;
                   const label = labelFor(entry);
                   const cook = cookFor(entry);
+                  const href = recipe ? recipeHref(recipe.sourceUrl) : null;
                   return (
-                    <button
-                      key={slot.id}
-                      type="button"
-                      onClick={() => setCell({ date: day, slot: slot.id })}
-                      className="flex w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left hover:bg-slate-50"
-                    >
-                      <span className="w-16 shrink-0 text-xs font-medium uppercase tracking-wide text-slate-400">
-                        {slot.label}
-                      </span>
-                      {label ? (
-                        <span className="min-w-0 flex-1 truncate text-sm text-slate-900">{label}</span>
-                      ) : (
-                        <span className="flex min-w-0 flex-1 items-center gap-1 text-sm text-slate-300">
-                          <Plus size={14} /> Add
+                    <div key={slot.id} className="flex items-center gap-3 px-5">
+                      <button
+                        type="button"
+                        onClick={() => setCell({ date: day, slot: slot.id })}
+                        className="flex min-w-0 flex-1 items-center gap-4 py-4 text-left"
+                      >
+                        <span className="w-20 shrink-0 text-xs font-bold uppercase tracking-wider text-slate-400">
+                          {slot.label}
                         </span>
+                        {label ? (
+                          <span className="min-w-0 flex-1 truncate text-base font-medium text-slate-900">
+                            {label}
+                          </span>
+                        ) : (
+                          <span className="flex min-w-0 flex-1 items-center gap-1.5 text-base text-slate-300">
+                            <Plus size={18} /> Add a meal
+                          </span>
+                        )}
+                        {cook && <AvatarStack members={[cook]} max={1} size="md" />}
+                      </button>
+                      {href && (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Open recipe link for ${label}`}
+                          className="shrink-0 rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-brand-600"
+                        >
+                          <ExternalLink size={18} />
+                        </a>
                       )}
-                      {cook && <AvatarStack members={[cook]} max={1} size="sm" />}
-                    </button>
+                    </div>
                   );
                 })}
               </div>
