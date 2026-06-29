@@ -2,13 +2,13 @@ import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { addWeeks, format, isSameDay, subWeeks } from 'date-fns';
 import { getWeekDays, eventsOnDay } from '../../utils/date';
 import useCategories from '../../hooks/useCategories';
+import useT from '../../hooks/useT';
 import EventCard from './EventCard';
 import EmptyState from '../common/EmptyState';
 
-const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-
 export default function WeekView({ anchor, selected, onAnchorChange, onSelect, events, onEventClick }) {
   const { get: getCat } = useCategories();
+  const { t } = useT();
   const days = getWeekDays(anchor);
   const dayEvents = eventsOnDay(events, selected);
   const monthLabel = format(anchor, 'MMMM yyyy');
@@ -21,14 +21,14 @@ export default function WeekView({ anchor, selected, onAnchorChange, onSelect, e
           <button
             onClick={() => onAnchorChange(subWeeks(anchor, 1))}
             className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
-            aria-label="Previous week"
+            aria-label={t('calendar.prevWeek')}
           >
             <ChevronLeft size={18} />
           </button>
           <button
             onClick={() => onAnchorChange(addWeeks(anchor, 1))}
             className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
-            aria-label="Next week"
+            aria-label={t('calendar.nextWeek')}
           >
             <ChevronRight size={18} />
           </button>
@@ -36,8 +36,8 @@ export default function WeekView({ anchor, selected, onAnchorChange, onSelect, e
       </div>
 
       <div className="mt-3 grid grid-cols-7 text-center text-xs font-medium text-slate-400">
-        {DOW.map((d, i) => (
-          <span key={i}>{d}</span>
+        {days.map((d) => (
+          <span key={d.toISOString()}>{format(d, 'EEEEE')}</span>
         ))}
       </div>
       <div className="mt-1 grid grid-cols-7 gap-1">
@@ -73,8 +73,8 @@ export default function WeekView({ anchor, selected, onAnchorChange, onSelect, e
         {dayEvents.length === 0 ? (
           <EmptyState
             icon={Calendar}
-            title="No events for this day"
-            description="Tap the + button to add one."
+            title={t('calendar.noEventsDay')}
+            description={t('calendar.noEventsDayDesc')}
           />
         ) : (
           dayEvents.map((ev) => (

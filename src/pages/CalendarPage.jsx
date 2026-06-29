@@ -8,6 +8,7 @@ import WeekView from '../components/calendar/WeekView';
 import MonthView from '../components/calendar/MonthView';
 import EventFormModal from '../components/calendar/EventFormModal';
 import useAuth from '../hooks/useAuth';
+import useT from '../hooks/useT';
 import useEvents from '../hooks/useEvents';
 import useFamilyMembers from '../hooks/useFamilyMembers';
 import { createEvent, deleteEvent, updateEvent } from '../services/events';
@@ -19,6 +20,7 @@ const MEMBER_PALETTE = ['red', 'blue', 'emerald', 'amber', 'violet', 'pink', 'cy
 
 export default function CalendarPage() {
   const { user, userDoc, family } = useAuth();
+  const { t } = useT();
   const { events, loading } = useEvents(userDoc?.familyId);
   const members = useFamilyMembers();
   const { setCreateDefaultDate } = useOutletContext() || {};
@@ -30,7 +32,7 @@ export default function CalendarPage() {
   const [syncing, setSyncing] = useState(false);
 
   const chips = useMemo(() => [
-    { id: 'all', label: 'All', colorKey: 'slate' },
+    { id: 'all', label: t('common.all'), colorKey: 'slate' },
     ...members.map((m, i) => ({
       id: `member:${m.uid}`,
       label: m.displayName,
@@ -43,7 +45,7 @@ export default function CalendarPage() {
       colorKey: k.color,
       kidId: k.id,
     })),
-  ], [members, family?.kids]);
+  ], [members, family?.kids, t]);
 
   const expandedEvents = useMemo(() => {
     const from = new Date(anchor.getFullYear(), anchor.getMonth() - 6, 1);
@@ -140,8 +142,8 @@ export default function CalendarPage() {
     <button
       onClick={handleSyncAll}
       disabled={syncing}
-      aria-label="Sync external calendars"
-      title="Sync external calendars"
+      aria-label={t('calendar.syncExternal')}
+      title={t('calendar.syncExternal')}
       className="rounded-full p-2 text-slate-600 hover:bg-slate-100 disabled:opacity-50"
     >
       <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
@@ -151,8 +153,8 @@ export default function CalendarPage() {
   const exportButton = (
     <button
       onClick={handleExport}
-      aria-label="Export calendar"
-      title="Export to .ics"
+      aria-label={t('calendar.exportCalendar')}
+      title={t('calendar.exportTitle')}
       className="rounded-full p-2 text-slate-600 hover:bg-slate-100"
     >
       <Download size={18} />
@@ -168,12 +170,12 @@ export default function CalendarPage() {
 
   return (
     <>
-      <TopBar title={view === 'week' ? 'This Week' : 'Family Calendar'} right={topBarActions} />
+      <TopBar title={view === 'week' ? t('calendar.thisWeek') : t('calendar.familyCalendar')} right={topBarActions} />
       <main className="mx-auto max-w-md space-y-5 px-5 py-5">
         <ViewToggle value={view} onChange={setView} />
         <FilterChips chips={chips} selected={activeFilters} onToggle={handleToggle} />
         {loading ? (
-          <p className="py-10 text-center text-sm text-slate-400">Loading events…</p>
+          <p className="py-10 text-center text-sm text-slate-400">{t('calendar.loadingEvents')}</p>
         ) : view === 'week' ? (
           <WeekView
             anchor={anchor}

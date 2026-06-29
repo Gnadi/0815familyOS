@@ -1,7 +1,10 @@
+import useT from '../../hooks/useT';
+
 export default function ViewToggle({ value, onChange }) {
+  const { t } = useT();
   const options = [
-    { id: 'week', label: 'Week' },
-    { id: 'month', label: 'Month' },
+    { id: 'week', label: t('calendar.week') },
+    { id: 'month', label: t('calendar.month') },
   ];
   return (
     <div className="flex rounded-xl bg-slate-100 p-1">
