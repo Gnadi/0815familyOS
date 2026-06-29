@@ -29,6 +29,7 @@ export const routes = [
           { path: 'dashboard', lazy: lazyDefault(() => import('./pages/DashboardPage')) },
           { path: 'calendar', lazy: lazyDefault(() => import('./pages/CalendarPage')) },
           { path: 'tasks', lazy: lazyDefault(() => import('./pages/TasksPage')) },
+          { path: 'meals', lazy: lazyDefault(() => import('./pages/FoodPage')) },
           { path: 'vault', lazy: lazyDefault(() => import('./pages/DocumentVaultPage')) },
           { path: 'gifts', lazy: lazyDefault(() => import('./pages/GiftPlannerPage')) },
           { path: 'settings', lazy: lazyDefault(() => import('./pages/SettingsPage')) },

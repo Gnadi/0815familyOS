@@ -145,6 +145,31 @@ export async function removeGiftRecipient(familyId, recipient) {
   await updateDoc(famRef, { giftRecipients: list });
 }
 
+// Meal cooks: external people (e.g. grandparents, a babysitter) who can be
+// assigned as the cook for a meal in the week plan. Kept as its own list,
+// separate from gift recipients, so the two features stay independent.
+// Mirrors the kids / gift-recipient CRUD.
+export async function addCook(familyId, name, existingCount = 0) {
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error('Name is required.');
+  const cook = {
+    id: `cook_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+    name: trimmed,
+    color: KID_COLORS[existingCount % KID_COLORS.length],
+  };
+  await updateDoc(doc(db, 'families', familyId), {
+    cooks: arrayUnion(cook),
+  });
+  return cook;
+}
+
+export async function removeCook(familyId, cook) {
+  const famRef = doc(db, 'families', familyId);
+  const snap = await getDoc(famRef);
+  const list = (snap.data()?.cooks || []).filter((c) => c && c.id !== cook.id);
+  await updateDoc(famRef, { cooks: list });
+}
+
 // Update a single kid's editable fields (currently: name, birthday).
 // `birthday` is stored as an ISO date string YYYY-MM-DD or null.
 export async function updateKid(familyId, kidId, fields) {
