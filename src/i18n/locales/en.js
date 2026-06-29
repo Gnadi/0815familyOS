@@ -820,5 +820,9 @@ export default {
     shotCalendarCap: "Everyone's schedule, in sync",
     shotTasksCap: 'A fair, visual task board',
     shotMealsCap: "The week's meals, planned ahead",
+    shotShoppingCap: 'One shared shopping list',
+    shotGiftsCap: 'Gift ideas & budget, tracked',
+    shotVaultCap: 'Important documents, kept safe',
+    shotHealthCap: 'Vaccinations on schedule',
   },
 };

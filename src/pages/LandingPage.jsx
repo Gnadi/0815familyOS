@@ -256,6 +256,10 @@ export default function LandingPage() {
               { src: '/screenshots/calendar.png', cap: 'shotCalendarCap' },
               { src: '/screenshots/tasks.png', cap: 'shotTasksCap' },
               { src: '/screenshots/meals.png', cap: 'shotMealsCap' },
+              { src: '/screenshots/shopping.png', cap: 'shotShoppingCap' },
+              { src: '/screenshots/gifts.png', cap: 'shotGiftsCap' },
+              { src: '/screenshots/vault.png', cap: 'shotVaultCap' },
+              { src: '/screenshots/health.png', cap: 'shotHealthCap' },
             ].map((s) => (
               <figure key={s.src} className="flex flex-col items-center text-center">
                 <img
