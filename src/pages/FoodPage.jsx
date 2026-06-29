@@ -4,6 +4,8 @@ import TopBar from '../components/layout/TopBar';
 import WeekMealPlan from '../components/food/WeekMealPlan';
 import RecipeList from '../components/food/RecipeList';
 import RecipeFormModal from '../components/food/RecipeFormModal';
+import RecipeDetailModal from '../components/food/RecipeDetailModal';
+import CookingMode from '../components/food/CookingMode';
 import useAuth from '../hooks/useAuth';
 import useFamilyMembers from '../hooks/useFamilyMembers';
 import useRecipes from '../hooks/useRecipes';
@@ -30,7 +32,15 @@ export default function FoodPage() {
 
   const [tab, setTab] = useState('plan');
   const [recipeModal, setRecipeModal] = useState(null); // null | { recipe } | {}
+  const [viewRecipe, setViewRecipe] = useState(null); // recipe shown in detail view
+  const [cookingRecipe, setCookingRecipe] = useState(null); // recipe in cooking mode
   const [planAddSignal, setPlanAddSignal] = useState(0);
+
+  // Keep the open detail view in sync with live recipe updates (e.g. after an
+  // edit) so the latest ingredients/steps show without reopening.
+  const viewRecipeLive = viewRecipe
+    ? recipes.find((r) => r.id === viewRecipe.id) || viewRecipe
+    : null;
 
   // Wire the shared "+" button to the active tab's add action.
   const handleAdd = useCallback(() => {
@@ -116,15 +126,36 @@ export default function FoodPage() {
             cooks={cooks}
             onAddCook={handleAddCook}
             onRemoveCook={handleRemoveCook}
+            onViewRecipe={setViewRecipe}
           />
         ) : (
           <RecipeList
             recipes={recipes}
             loading={recipesLoading}
-            onSelect={(recipe) => setRecipeModal({ recipe })}
+            onSelect={setViewRecipe}
           />
         )}
       </main>
+
+      <RecipeDetailModal
+        open={Boolean(viewRecipeLive)}
+        onClose={() => setViewRecipe(null)}
+        recipe={viewRecipeLive}
+        onEdit={() => {
+          setRecipeModal({ recipe: viewRecipeLive });
+          setViewRecipe(null);
+        }}
+        onStartCooking={() => {
+          setCookingRecipe(viewRecipeLive);
+          setViewRecipe(null);
+        }}
+      />
+
+      <CookingMode
+        open={Boolean(cookingRecipe)}
+        onClose={() => setCookingRecipe(null)}
+        recipe={cookingRecipe}
+      />
 
       <RecipeFormModal
         open={Boolean(recipeModal)}

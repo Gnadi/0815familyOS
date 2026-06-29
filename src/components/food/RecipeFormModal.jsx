@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Plus, X } from 'lucide-react';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
 import Button from '../common/Button';
 import { RECIPE_CATEGORIES, DEFAULT_RECIPE_CATEGORY } from '../../constants/recipeCategories';
 
+// A dynamic list always shows at least one (empty) row so there's somewhere
+// to type; empty rows are stripped on submit.
+function seedRows(list) {
+  return list && list.length > 0 ? list : [''];
+}
+
 export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, initial }) {
   const [title, setTitle] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [category, setCategory] = useState(DEFAULT_RECIPE_CATEGORY);
-  const [ingredients, setIngredients] = useState('');
-  const [instructions, setInstructions] = useState('');
+  const [ingredients, setIngredients] = useState(['']);
+  const [steps, setSteps] = useState(['']);
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -22,19 +28,26 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
       setTitle(initial.title || '');
       setSourceUrl(initial.sourceUrl || '');
       setCategory(initial.category || DEFAULT_RECIPE_CATEGORY);
-      setIngredients(initial.ingredients || '');
-      setInstructions(initial.instructions || '');
+      setIngredients(seedRows(initial.ingredients));
+      setSteps(seedRows(initial.instructions));
       setNotes(initial.notes || '');
     } else {
       setTitle('');
       setSourceUrl('');
       setCategory(DEFAULT_RECIPE_CATEGORY);
-      setIngredients('');
-      setInstructions('');
+      setIngredients(['']);
+      setSteps(['']);
       setNotes('');
     }
     setError('');
   }, [open, initial]);
+
+  // Helpers to edit one row, drop a row, or append a new empty row of a list.
+  const updateRow = (setList) => (i, value) =>
+    setList((list) => list.map((v, idx) => (idx === i ? value : v)));
+  const removeRow = (setList) => (i) =>
+    setList((list) => (list.length > 1 ? list.filter((_, idx) => idx !== i) : ['']));
+  const addRow = (setList) => () => setList((list) => [...list, '']);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -42,7 +55,14 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
     setError('');
     setSaving(true);
     try {
-      await onSubmit({ title, sourceUrl, category, ingredients, instructions, notes });
+      await onSubmit({
+        title,
+        sourceUrl,
+        category,
+        ingredients: ingredients.map((s) => s.trim()).filter(Boolean),
+        instructions: steps.map((s) => s.trim()).filter(Boolean),
+        notes,
+      });
     } catch (err) {
       setError(err.message || 'Could not save recipe.');
     } finally {
@@ -117,31 +137,82 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
           </div>
         </div>
 
-        <label className="block">
+        <div>
           <span className="mb-1.5 block text-sm font-medium text-slate-700">
             Ingredients <span className="font-normal text-slate-400">(optional)</span>
           </span>
-          <textarea
-            value={ingredients}
-            onChange={(e) => setIngredients(e.target.value)}
-            rows={4}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
-            placeholder="One per line — 500g flour, 3 eggs…"
-          />
-        </label>
+          <div className="space-y-2">
+            {ingredients.map((value, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={value}
+                  onChange={(e) => updateRow(setIngredients)(i, e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addRow(setIngredients)();
+                    }
+                  }}
+                  placeholder={`Ingredient ${i + 1} — e.g. 500g flour`}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 placeholder:text-slate-400 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeRow(setIngredients)(i)}
+                  aria-label={`Remove ingredient ${i + 1}`}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => addRow(setIngredients)()}
+            className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:underline"
+          >
+            <Plus size={16} /> Add ingredient
+          </button>
+        </div>
 
-        <label className="block">
+        <div>
           <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Instructions <span className="font-normal text-slate-400">(optional)</span>
+            Steps <span className="font-normal text-slate-400">(optional)</span>
           </span>
-          <textarea
-            value={instructions}
-            onChange={(e) => setInstructions(e.target.value)}
-            rows={4}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
-            placeholder="How to prepare it…"
-          />
-        </label>
+          <div className="space-y-2">
+            {steps.map((value, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="mt-2.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-600">
+                  {i + 1}
+                </span>
+                <textarea
+                  value={value}
+                  onChange={(e) => updateRow(setSteps)(i, e.target.value)}
+                  rows={2}
+                  placeholder={`Step ${i + 1} — what to do`}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 placeholder:text-slate-400 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeRow(setSteps)(i)}
+                  aria-label={`Remove step ${i + 1}`}
+                  className="mt-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => addRow(setSteps)()}
+            className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:underline"
+          >
+            <Plus size={16} /> Add step
+          </button>
+        </div>
 
         <label className="block">
           <span className="mb-1.5 block text-sm font-medium text-slate-700">
