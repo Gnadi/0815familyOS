@@ -7,6 +7,7 @@ import GiftFormModal from '../components/gifts/GiftFormModal';
 import GiftRecipientFormModal from '../components/gifts/GiftRecipientFormModal';
 import Spinner from '../components/common/Spinner';
 import useAuth from '../hooks/useAuth';
+import useT from '../hooks/useT';
 import useGifts from '../hooks/useGifts';
 import { updateGift, deleteGift } from '../services/gifts';
 import {
@@ -18,6 +19,7 @@ import {
 
 export default function GiftPlannerPage() {
   const { userDoc, family } = useAuth();
+  const { t } = useT();
   const { gifts, loading } = useGifts(userDoc?.familyId);
 
   const kids = family?.kids ?? [];
@@ -64,11 +66,11 @@ export default function GiftPlannerPage() {
 
   return (
     <>
-      <TopBar title="Gift Planner" />
+      <TopBar title={t('gifts.title')} />
       <main className="mx-auto max-w-md px-5 py-5 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Gift Planner</h1>
-          <p className="text-sm text-slate-500">Organizing the magic for the season.</p>
+          <h1 className="text-2xl font-bold text-slate-900">{t('gifts.title')}</h1>
+          <p className="text-sm text-slate-500">{t('gifts.subtitle')}</p>
         </div>
 
         <GiftBudgetCard
@@ -83,10 +85,9 @@ export default function GiftPlannerPage() {
           </div>
         ) : allRecipients.length === 0 ? (
           <div className="rounded-2xl bg-white px-5 py-8 text-center shadow-card">
-            <p className="font-semibold text-slate-700">No recipients yet</p>
+            <p className="font-semibold text-slate-700">{t('gifts.noRecipients')}</p>
             <p className="mt-1 text-sm text-slate-400">
-              Add your children in Settings, or add another person below to start
-              planning gifts.
+              {t('gifts.noRecipientsDesc')}
             </p>
           </div>
         ) : (
@@ -118,7 +119,7 @@ export default function GiftPlannerPage() {
             className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-600 shadow-card transition hover:border-brand-400 hover:text-brand-600"
           >
             <UserPlus size={16} />
-            Add person
+            {t('gifts.addPerson')}
           </button>
         )}
       </main>
