@@ -1,28 +1,39 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import useUIPreferences from '../../hooks/useUIPreferences';
+import { lockBodyScroll } from '../../utils/scrollLock';
 
 export default function Modal({ open, onClose, title, children, footer }) {
   const { skin } = useUIPreferences();
   const ios = skin === 'ios';
+
+  // Escape-to-close.
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => {
       if (e.key === 'Escape') onClose?.();
     };
     document.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = '';
-    };
+    return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  // Freeze the background while the sheet is open. Depends only on `open` so the
+  // captured scroll position isn't clobbered if `onClose` changes identity.
+  useEffect(() => {
+    if (!open) return undefined;
+    return lockBodyScroll();
+  }, [open]);
 
-  return (
+  if (!open || typeof document === 'undefined') return null;
+
+  // Portal to <body> so the overlay can never inherit a stacking/containing
+  // context from an ancestor. height:100dvh pins it to the dynamic viewport
+  // (falls back to inset-0's bottom:0 where dvh is unsupported).
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 sm:items-center"
+      style={{ height: '100dvh' }}
       onClick={onClose}
     >
       <div
@@ -51,6 +62,7 @@ export default function Modal({ open, onClose, title, children, footer }) {
         <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
         {footer && <div className="shrink-0 border-t border-slate-100 px-5 py-4">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
