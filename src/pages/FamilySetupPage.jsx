@@ -5,6 +5,7 @@ import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import Spinner from '../components/common/Spinner';
 import useAuth from '../hooks/useAuth';
+import useT from '../hooks/useT';
 import { createFamily, joinFamilyByCode } from '../services/families';
 import { signOut } from '../services/auth';
 import { ensureUserDoc } from '../services/users';
@@ -28,6 +29,7 @@ function ModeCard({ icon: Icon, title, description, onClick }) {
 
 export default function FamilySetupPage() {
   const { user, userDoc, loading } = useAuth();
+  const { t } = useT();
   const navigate = useNavigate();
   const [mode, setMode] = useState(null); // 'create' | 'join' | null
   const [familyName, setFamilyName] = useState('');
@@ -42,7 +44,7 @@ export default function FamilySetupPage() {
 
   async function handleCreate(e) {
     e.preventDefault();
-    if (!familyName.trim()) return setError('Please enter a family name.');
+    if (!familyName.trim()) return setError(t('familySetup.errNameRequired'));
     setError('');
     setBusy(true);
     try {
@@ -50,7 +52,7 @@ export default function FamilySetupPage() {
       const { inviteCode } = await createFamily({ name: familyName, uid: user.uid });
       setCreatedCode(inviteCode);
     } catch (err) {
-      setError(err.message || 'Could not create family.');
+      setError(err.message || t('familySetup.errCreateFailed'));
     } finally {
       setBusy(false);
     }
@@ -58,7 +60,7 @@ export default function FamilySetupPage() {
 
   async function handleJoin(e) {
     e.preventDefault();
-    if (joinCode.trim().length < 4) return setError('Enter the 6-character code.');
+    if (joinCode.trim().length < 4) return setError(t('familySetup.errCodeShort'));
     setError('');
     setBusy(true);
     try {
@@ -66,7 +68,7 @@ export default function FamilySetupPage() {
       await joinFamilyByCode({ code: joinCode, uid: user.uid });
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      setError(err.message || 'Could not join family.');
+      setError(err.message || t('familySetup.errJoinFailed'));
     } finally {
       setBusy(false);
     }
@@ -76,14 +78,14 @@ export default function FamilySetupPage() {
     return (
       <div className="min-h-screen bg-slate-50 px-5 py-8">
         <div className="mx-auto max-w-md">
-          <h1 className="text-2xl font-bold text-slate-900">Your family is ready</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{t('familySetup.readyTitle')}</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Share this invite code with family members so they can join.
+            {t('familySetup.readySubtitle')}
           </p>
 
           <div className="mt-6 rounded-2xl bg-white p-6 text-center shadow-card">
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-              Invite Code
+              {t('familySetup.inviteCode')}
             </p>
             <p className="mt-2 font-mono text-3xl font-bold tracking-[0.3em] text-slate-900">
               {createdCode}
@@ -92,14 +94,14 @@ export default function FamilySetupPage() {
               onClick={() => navigator.clipboard?.writeText(createdCode)}
               className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:text-brand-700"
             >
-              <Copy size={14} /> Copy code
+              <Copy size={14} /> {t('familySetup.copyCode')}
             </button>
           </div>
 
           <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-white p-5">
-            <h3 className="text-sm font-semibold text-slate-900">Invite Members</h3>
+            <h3 className="text-sm font-semibold text-slate-900">{t('familySetup.inviteMembers')}</h3>
             <p className="mt-1 text-xs text-slate-500">
-              Email-based invites are coming soon. For now, share the code above.
+              {t('familySetup.inviteMembersHint')}
             </p>
             <div className="mt-3 space-y-2 opacity-60">
               <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
@@ -112,7 +114,7 @@ export default function FamilySetupPage() {
           </div>
 
           <Button onClick={() => navigate('/dashboard', { replace: true })} className="mt-8 w-full">
-            Continue to Dashboard
+            {t('familySetup.continueToDashboard')}
           </Button>
         </div>
       </div>
@@ -125,11 +127,11 @@ export default function FamilySetupPage() {
         <button
           onClick={mode ? () => { setMode(null); setError(''); } : () => signOut()}
           className="text-slate-600 hover:text-slate-900"
-          aria-label="Back"
+          aria-label={t('common.back')}
         >
           <ArrowLeft size={22} />
         </button>
-        <h1 className="text-lg font-bold text-slate-900">Family Setup</h1>
+        <h1 className="text-lg font-bold text-slate-900">{t('familySetup.title')}</h1>
         <div className="w-6" />
       </header>
 
@@ -138,14 +140,14 @@ export default function FamilySetupPage() {
           <div className="space-y-4">
             <ModeCard
               icon={Plus}
-              title="Create a New Family"
-              description="Start fresh and invite your members"
+              title={t('familySetup.createTitle')}
+              description={t('familySetup.createDesc')}
               onClick={() => setMode('create')}
             />
             <ModeCard
               icon={Key}
-              title="Join via Invite Code"
-              description="Enter a code provided by your admin"
+              title={t('familySetup.joinTitle')}
+              description={t('familySetup.joinDesc')}
               onClick={() => setMode('join')}
             />
           </div>
@@ -153,10 +155,10 @@ export default function FamilySetupPage() {
 
         {mode === 'create' && (
           <form onSubmit={handleCreate} className="space-y-4 rounded-2xl bg-white p-5 shadow-card">
-            <h2 className="text-lg font-semibold text-slate-900">Name your family</h2>
+            <h2 className="text-lg font-semibold text-slate-900">{t('familySetup.nameYourFamily')}</h2>
             <Input
-              label="Family name"
-              placeholder="The Smiths"
+              label={t('familySetup.familyName')}
+              placeholder={t('familySetup.familyNamePlaceholder')}
               value={familyName}
               onChange={(e) => setFamilyName(e.target.value)}
               autoFocus
@@ -164,16 +166,16 @@ export default function FamilySetupPage() {
             />
             {error && <p className="text-sm text-red-600">{error}</p>}
             <Button type="submit" loading={busy} className="w-full">
-              Create Family
+              {t('familySetup.createFamily')}
             </Button>
           </form>
         )}
 
         {mode === 'join' && (
           <form onSubmit={handleJoin} className="space-y-4 rounded-2xl bg-white p-5 shadow-card">
-            <h2 className="text-lg font-semibold text-slate-900">Enter invite code</h2>
+            <h2 className="text-lg font-semibold text-slate-900">{t('familySetup.enterInviteCode')}</h2>
             <Input
-              label="Invite code"
+              label={t('familySetup.inviteCodeLabel')}
               placeholder="ABC123"
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
@@ -184,7 +186,7 @@ export default function FamilySetupPage() {
             />
             {error && <p className="text-sm text-red-600">{error}</p>}
             <Button type="submit" loading={busy} className="w-full">
-              Join Family
+              {t('familySetup.joinFamily')}
             </Button>
           </form>
         )}
