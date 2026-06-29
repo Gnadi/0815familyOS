@@ -3,20 +3,22 @@ import { Scale } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import useEvents from '../../hooks/useEvents';
 import useFamilyMembers from '../../hooks/useFamilyMembers';
+import useT from '../../hooks/useT';
 import { getWeekDays } from '../../utils/date';
 import { expandEventsInRange } from '../../utils/recurrence';
 
 const EFFORT_SCORE = { low: 1, medium: 2, high: 3 };
 
-function getSummary(rows, spread) {
-  if (rows.length <= 1) return 'All events assigned to one person this week.';
-  if (spread <= 10) return 'Looking balanced this week!';
-  if (spread <= 25) return 'Slightly uneven — check in with each other.';
-  return 'Workload looks uneven this week.';
+function getSummary(rows, spread, t) {
+  if (rows.length <= 1) return t('dashboard.workloadOnePerson');
+  if (spread <= 10) return t('dashboard.workloadBalanced');
+  if (spread <= 25) return t('dashboard.workloadSlightly');
+  return t('dashboard.workloadUneven');
 }
 
 export default function WorkloadBalance() {
   const { userDoc } = useAuth();
+  const { t } = useT();
   const { events, loading } = useEvents(userDoc?.familyId);
   const members = useFamilyMembers();
 
@@ -57,18 +59,18 @@ export default function WorkloadBalance() {
 
   return (
     <section>
-      <h2 className="text-lg font-bold text-slate-900">Workload Balance</h2>
+      <h2 className="text-lg font-bold text-slate-900">{t('dashboard.workloadBalance')}</h2>
       <div className="mt-3 rounded-2xl bg-white p-5 shadow-card">
         {loading ? (
-          <div className="py-4 text-center text-sm text-slate-400">Loading…</div>
+          <div className="py-4 text-center text-sm text-slate-400">{t('common.loading')}</div>
         ) : totalScore === 0 ? (
           <div className="flex flex-col items-center py-6 text-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-50 text-brand-500">
               <Scale size={18} />
             </div>
-            <p className="mt-2 text-sm font-medium text-slate-700">No workload data yet</p>
+            <p className="mt-2 text-sm font-medium text-slate-700">{t('dashboard.noWorkloadData')}</p>
             <p className="mt-1 text-xs text-slate-400">
-              Assign events to family members this week to see the balance.
+              {t('dashboard.noWorkloadDataSub')}
             </p>
           </div>
         ) : (
@@ -91,7 +93,7 @@ export default function WorkloadBalance() {
                 </li>
               ))}
             </ul>
-            <p className="mt-4 text-center text-xs text-slate-400">{getSummary(rows, spread)}</p>
+            <p className="mt-4 text-center text-xs text-slate-400">{getSummary(rows, spread, t)}</p>
           </>
         )}
       </div>

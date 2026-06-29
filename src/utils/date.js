@@ -40,11 +40,14 @@ export function upcomingEvents(events, from = startOfDay(new Date()), max = 3) {
   return events.filter((e) => e.date >= from).slice(0, max);
 }
 
-export function formatRelativeDay(d) {
+// Pass a `t` translation function to localize "Today"/"Tomorrow"; without one
+// it falls back to English. The weekday name (format 'EEE') is localized
+// globally via date-fns' default locale.
+export function formatRelativeDay(d, t) {
   const today = new Date();
   const tomorrow = addDays(today, 1);
-  if (isSameDay(d, today)) return 'Today';
-  if (isSameDay(d, tomorrow)) return 'Tomorrow';
+  if (isSameDay(d, today)) return t ? t('common.today') : 'Today';
+  if (isSameDay(d, tomorrow)) return t ? t('common.tomorrow') : 'Tomorrow';
   return format(d, 'EEE');
 }
 

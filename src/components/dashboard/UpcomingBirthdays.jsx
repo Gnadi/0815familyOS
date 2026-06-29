@@ -1,5 +1,6 @@
 import { Cake } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
+import useT from '../../hooks/useT';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -16,16 +17,15 @@ function nextBirthday(birthdayISO, today = new Date()) {
   return { next, turning, daysUntil };
 }
 
-function describe(daysUntil) {
-  if (daysUntil === 0) return 'Today!';
-  if (daysUntil === 1) return 'Tomorrow';
-  if (daysUntil < 7) return `In ${daysUntil} days`;
-  if (daysUntil < 30) return `In ${daysUntil} days`;
-  return `In ${daysUntil} days`;
+function describe(daysUntil, t) {
+  if (daysUntil === 0) return t('dashboard.bdToday');
+  if (daysUntil === 1) return t('dashboard.bdTomorrow');
+  return t('dashboard.bdInDays', { days: daysUntil });
 }
 
 export default function UpcomingBirthdays() {
   const { family } = useAuth();
+  const { t, locale } = useT();
   const kids = family?.kids || [];
   const today = new Date();
 
@@ -38,7 +38,7 @@ export default function UpcomingBirthdays() {
 
   return (
     <section>
-      <h2 className="text-lg font-bold text-slate-900">Upcoming Birthdays</h2>
+      <h2 className="text-lg font-bold text-slate-900">{t('dashboard.upcomingBirthdays')}</h2>
       <div className="mt-3 space-y-2">
         {upcoming.map(({ kid, info }) => (
           <div
@@ -50,11 +50,11 @@ export default function UpcomingBirthdays() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-slate-900">
-                {kid.name} turns {info.turning}
+                {t('dashboard.birthdayTurns', { name: kid.name, age: info.turning })}
               </p>
               <p className="text-xs text-slate-500">
-                {describe(info.daysUntil)} ·{' '}
-                {info.next.toLocaleDateString(undefined, {
+                {describe(info.daysUntil, t)} ·{' '}
+                {info.next.toLocaleDateString(locale, {
                   month: 'short',
                   day: 'numeric',
                 })}

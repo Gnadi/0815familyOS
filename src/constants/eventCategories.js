@@ -83,10 +83,10 @@ export const DEFAULT_CATEGORY = 'general';
 
 // Built-in categories that ship with every family.
 export const BUILTIN_CATEGORIES = [
-  { id: 'general', label: 'General', color: 'slate' },
-  { id: 'family', label: 'Family', color: 'blue' },
-  { id: 'health', label: 'Health', color: 'red' },
-  { id: 'sports', label: 'Sports', color: 'emerald' },
+  { id: 'general', label: 'General', labelKey: 'cat.general', color: 'slate' },
+  { id: 'family', label: 'Family', labelKey: 'cat.family', color: 'blue' },
+  { id: 'health', label: 'Health', labelKey: 'cat.health', color: 'red' },
+  { id: 'sports', label: 'Sports', labelKey: 'cat.sports', color: 'emerald' },
 ];
 
 function resolve({ id, label, color }, builtin = false) {

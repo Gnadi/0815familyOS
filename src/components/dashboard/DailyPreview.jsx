@@ -7,7 +7,9 @@ import useEvents from '../../hooks/useEvents';
 import useTasks from '../../hooks/useTasks';
 import useCategories from '../../hooks/useCategories';
 import useFamilyMembers from '../../hooks/useFamilyMembers';
-import { getTaskCategory, TASK_PRIORITY_MAP } from '../../constants/taskCategories';
+import useT from '../../hooks/useT';
+import { tLabel } from '../../i18n/labels';
+import { TASK_PRIORITY_MAP } from '../../constants/taskCategories';
 import { expandEventsInRange } from '../../utils/recurrence';
 import QuickAddModal from './QuickAddModal';
 
@@ -16,6 +18,7 @@ const PRIORITY_WEIGHT = { urgent: 0, high: 1, normal: 2, low: 3 };
 export default function DailyPreview() {
   const { userDoc, family } = useAuth();
   const { get: getCat } = useCategories();
+  const { t } = useT();
   const { events, loading: evLoading } = useEvents(userDoc?.familyId);
   const { tasks, loading: taskLoading } = useTasks(userDoc?.familyId);
   const members = useFamilyMembers();
@@ -30,18 +33,18 @@ export default function DailyPreview() {
   const expandedToday = expandEventsInRange(events, dayStart, dayEnd);
   const todayEvents = eventsOnDay(expandedToday, today).sort((a, b) => a.date - b.date);
   const todayTasks = tasks
-    .filter((t) => t.dueDate && isSameDay(t.dueDate, today) && t.status !== 'completed')
+    .filter((task) => task.dueDate && isSameDay(task.dueDate, today) && task.status !== 'completed')
     .sort((a, b) => (PRIORITY_WEIGHT[a.priority] ?? 2) - (PRIORITY_WEIGHT[b.priority] ?? 2));
 
   // Group tasks by assignee, preserving member list order. Tasks with no
   // assignees collect in a trailing "Unassigned" bucket.
   const taskGroups = [];
   members.forEach((m) => {
-    const mt = todayTasks.filter((t) => t.assigneeIds.includes(m.uid));
+    const mt = todayTasks.filter((task) => task.assigneeIds.includes(m.uid));
     if (mt.length) taskGroups.push({ name: m.displayName, tasks: mt });
   });
-  const unassigned = todayTasks.filter((t) => !t.assigneeIds.length);
-  if (unassigned.length) taskGroups.push({ name: 'Unassigned', tasks: unassigned });
+  const unassigned = todayTasks.filter((task) => !task.assigneeIds.length);
+  if (unassigned.length) taskGroups.push({ name: t('dashboard.unassigned'), tasks: unassigned });
 
   // If no members loaded yet but tasks exist, fall back to a single flat group
   const flatFallback = taskGroups.length === 0 && todayTasks.length > 0;
@@ -60,27 +63,27 @@ export default function DailyPreview() {
   return (
     <section>
       <div className="flex items-end justify-between">
-        <h2 className="text-lg font-bold text-slate-900">Today</h2>
+        <h2 className="text-lg font-bold text-slate-900">{t('dashboard.todayHeading')}</h2>
         <span className="text-sm text-slate-400">{todayLabel}</span>
       </div>
 
       <div className="mt-3 rounded-2xl bg-white shadow-card">
         {loading ? (
-          <div className="px-4 py-6 text-center text-sm text-slate-400">Loading…</div>
+          <div className="px-4 py-6 text-center text-sm text-slate-400">{t('common.loading')}</div>
         ) : isEmpty ? (
           <div className="flex flex-col items-center px-4 py-8 text-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-50 text-amber-400">
               <Sun size={18} />
             </div>
-            <p className="mt-2 text-sm font-medium text-slate-700">Nothing scheduled for today</p>
-            <p className="mt-0.5 text-xs text-slate-400">Enjoy the free time — or add something below.</p>
+            <p className="mt-2 text-sm font-medium text-slate-700">{t('dashboard.nothingTodayTitle')}</p>
+            <p className="mt-0.5 text-xs text-slate-400">{t('dashboard.nothingTodaySub')}</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
             {todayEvents.length > 0 && (
               <div className="px-4 py-3">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Events
+                  {t('dashboard.events')}
                 </p>
                 <ul className="space-y-2.5">
                   {todayEvents.map((ev) => {
@@ -99,7 +102,7 @@ export default function DailyPreview() {
                           {meta ? (
                             <p className="mt-0.5 truncate text-xs text-slate-500">{meta}</p>
                           ) : (
-                            <p className={`mt-0.5 truncate text-xs ${cat.chipText}`}>{cat.label}</p>
+                            <p className={`mt-0.5 truncate text-xs ${cat.chipText}`}>{tLabel(t, cat)}</p>
                           )}
                         </div>
                         <span className="mt-0.5 flex-shrink-0 text-xs font-medium text-slate-500">
@@ -115,11 +118,11 @@ export default function DailyPreview() {
             {todayTasks.length > 0 && (
               <div className="px-4 py-3">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Tasks due today
+                  {t('dashboard.tasksDueToday')}
                 </p>
                 {flatFallback ? (
                   <ul className="space-y-2">
-                    {todayTasks.map((task) => <TaskRow key={task.id} task={task} />)}
+                    {todayTasks.map((task) => <TaskRow key={task.id} task={task} t={t} />)}
                   </ul>
                 ) : (
                   <div className="space-y-3">
@@ -127,7 +130,7 @@ export default function DailyPreview() {
                       <div key={group.name}>
                         <p className="mb-1.5 text-xs font-semibold text-slate-700">{group.name}</p>
                         <ul className="space-y-1.5">
-                          {group.tasks.map((task) => <TaskRow key={task.id} task={task} indent />)}
+                          {group.tasks.map((task) => <TaskRow key={task.id} task={task} t={t} indent />)}
                         </ul>
                       </div>
                     ))}
@@ -145,7 +148,7 @@ export default function DailyPreview() {
             className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 py-2.5 text-sm font-semibold text-brand-600 transition hover:bg-slate-50"
           >
             <Plus size={16} />
-            Add event or task
+            {t('dashboard.addEventOrTask')}
           </button>
         </div>
       </div>
@@ -155,8 +158,7 @@ export default function DailyPreview() {
   );
 }
 
-function TaskRow({ task, indent = false }) {
-  const taskCat = getTaskCategory(task.category);
+function TaskRow({ task, t, indent = false }) {
   const prio = TASK_PRIORITY_MAP[task.priority];
   return (
     <li className={`flex items-center gap-2 ${indent ? 'pl-1' : ''}`}>
@@ -165,7 +167,7 @@ function TaskRow({ task, indent = false }) {
       {prio && (
         <span className="flex flex-shrink-0 items-center gap-1 text-xs text-slate-400">
           <span className={`h-1.5 w-1.5 rounded-full ${prio.dot}`} />
-          {prio.label}
+          {tLabel(t, prio)}
         </span>
       )}
     </li>

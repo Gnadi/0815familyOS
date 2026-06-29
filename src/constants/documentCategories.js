@@ -4,23 +4,23 @@ export const DEFAULT_DOC_CATEGORY = 'other';
 export const DEFAULT_TROPHY_CATEGORY = 'other';
 
 export const DOC_CATEGORIES = [
-  { id: 'identity',  label: 'Identity',  color: 'blue',    builtin: true },
-  { id: 'medical',   label: 'Medical',   color: 'red',     builtin: true },
-  { id: 'insurance', label: 'Insurance', color: 'emerald', builtin: true },
-  { id: 'finance',   label: 'Finance',   color: 'amber',   builtin: true },
-  { id: 'property',  label: 'Property',  color: 'violet',  builtin: true },
-  { id: 'school',    label: 'School',    color: 'cyan',    builtin: true },
-  { id: 'other',     label: 'Other',     color: 'slate',   builtin: true },
+  { id: 'identity',  label: 'Identity',  labelKey: 'docCat.identity',  color: 'blue',    builtin: true },
+  { id: 'medical',   label: 'Medical',   labelKey: 'docCat.medical',   color: 'red',     builtin: true },
+  { id: 'insurance', label: 'Insurance', labelKey: 'docCat.insurance', color: 'emerald', builtin: true },
+  { id: 'finance',   label: 'Finance',   labelKey: 'docCat.finance',   color: 'amber',   builtin: true },
+  { id: 'property',  label: 'Property',  labelKey: 'docCat.property',  color: 'violet',  builtin: true },
+  { id: 'school',    label: 'School',    labelKey: 'docCat.school',    color: 'cyan',    builtin: true },
+  { id: 'other',     label: 'Other',     labelKey: 'docCat.other',     color: 'slate',   builtin: true },
 ];
 
 export const TROPHY_CATEGORIES = [
-  { id: 'academic',  label: 'Academic',  color: 'amber',   builtin: true },
-  { id: 'sports',    label: 'Sports',    color: 'emerald', builtin: true },
-  { id: 'arts',      label: 'Arts',      color: 'violet',  builtin: true },
-  { id: 'swimming',  label: 'Swimming',  color: 'cyan',    builtin: true },
-  { id: 'milestone', label: 'Milestone', color: 'pink',    builtin: true },
-  { id: 'community', label: 'Community', color: 'blue',    builtin: true },
-  { id: 'other',     label: 'Other',     color: 'slate',   builtin: true },
+  { id: 'academic',  label: 'Academic',  labelKey: 'trophyCat.academic',  color: 'amber',   builtin: true },
+  { id: 'sports',    label: 'Sports',    labelKey: 'trophyCat.sports',    color: 'emerald', builtin: true },
+  { id: 'arts',      label: 'Arts',      labelKey: 'trophyCat.arts',      color: 'violet',  builtin: true },
+  { id: 'swimming',  label: 'Swimming',  labelKey: 'trophyCat.swimming',  color: 'cyan',    builtin: true },
+  { id: 'milestone', label: 'Milestone', labelKey: 'trophyCat.milestone', color: 'pink',    builtin: true },
+  { id: 'community', label: 'Community', labelKey: 'trophyCat.community',  color: 'blue',    builtin: true },
+  { id: 'other',     label: 'Other',     labelKey: 'trophyCat.other',     color: 'slate',   builtin: true },
 ];
 
 // Card background styles for trophy cards, keyed by color name.
