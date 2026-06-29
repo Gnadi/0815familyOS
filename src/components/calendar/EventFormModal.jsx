@@ -7,6 +7,8 @@ import Button from '../common/Button';
 import useCategories from '../../hooks/useCategories';
 import useAuth from '../../hooks/useAuth';
 import useFamilyMembers from '../../hooks/useFamilyMembers';
+import useT from '../../hooks/useT';
+import { tLabel } from '../../i18n/labels';
 import { addFamilyCategory, deleteCategory, addKid } from '../../services/families';
 import {
   COLOR_PALETTE,
@@ -23,6 +25,7 @@ function toTimeInput(d) {
 }
 
 function NewCategoryForm({ onCreated, onCancel, familyId }) {
+  const { t } = useT();
   const [label, setLabel] = useState('');
   const [color, setColor] = useState(PALETTE_COLORS[1]); // default to blue
   const [saving, setSaving] = useState(false);
@@ -32,14 +35,14 @@ function NewCategoryForm({ onCreated, onCancel, familyId }) {
     e.preventDefault();
     e.stopPropagation();
     const trimmed = label.trim();
-    if (!trimmed) return setError('Name is required.');
+    if (!trimmed) return setError(t('events.nameRequired'));
     setError('');
     setSaving(true);
     try {
       const created = await addFamilyCategory(familyId, { label: trimmed, color });
       onCreated(created);
     } catch (err) {
-      setError(err.message || 'Could not add category.');
+      setError(err.message || t('events.couldNotAddCategory'));
     } finally {
       setSaving(false);
     }
@@ -48,12 +51,12 @@ function NewCategoryForm({ onCreated, onCancel, familyId }) {
   return (
     <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-slate-700">New category</span>
+        <span className="text-sm font-medium text-slate-700">{t('events.newCategory')}</span>
         <button
           type="button"
           onClick={onCancel}
           className="rounded-full p-1 text-slate-500 hover:bg-slate-200"
-          aria-label="Cancel"
+          aria-label={t('common.cancel')}
         >
           <X size={14} />
         </button>
@@ -61,7 +64,7 @@ function NewCategoryForm({ onCreated, onCancel, familyId }) {
       <input
         value={label}
         onChange={(e) => setLabel(e.target.value)}
-        placeholder="e.g. Work, School, Pets"
+        placeholder={t('events.categoryPlaceholder')}
         maxLength={24}
         autoFocus
         className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
@@ -75,7 +78,7 @@ function NewCategoryForm({ onCreated, onCancel, familyId }) {
               key={c}
               type="button"
               onClick={() => setColor(c)}
-              aria-label={`Color ${c}`}
+              aria-label={t('events.colorAria', { color: c })}
               className={`flex h-7 w-7 items-center justify-center rounded-full ${swatch} ring-offset-2 transition ${
                 active ? 'ring-2 ring-slate-900' : 'hover:opacity-80'
               }`}
@@ -88,7 +91,7 @@ function NewCategoryForm({ onCreated, onCancel, familyId }) {
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
       <div className="mt-3 flex justify-end">
         <Button type="button" size="sm" onClick={handleSave} loading={saving}>
-          Add category
+          {t('events.addCategory')}
         </Button>
       </div>
     </div>
@@ -96,6 +99,7 @@ function NewCategoryForm({ onCreated, onCancel, familyId }) {
 }
 
 function AddKidForm({ onCreated, onCancel, familyId, existingKidsCount }) {
+  const { t } = useT();
   const [name, setName] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -104,14 +108,14 @@ function AddKidForm({ onCreated, onCancel, familyId, existingKidsCount }) {
     e.preventDefault();
     e.stopPropagation();
     const trimmed = name.trim();
-    if (!trimmed) return setError('Name is required.');
+    if (!trimmed) return setError(t('events.nameRequired'));
     setError('');
     setSaving(true);
     try {
       const created = await addKid(familyId, trimmed, existingKidsCount);
       onCreated(created);
     } catch (err) {
-      setError(err.message || 'Could not add child.');
+      setError(err.message || t('events.couldNotAddChild'));
     } finally {
       setSaving(false);
     }
@@ -120,12 +124,12 @@ function AddKidForm({ onCreated, onCancel, familyId, existingKidsCount }) {
   return (
     <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-slate-700">Add child</span>
+        <span className="text-sm font-medium text-slate-700">{t('events.addChild')}</span>
         <button
           type="button"
           onClick={onCancel}
           className="rounded-full p-1 text-slate-500 hover:bg-slate-200"
-          aria-label="Cancel"
+          aria-label={t('common.cancel')}
         >
           <X size={14} />
         </button>
@@ -133,7 +137,7 @@ function AddKidForm({ onCreated, onCancel, familyId, existingKidsCount }) {
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder="e.g. Emma, Noah"
+        placeholder={t('events.childPlaceholder')}
         maxLength={24}
         autoFocus
         className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
@@ -141,7 +145,7 @@ function AddKidForm({ onCreated, onCancel, familyId, existingKidsCount }) {
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
       <div className="mt-3 flex justify-end">
         <Button type="button" size="sm" onClick={handleSave} loading={saving}>
-          Add child
+          {t('events.addChild')}
         </Button>
       </div>
     </div>
@@ -176,6 +180,7 @@ export default function EventFormModal({
   const { userDoc, family } = useAuth();
   const { list: categories } = useCategories();
   const familyMembers = useFamilyMembers();
+  const { t } = useT();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -229,7 +234,7 @@ export default function EventFormModal({
   async function handleDeleteCategory(cat) {
     if (!userDoc?.familyId) return;
     const ok = window.confirm(
-      `Delete category "${cat.label}"? Events in this category will be moved to General.`
+      t('events.confirmDeleteCategory', { name: tLabel(t, cat) })
     );
     if (!ok) return;
     setDeletingCategoryId(cat.id);
@@ -237,7 +242,7 @@ export default function EventFormModal({
       await deleteCategory(userDoc.familyId, cat);
       if (category === cat.id) setCategory(DEFAULT_CATEGORY);
     } catch (err) {
-      setError(err.message || 'Could not delete category.');
+      setError(err.message || t('events.couldNotDeleteCategory'));
     } finally {
       setDeletingCategoryId(null);
     }
@@ -265,7 +270,7 @@ export default function EventFormModal({
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!title.trim()) return setError('Please enter a title.');
+    if (!title.trim()) return setError(t('events.errTitle'));
     const [hh, mm] = time.split(':').map(Number);
     const [y, m, d] = date.split('-').map(Number);
     const when = new Date(y, m - 1, d, hh, mm);
@@ -274,7 +279,7 @@ export default function EventFormModal({
     try {
       await onSubmit({ title, description, date: when, category, kids, responsibleParent, effortLevel, recurrence });
     } catch (err) {
-      setError(err.message || 'Could not save event.');
+      setError(err.message || t('events.errSaveEvent'));
     } finally {
       setSaving(false);
     }
@@ -297,33 +302,31 @@ export default function EventFormModal({
   const isSubscribed = Boolean(initial?.source === 'subscription');
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Event' : 'New Event'}>
+    <Modal open={open} onClose={onClose} title={isEdit ? t('events.modalEdit') : t('events.modalNew')}>
       <form onSubmit={handleSubmit} className="space-y-4">
         {isSubscribed && (
           <div className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            This event is synced from an external calendar. Any edits here will
-            be overwritten the next time it syncs — change it in the original
-            calendar instead.
+            {t('events.subscribedWarning')}
           </div>
         )}
         <Input
-          label="Title"
+          label={t('events.titleLabel')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Soccer Practice"
+          placeholder={t('events.titlePlaceholder')}
           required
           autoFocus
         />
         <div className="grid grid-cols-2 gap-3">
           <Input
-            label="Date"
+            label={t('events.dateLabel')}
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
             required
           />
           <Input
-            label="Time"
+            label={t('events.timeLabel')}
             type="time"
             value={time}
             onChange={(e) => setTime(e.target.value)}
@@ -335,7 +338,7 @@ export default function EventFormModal({
         {(familyKids.length > 0 || userDoc?.familyId) && (
           <div>
             <span className="mb-1.5 block text-sm font-medium text-slate-700">
-              Child <span className="font-normal text-slate-400">(optional)</span>
+              {t('events.childLabel')} <span className="font-normal text-slate-400">({t('common.optional')})</span>
             </span>
             <div className="flex flex-wrap gap-2">
               {familyKids.map((kid) => {
@@ -364,7 +367,7 @@ export default function EventFormModal({
                       : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  {familyKids.length === 2 ? 'Both' : 'All'}
+                  {familyKids.length === 2 ? t('events.both') : t('common.all')}
                 </button>
               )}
               {!addingKid && userDoc?.familyId && (
@@ -373,7 +376,7 @@ export default function EventFormModal({
                   onClick={() => setAddingKid(true)}
                   className="flex items-center gap-1 rounded-full border border-dashed border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-50"
                 >
-                  <Plus size={14} /> Add child
+                  <Plus size={14} /> {t('events.addChild')}
                 </button>
               )}
             </div>
@@ -392,7 +395,7 @@ export default function EventFormModal({
         )}
 
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">Category</span>
+          <span className="mb-1.5 block text-sm font-medium text-slate-700">{t('events.category')}</span>
           <div className="flex flex-wrap gap-2">
             {categories.map((cat) => {
               const active = category === cat.id;
@@ -417,14 +420,14 @@ export default function EventFormModal({
                     }`}
                   >
                     <span className={`h-2.5 w-2.5 rounded-full ${cat.dot}`} />
-                    {cat.label}
+                    {tLabel(t, cat)}
                   </button>
                   {deletable && (
                     <button
                       type="button"
                       onClick={() => handleDeleteCategory(cat)}
                       disabled={isDeleting}
-                      aria-label={`Delete category ${cat.label}`}
+                      aria-label={t('events.deleteCategoryAria', { name: tLabel(t, cat) })}
                       className="flex h-6 w-6 items-center justify-center rounded-full opacity-60 hover:bg-black/5 hover:opacity-100 disabled:cursor-not-allowed mr-1"
                     >
                       <X size={12} />
@@ -439,7 +442,7 @@ export default function EventFormModal({
                 onClick={() => setCreatingCategory(true)}
                 className="flex items-center gap-1 rounded-full border border-dashed border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-50"
               >
-                <Plus size={14} /> New
+                <Plus size={14} /> {t('events.newShort')}
               </button>
             )}
           </div>
@@ -462,7 +465,7 @@ export default function EventFormModal({
             {familyMembers.length > 0 && (
               <div>
                 <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                  Responsible <span className="font-normal text-slate-400">(optional)</span>
+                  {t('events.responsible')} <span className="font-normal text-slate-400">({t('common.optional')})</span>
                 </span>
                 <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
                   {familyMembers.map((member) => (
@@ -486,13 +489,13 @@ export default function EventFormModal({
             {/* Effort Level */}
             <div>
               <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                Effort Level <span className="font-normal text-slate-400">(optional)</span>
+                {t('events.effortLevel')} <span className="font-normal text-slate-400">({t('common.optional')})</span>
               </span>
               <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
                 {[
-                  { value: 'low', label: 'Low', active: 'bg-white text-green-700 shadow-sm' },
-                  { value: 'medium', label: 'Medium', active: 'bg-white text-amber-600 shadow-sm' },
-                  { value: 'high', label: 'High', active: 'bg-white text-rose-600 shadow-sm' },
+                  { value: 'low', label: t('events.effortLow'), active: 'bg-white text-green-700 shadow-sm' },
+                  { value: 'medium', label: t('events.effortMedium'), active: 'bg-white text-amber-600 shadow-sm' },
+                  { value: 'high', label: t('events.effortHigh'), active: 'bg-white text-rose-600 shadow-sm' },
                 ].map(({ value, label, active }) => (
                   <button
                     key={value}
@@ -518,19 +521,19 @@ export default function EventFormModal({
           className="flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700"
         >
           {showMore ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          {showMore ? 'Fewer options' : 'More options'}
+          {showMore ? t('events.fewerOptions') : t('events.moreOptions')}
         </button>
 
         <label className="block">
           <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Notes <span className="font-normal text-slate-400">(optional)</span>
+            {t('events.notes')} <span className="font-normal text-slate-400">({t('common.optional')})</span>
           </span>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
             className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
-            placeholder="Add any special instructions or details..."
+            placeholder={t('events.notesPlaceholder')}
           />
         </label>
         {error && <p className="text-sm text-red-600">{error}</p>}
@@ -542,11 +545,11 @@ export default function EventFormModal({
               onClick={handleDelete}
               loading={deleting}
             >
-              Delete
+              {t('common.delete')}
             </Button>
           )}
           <Button type="submit" loading={saving} className="ml-auto">
-            {isEdit ? 'Save Changes' : 'Save Event'}
+            {isEdit ? t('events.saveChanges') : t('events.saveEvent')}
           </Button>
         </div>
       </form>
