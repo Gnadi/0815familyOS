@@ -12,9 +12,17 @@ export function isValidRecurrence(rec) {
   return FREQS.includes(rec.freq) && Number(rec.interval) > 0;
 }
 
-export function describeRecurrence(rec) {
+// Pass the i18n helpers ({ t, tn }) to localize; without them it falls back to
+// English so the function stays usable outside React.
+export function describeRecurrence(rec, t, tn) {
   if (!isValidRecurrence(rec)) return null;
   const n = Number(rec.interval) || 1;
+  if (t && tn) {
+    const unit = tn(`recurrence.${rec.freq}`, n);
+    return n === 1
+      ? t('recurrence.everyOne', { unit })
+      : t('recurrence.everyN', { n, unit });
+  }
   const unit = {
     daily: n === 1 ? 'day' : 'days',
     weekly: n === 1 ? 'week' : 'weeks',

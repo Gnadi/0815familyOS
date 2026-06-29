@@ -3,6 +3,8 @@ import { format } from 'date-fns';
 import { Download, Loader2, Trophy, User } from 'lucide-react';
 import { decryptBlob } from '../../utils/encryption';
 import useVaultCategories from '../../hooks/useVaultCategories';
+import useT from '../../hooks/useT';
+import { tLabel } from '../../i18n/labels';
 
 const EXT_MIME = {
   pdf:  'application/pdf',
@@ -19,6 +21,7 @@ function fileExtBadge(fileName) {
 
 export default function TrophyCard({ trophy, onClick, encryptionKey }) {
   const { get: getCat } = useVaultCategories('trophy');
+  const { t } = useT();
   const cat = getCat(trophy.category);
   const [downloading, setDownloading] = useState(false);
 
@@ -76,7 +79,7 @@ export default function TrophyCard({ trophy, onClick, encryptionKey }) {
 
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <span className={`rounded-full px-2 py-0.5 text-xs font-medium shadow-sm ${cat.chipBg} ${cat.chipText}`}>
-            {cat.label}
+            {tLabel(t, cat)}
           </span>
           {trophy.date && (
             <span className="text-xs text-slate-400">

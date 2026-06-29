@@ -3,11 +3,12 @@ import { format } from 'date-fns';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
 import Button from '../common/Button';
+import useT from '../../hooks/useT';
 
 const STATUSES = [
-  { id: 'done',    label: 'Done' },
-  { id: 'next_up', label: 'Next Up' },
-  { id: 'pending', label: 'Pending' },
+  { id: 'done',    labelKey: 'health.statusDoneLabel' },
+  { id: 'next_up', labelKey: 'health.statusNextUpLabel' },
+  { id: 'pending', labelKey: 'health.statusPendingLabel' },
 ];
 
 const STATUS_ACTIVE = {
@@ -16,10 +17,10 @@ const STATUS_ACTIVE = {
   pending: 'bg-white text-slate-700 shadow-sm',
 };
 
-const DATE_LABEL = {
-  done:    'Completed on',
-  next_up: 'Due date',
-  pending: 'Scheduled for',
+const DATE_LABEL_KEY = {
+  done:    'health.dateCompletedOn',
+  next_up: 'health.dateDueDate',
+  pending: 'health.dateScheduledFor',
 };
 
 function todayIso() {
@@ -27,6 +28,7 @@ function todayIso() {
 }
 
 export default function VaccinationFormModal({ open, onClose, onSubmit, onDelete, initial }) {
+  const { t } = useT();
   const [name, setName]       = useState('');
   const [status, setStatus]   = useState('pending');
   const [date, setDate]       = useState(todayIso());
@@ -50,14 +52,14 @@ export default function VaccinationFormModal({ open, onClose, onSubmit, onDelete
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!name.trim()) return setError('Please enter a vaccine name.');
-    if (!date) return setError('Please pick a date.');
+    if (!name.trim()) return setError(t('health.errVaccineName'));
+    if (!date) return setError(t('health.errDate'));
     setError('');
     setSaving(true);
     try {
       await onSubmit({ name: name.trim(), status, date });
     } catch (err) {
-      setError(err.message || 'Could not save.');
+      setError(err.message || t('health.errSave'));
     } finally {
       setSaving(false);
     }
@@ -65,7 +67,7 @@ export default function VaccinationFormModal({ open, onClose, onSubmit, onDelete
 
   async function handleDelete() {
     if (!onDelete) return;
-    const ok = window.confirm('Remove this vaccination record? This cannot be undone.');
+    const ok = window.confirm(t('health.confirmDelete'));
     if (!ok) return;
     setDeleting(true);
     try {
@@ -78,19 +80,19 @@ export default function VaccinationFormModal({ open, onClose, onSubmit, onDelete
   const isEdit = Boolean(initial);
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Vaccination' : 'New Vaccination'}>
+    <Modal open={open} onClose={onClose} title={isEdit ? t('health.modalEdit') : t('health.modalNew')}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
-          label="Vaccine"
+          label={t('health.vaccineLabel')}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. MMR Booster"
+          placeholder={t('health.vaccinePlaceholder')}
           required
           autoFocus
         />
 
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">Status</span>
+          <span className="mb-1.5 block text-sm font-medium text-slate-700">{t('health.status')}</span>
           <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
             {STATUSES.map((s) => (
               <button
@@ -101,14 +103,14 @@ export default function VaccinationFormModal({ open, onClose, onSubmit, onDelete
                   status === s.id ? STATUS_ACTIVE[s.id] : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
-                {s.label}
+                {t(s.labelKey)}
               </button>
             ))}
           </div>
         </div>
 
         <Input
-          label={DATE_LABEL[status]}
+          label={t(DATE_LABEL_KEY[status])}
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
@@ -120,11 +122,11 @@ export default function VaccinationFormModal({ open, onClose, onSubmit, onDelete
         <div className="flex gap-2 pt-2">
           {isEdit && onDelete && (
             <Button type="button" variant="danger" onClick={handleDelete} loading={deleting}>
-              Delete
+              {t('common.delete')}
             </Button>
           )}
           <Button type="submit" loading={saving} className="ml-auto">
-            {isEdit ? 'Save Changes' : 'Add Vaccination'}
+            {isEdit ? t('health.saveChanges') : t('health.addVaccination')}
           </Button>
         </div>
       </form>

@@ -1,16 +1,19 @@
 import { ArrowLeft, Bell, ChevronLeft, Home, Plus } from 'lucide-react';
 import useUIPreferences from '../../hooks/useUIPreferences';
+import useT from '../../hooks/useT';
 import { useAddAction } from '../../context/AddActionContext';
 
 export default function TopBar({
-  title = 'Family OS',
+  title,
   showBell = true,
   showAdd = true,
   right = null,
   onBack = null,
 }) {
   const { skin } = useUIPreferences();
+  const { t } = useT();
   const onAdd = useAddAction();
+  const heading = title ?? t('common.appName');
 
   if (skin === 'ios') {
     return (
@@ -23,7 +26,7 @@ export default function TopBar({
                 className="-ml-1.5 flex items-center text-brand-600 active:opacity-60"
               >
                 <ChevronLeft size={24} />
-                <span className="text-base">Back</span>
+                <span className="text-base">{t('common.back')}</span>
               </button>
             ) : (
               <span />
@@ -39,7 +42,7 @@ export default function TopBar({
               {showAdd && onAdd && (
                 <button
                   onClick={onAdd}
-                  aria-label="Add"
+                  aria-label={t('nav.add')}
                   className="rounded-full p-1.5 text-brand-600 active:opacity-60"
                 >
                   <Plus size={24} />
@@ -48,7 +51,7 @@ export default function TopBar({
             </div>
           </div>
           <h1 className="mt-1 text-[28px] font-bold leading-tight tracking-tight text-slate-900">
-            {title}
+            {heading}
           </h1>
         </div>
       </header>
@@ -67,7 +70,7 @@ export default function TopBar({
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-white">
             <Home size={18} />
           </div>
-          <h1 className="text-lg font-bold text-slate-900">{title}</h1>
+          <h1 className="text-lg font-bold text-slate-900">{heading}</h1>
         </div>
         <div className="flex items-center gap-2">
           {right}

@@ -3,12 +3,13 @@ import { ChevronDown } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import TaskCard from './TaskCard';
 import { summaryForColumn } from '../../utils/tasks';
+import useT from '../../hooks/useT';
 
 const COLUMN_META = {
-  backlog:    { label: 'Backlog',     chip: 'bg-slate-100 text-slate-700' },
-  planned:    { label: 'Planned',     chip: 'bg-cyan-50 text-cyan-700'    },
-  inProgress: { label: 'In Progress', chip: 'bg-brand-50 text-brand-700'  },
-  completed:  { label: 'Completed',   chip: 'bg-emerald-50 text-emerald-700' },
+  backlog:    { labelKey: 'taskStatus.backlog',    chip: 'bg-slate-100 text-slate-700' },
+  planned:    { labelKey: 'taskStatus.planned',    chip: 'bg-cyan-50 text-cyan-700'    },
+  inProgress: { labelKey: 'taskStatus.inProgress', chip: 'bg-brand-50 text-brand-700'  },
+  completed:  { labelKey: 'taskStatus.completed',  chip: 'bg-emerald-50 text-emerald-700' },
 };
 
 export default function ColumnSection({
@@ -19,9 +20,11 @@ export default function ColumnSection({
   sectionRef,
   defaultCollapsed = false,
 }) {
+  const { t } = useT();
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const meta = COLUMN_META[status];
-  const filtered = tasks.filter((t) => t.status === status);
+  const columnLabel = t(meta.labelKey);
+  const filtered = tasks.filter((t2) => t2.status === status);
   const summary = summaryForColumn(status, tasks);
 
   const { setNodeRef, isOver } = useDroppable({
@@ -45,17 +48,17 @@ export default function ColumnSection({
         >
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold text-slate-900">{meta.label}</h2>
+              <h2 className="text-lg font-bold text-slate-900">{columnLabel}</h2>
               <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${meta.chip}`}>
                 {summary.count}
               </span>
             </div>
             <div className="mt-1 flex items-center gap-2 text-xs font-medium text-slate-500">
-              <span>{summary.leftLabel}</span>
+              <span>{t(summary.leftKey)}</span>
               <span className="h-1 w-1 rounded-full bg-slate-300" />
-              <span className="tabular-nums text-slate-700">{summary.points} pts</span>
+              <span className="tabular-nums text-slate-700">{summary.points} {t('tasks.pts')}</span>
               <span className="h-1 w-1 rounded-full bg-slate-300" />
-              <span className={`${summary.rightTone} font-semibold`}>{summary.rightLabel}</span>
+              <span className={`${summary.rightTone} font-semibold`}>{t(summary.rightKey, summary.rightParams)}</span>
             </div>
           </div>
           <span
@@ -78,7 +81,7 @@ export default function ColumnSection({
                     : 'border-slate-200 bg-white/60 text-slate-400'
                 }`}
               >
-                {isOver ? `Drop to move to ${meta.label}` : `No tasks in ${meta.label.toLowerCase()} yet.`}
+                {isOver ? t('tasks.dropToMove', { column: columnLabel }) : t('tasks.noTasksIn', { column: columnLabel })}
               </div>
             ) : (
               filtered.map((task) => (
@@ -95,7 +98,7 @@ export default function ColumnSection({
 
         {collapsed && isOver && (
           <div className="mt-1 rounded-xl border border-dashed border-brand-300 bg-white/80 p-2 text-center text-xs font-medium text-brand-600">
-            Drop to move to {meta.label}
+            {t('tasks.dropToMove', { column: columnLabel })}
           </div>
         )}
       </div>

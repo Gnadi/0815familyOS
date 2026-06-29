@@ -7,6 +7,7 @@ import RecipeFormModal from '../components/food/RecipeFormModal';
 import RecipeDetailModal from '../components/food/RecipeDetailModal';
 import CookingMode from '../components/food/CookingMode';
 import useAuth from '../hooks/useAuth';
+import useT from '../hooks/useT';
 import useFamilyMembers from '../hooks/useFamilyMembers';
 import useRecipes from '../hooks/useRecipes';
 import useMealPlan from '../hooks/useMealPlan';
@@ -15,12 +16,13 @@ import { createMealEntry, updateMealEntry, deleteMealEntry } from '../services/m
 import { addCook, removeCook } from '../services/families';
 
 const TABS = [
-  { id: 'plan', label: 'Week Plan' },
-  { id: 'recipes', label: 'Recipes' },
+  { id: 'plan', labelKey: 'food.tabWeekPlan' },
+  { id: 'recipes', labelKey: 'food.tabRecipes' },
 ];
 
 export default function FoodPage() {
   const { user, userDoc, family } = useAuth();
+  const { t } = useT();
   const familyId = userDoc?.familyId;
   const { setFoodFabCallback } = useOutletContext() || {};
 
@@ -97,19 +99,19 @@ export default function FoodPage() {
 
   return (
     <>
-      <TopBar title="Meals" showBell={false} />
+      <TopBar title={t('food.title')} showBell={false} />
       <main className="mx-auto max-w-md space-y-5 px-5 py-5">
         <div className="flex rounded-xl bg-slate-100 p-1">
-          {TABS.map((t) => (
+          {TABS.map((tabItem) => (
             <button
-              key={t.id}
+              key={tabItem.id}
               type="button"
-              onClick={() => setTab(t.id)}
+              onClick={() => setTab(tabItem.id)}
               className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                tab === t.id ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500'
+                tab === tabItem.id ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500'
               }`}
             >
-              {t.label}
+              {t(tabItem.labelKey)}
             </button>
           ))}
         </div>

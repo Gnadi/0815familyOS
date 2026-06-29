@@ -2,11 +2,13 @@ import { format } from 'date-fns';
 import { ExternalLink, User } from 'lucide-react';
 import useCategories from '../../hooks/useCategories';
 import useAuth from '../../hooks/useAuth';
+import useT from '../../hooks/useT';
+import { tLabel } from '../../i18n/labels';
 
 const EFFORT = {
-  low:    { bar: 'bg-green-400',  badge: 'text-green-700 bg-green-100',   label: 'Low Effort' },
-  medium: { bar: 'bg-amber-400',  badge: 'text-amber-700 bg-amber-100',   label: 'Med Effort' },
-  high:   { bar: 'bg-rose-400',   badge: 'text-rose-700 bg-rose-100',     label: 'High Effort' },
+  low:    { bar: 'bg-green-400',  badge: 'text-green-700 bg-green-100',   labelKey: 'calendar.effortLow' },
+  medium: { bar: 'bg-amber-400',  badge: 'text-amber-700 bg-amber-100',   labelKey: 'calendar.effortMed' },
+  high:   { bar: 'bg-rose-400',   badge: 'text-rose-700 bg-rose-100',     labelKey: 'calendar.effortHigh' },
 };
 
 const KID_CHIP = {
@@ -21,6 +23,7 @@ const KID_CHIP = {
 export default function EventCard({ event, onClick }) {
   const { get } = useCategories();
   const { family } = useAuth();
+  const { t } = useT();
   const cat = get(event.category);
 
   const effort = event.effortLevel ? EFFORT[event.effortLevel] : null;
@@ -50,18 +53,18 @@ export default function EventCard({ event, onClick }) {
               <ExternalLink
                 size={12}
                 className="flex-shrink-0 text-slate-400"
-                aria-label="Synced from external calendar"
+                aria-label={t('calendar.syncedFromExternal')}
               />
             )}
             <span className="truncate">{event.title}</span>
           </h3>
           {effort ? (
             <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${effort.badge}`}>
-              {effort.label}
+              {t(effort.labelKey)}
             </span>
           ) : (
             <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${cat.chipBg} ${cat.chipText}`}>
-              {cat.label}
+              {tLabel(t, cat)}
             </span>
           )}
         </div>

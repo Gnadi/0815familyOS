@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
 import Button from '../common/Button';
+import useT from '../../hooks/useT';
 
 export default function GiftRecipientFormModal({ open, onClose, onSubmit, onDelete, initial }) {
+  const { t } = useT();
   const [name, setName] = useState('');
   const [birthday, setBirthday] = useState('');
   const [error, setError] = useState('');
@@ -19,13 +21,13 @@ export default function GiftRecipientFormModal({ open, onClose, onSubmit, onDele
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!name.trim()) return setError('Please enter a name.');
+    if (!name.trim()) return setError(t('gifts.errRecipientName'));
     setError('');
     setSaving(true);
     try {
       await onSubmit({ name, birthday: birthday || null });
     } catch (err) {
-      setError(err.message || 'Could not save recipient.');
+      setError(err.message || t('gifts.errSaveRecipient'));
     } finally {
       setSaving(false);
     }
@@ -34,7 +36,7 @@ export default function GiftRecipientFormModal({ open, onClose, onSubmit, onDele
   async function handleDelete() {
     if (!onDelete) return;
     const ok = window.confirm(
-      `Remove ${initial?.name || 'this person'}? Their gifts will also be deleted.`
+      t('gifts.removePersonConfirm', { name: initial?.name || t('gifts.personFallback') })
     );
     if (!ok) return;
     setDeleting(true);
@@ -48,20 +50,20 @@ export default function GiftRecipientFormModal({ open, onClose, onSubmit, onDele
   const isEdit = Boolean(initial);
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Person' : 'New Person'}>
+    <Modal open={open} onClose={onClose} title={isEdit ? t('gifts.modalEditRecipient') : t('gifts.newPerson')}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
-          label="Name"
+          label={t('gifts.recipientName')}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Grandma"
+          placeholder={t('gifts.recipientNamePlaceholder')}
           required
           autoFocus
         />
 
         <label className="block">
           <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Birthday <span className="font-normal text-slate-400">(optional)</span>
+            {t('gifts.birthday')} <span className="font-normal text-slate-400">({t('common.optional')})</span>
           </span>
           <input
             type="date"
@@ -76,11 +78,11 @@ export default function GiftRecipientFormModal({ open, onClose, onSubmit, onDele
         <div className="flex gap-2 pt-2">
           {isEdit && onDelete && (
             <Button type="button" variant="danger" onClick={handleDelete} loading={deleting}>
-              Delete
+              {t('common.delete')}
             </Button>
           )}
           <Button type="submit" loading={saving} className="ml-auto">
-            {isEdit ? 'Save Changes' : 'Add Person'}
+            {isEdit ? t('gifts.saveChanges') : t('gifts.addPersonBtn')}
           </Button>
         </div>
       </form>

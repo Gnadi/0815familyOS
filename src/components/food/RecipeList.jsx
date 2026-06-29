@@ -3,8 +3,10 @@ import { BookOpen, Search } from 'lucide-react';
 import Spinner from '../common/Spinner';
 import EmptyState from '../common/EmptyState';
 import RecipeCard from './RecipeCard';
+import useT from '../../hooks/useT';
 
 export default function RecipeList({ recipes, loading, onSelect }) {
+  const { t } = useT();
   const [query, setQuery] = useState('');
 
   if (loading) return <Spinner />;
@@ -22,8 +24,8 @@ export default function RecipeList({ recipes, loading, onSelect }) {
     return (
       <EmptyState
         icon={BookOpen}
-        title="No recipes yet"
-        description="Add a recipe by link or enter your own. Everyone in the family can contribute."
+        title={t('food.noRecipes')}
+        description={t('food.noRecipesDesc')}
       />
     );
   }
@@ -36,14 +38,14 @@ export default function RecipeList({ recipes, loading, onSelect }) {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search recipes…"
+          placeholder={t('food.searchRecipes')}
           className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
         />
       </div>
 
       {filtered.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-center text-sm text-slate-400">
-          No recipes match "{query}".
+          {t('food.noRecipesMatch', { query })}
         </p>
       ) : (
         <div className="space-y-2">

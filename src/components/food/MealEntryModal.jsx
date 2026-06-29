@@ -3,7 +3,8 @@ import { format } from 'date-fns';
 import { UserPlus, X } from 'lucide-react';
 import Modal from '../common/Modal';
 import Button from '../common/Button';
-import { getSlotLabel } from '../../constants/mealSlots';
+import { getSlotLabelKey } from '../../constants/mealSlots';
+import useT from '../../hooks/useT';
 
 // Modal for one cell of the week plan (a given day + slot). A meal is either a
 // reference to a saved recipe or a piece of free text ("Order pizza"), with an
@@ -21,6 +22,7 @@ export default function MealEntryModal({
   onAddCook,
   onRemoveCook,
 }) {
+  const { t } = useT();
   const [mode, setMode] = useState('recipe'); // 'recipe' | 'text'
   const [recipeId, setRecipeId] = useState('');
   const [text, setText] = useState('');
@@ -64,8 +66,8 @@ export default function MealEntryModal({
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (mode === 'recipe' && !recipeId) return setError('Please pick a recipe.');
-    if (mode === 'text' && !text.trim()) return setError('Please enter a meal.');
+    if (mode === 'recipe' && !recipeId) return setError(t('food.errPickRecipe'));
+    if (mode === 'text' && !text.trim()) return setError(t('food.errEnterMeal'));
     setError('');
     setSaving(true);
     try {
@@ -76,7 +78,7 @@ export default function MealEntryModal({
         cookName: cook?.name || '',
       });
     } catch (err) {
-      setError(err.message || 'Could not save.');
+      setError(err.message || t('food.errSave'));
     } finally {
       setSaving(false);
     }
@@ -91,7 +93,7 @@ export default function MealEntryModal({
       if (created) setCook({ id: created.id, type: 'external', name: created.name });
       setNewCookName('');
     } catch (err) {
-      setError(err.message || 'Could not add person.');
+      setError(err.message || t('food.errAddPerson'));
     } finally {
       setAddingCook(false);
     }
@@ -99,13 +101,13 @@ export default function MealEntryModal({
 
   async function handleRemoveCook(c) {
     if (!onRemoveCook) return;
-    const ok = window.confirm(`Remove ${c.name} from the cook list?`);
+    const ok = window.confirm(t('food.removeCookConfirm', { name: c.name }));
     if (!ok) return;
     if (cook?.id === c.id && cook?.type === 'external') setCook(null);
     try {
       await onRemoveCook(c);
     } catch (err) {
-      setError(err.message || 'Could not remove person.');
+      setError(err.message || t('food.errRemovePerson'));
     }
   }
 
@@ -120,8 +122,8 @@ export default function MealEntryModal({
   }
 
   const title = cell
-    ? `${getSlotLabel(cell.slot)} · ${format(cell.date, 'EEE, MMM d')}`
-    : 'Plan meal';
+    ? `${t(getSlotLabelKey(cell.slot) || 'food.meal')} · ${format(cell.date, 'EEE, MMM d')}`
+    : t('food.planMeal');
   const isEdit = Boolean(entry);
 
   const isSelected = (id, type) => cook?.id === id && cook?.type === type;
@@ -137,8 +139,8 @@ export default function MealEntryModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="flex rounded-xl bg-slate-100 p-1">
           {[
-            { id: 'recipe', label: 'From recipe' },
-            { id: 'text', label: 'Free text' },
+            { id: 'recipe', label: t('food.fromRecipe') },
+            { id: 'text', label: t('food.freeText') },
           ].map((o) => (
             <button
               key={o.id}
@@ -156,17 +158,17 @@ export default function MealEntryModal({
         {mode === 'recipe' ? (
           recipes.length === 0 ? (
             <p className="rounded-xl border border-dashed border-slate-200 bg-white p-4 text-center text-sm text-slate-400">
-              No recipes yet. Add some in the Recipes tab, or switch to free text.
+              {t('food.noRecipesSwitch')}
             </p>
           ) : (
             <label className="block">
-              <span className="mb-1.5 block text-sm font-medium text-slate-700">Recipe</span>
+              <span className="mb-1.5 block text-sm font-medium text-slate-700">{t('food.recipe')}</span>
               <select
                 value={recipeId}
                 onChange={(e) => setRecipeId(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
               >
-                <option value="">Select a recipe…</option>
+                <option value="">{t('food.selectRecipe')}</option>
                 {recipes.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.title}
@@ -177,12 +179,12 @@ export default function MealEntryModal({
           )
         ) : (
           <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-slate-700">Meal</span>
+            <span className="mb-1.5 block text-sm font-medium text-slate-700">{t('food.meal')}</span>
             <input
               type="text"
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="e.g. Order pizza, Leftovers…"
+              placeholder={t('food.mealPlaceholder')}
               autoFocus
               className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
             />
@@ -191,11 +193,11 @@ export default function MealEntryModal({
 
         <div>
           <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Cook <span className="font-normal text-slate-400">(optional)</span>
+            {t('food.cook')} <span className="font-normal text-slate-400">({t('common.optional')})</span>
           </span>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => setCook(null)} className={chip(!cook)}>
-              None
+              {t('common.none')}
             </button>
             {members.map((m) => (
               <button
@@ -228,7 +230,7 @@ export default function MealEntryModal({
                     <button
                       type="button"
                       onClick={() => handleRemoveCook(c)}
-                      aria-label={`Remove ${c.name}`}
+                      aria-label={t('food.removeName', { name: c.name })}
                       className={`flex h-4 w-4 items-center justify-center rounded-full ${
                         active ? 'hover:bg-white/25' : 'text-slate-400 hover:bg-slate-200'
                       }`}
@@ -253,14 +255,14 @@ export default function MealEntryModal({
                     handleAddCook();
                   }
                 }}
-                placeholder="Add another person (e.g. Grandma)"
+                placeholder={t('food.addAnotherPerson')}
                 className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
               />
               <button
                 type="button"
                 onClick={handleAddCook}
                 disabled={!newCookName.trim() || addingCook}
-                aria-label="Add person"
+                aria-label={t('food.addPerson')}
                 className="flex items-center justify-center rounded-xl bg-slate-100 px-3 text-slate-600 hover:bg-slate-200 disabled:opacity-40"
               >
                 <UserPlus size={16} />
@@ -274,11 +276,11 @@ export default function MealEntryModal({
         <div className="flex gap-2 pt-2">
           {isEdit && onDelete && (
             <Button type="button" variant="danger" onClick={handleDelete} loading={deleting}>
-              Remove
+              {t('common.remove')}
             </Button>
           )}
           <Button type="submit" loading={saving} className="ml-auto">
-            {isEdit ? 'Save' : 'Add to plan'}
+            {isEdit ? t('common.save') : t('food.addToPlan')}
           </Button>
         </div>
       </form>

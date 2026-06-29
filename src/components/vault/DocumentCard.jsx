@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { decryptBlob } from '../../utils/encryption';
 import useVaultCategories from '../../hooks/useVaultCategories';
+import useT from '../../hooks/useT';
+import { tLabel } from '../../i18n/labels';
 
 const CATEGORY_ICONS = {
   identity:  CreditCard,
@@ -39,6 +41,7 @@ function fileExtBadge(fileName) {
 
 export default function DocumentCard({ doc, onClick, encryptionKey }) {
   const { get: getCat } = useVaultCategories('document');
+  const { t } = useT();
   const cat = getCat(doc.category);
   const Icon = CATEGORY_ICONS[doc.category] || FileText;
   const [downloading, setDownloading] = useState(false);
@@ -97,7 +100,7 @@ export default function DocumentCard({ doc, onClick, encryptionKey }) {
 
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${cat.chipBg} ${cat.chipText}`}>
-            {cat.label}
+            {tLabel(t, cat)}
           </span>
           {doc.date && (
             <span className="text-xs text-slate-400">

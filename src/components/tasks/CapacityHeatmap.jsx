@@ -1,5 +1,6 @@
 import { isSameDay } from 'date-fns';
 import { computeCapacityLoad, currentSprintMonday } from '../../utils/tasks';
+import useT from '../../hooks/useT';
 
 const BUBBLE_BY_LEVEL = {
   none: 'bg-slate-100 text-slate-400',
@@ -9,13 +10,14 @@ const BUBBLE_BY_LEVEL = {
 };
 
 export default function CapacityHeatmap({ tasks }) {
+  const { t } = useT();
   const monday = currentSprintMonday();
   const capacity = computeCapacityLoad(tasks, monday);
   const today = new Date();
 
   return (
     <div className="rounded-2xl bg-white p-4 shadow-card">
-      <h2 className="text-base font-bold text-slate-900">Household Capacity Heatmap</h2>
+      <h2 className="text-base font-bold text-slate-900">{t('tasks.capacityHeatmap')}</h2>
       <div className="mt-3 grid grid-cols-7 gap-1">
         {capacity.map((day) => {
           const isToday = isSameDay(day.date, today);

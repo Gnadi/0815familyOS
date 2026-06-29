@@ -6,6 +6,8 @@ import Input from '../common/Input';
 import Button from '../common/Button';
 import useAuth from '../../hooks/useAuth';
 import useCategories from '../../hooks/useCategories';
+import useT from '../../hooks/useT';
+import { tLabel } from '../../i18n/labels';
 import { createEvent } from '../../services/events';
 import { createTask } from '../../services/tasks';
 import { DEFAULT_CATEGORY } from '../../constants/eventCategories';
@@ -46,6 +48,7 @@ const KID_CHIP_ACTIVE = {
 export default function QuickAddModal({ open, onClose }) {
   const { user, userDoc, family } = useAuth();
   const { list: categories } = useCategories();
+  const { t } = useT();
   const familyKids = family?.kids || [];
 
   const [tab, setTab] = useState('event');
@@ -84,7 +87,7 @@ export default function QuickAddModal({ open, onClose }) {
     if (!userDoc?.familyId || !user?.uid) return;
 
     if (tab === 'event') {
-      if (!evTitle.trim()) return setError('Please enter a title.');
+      if (!evTitle.trim()) return setError(t('events.errTitle'));
       const [hh, mm] = evTime.split(':').map(Number);
       const today = new Date();
       const when = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hh, mm);
@@ -104,13 +107,13 @@ export default function QuickAddModal({ open, onClose }) {
         });
         onClose();
       } catch (err) {
-        setError(err.message || 'Could not save event.');
+        setError(err.message || t('events.errSaveEvent'));
       } finally {
         setSaving(false);
       }
     } else {
-      if (!taskTitle.trim()) return setError('Please enter a title.');
-      if (!taskDueDate) return setError('Please pick a due date.');
+      if (!taskTitle.trim()) return setError(t('tasks.errTitle'));
+      if (!taskDueDate) return setError(t('tasks.errDueDate'));
       const [y, m, d] = taskDueDate.split('-').map(Number);
       const dueAt = new Date(y, m - 1, d, 9, 0);
       setError('');
@@ -131,7 +134,7 @@ export default function QuickAddModal({ open, onClose }) {
         });
         onClose();
       } catch (err) {
-        setError(err.message || 'Could not save task.');
+        setError(err.message || t('tasks.errSaveTask'));
       } finally {
         setSaving(false);
       }
@@ -139,7 +142,7 @@ export default function QuickAddModal({ open, onClose }) {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Quick Add">
+    <Modal open={open} onClose={onClose} title={t('quickAdd.title')}>
       {/* Tab toggle */}
       <div className="mb-4 flex rounded-xl border border-slate-200 bg-slate-100 p-1">
         <button
@@ -150,7 +153,7 @@ export default function QuickAddModal({ open, onClose }) {
           }`}
         >
           <Calendar size={15} />
-          Event
+          {t('quickAdd.tabEvent')}
         </button>
         <button
           type="button"
@@ -160,7 +163,7 @@ export default function QuickAddModal({ open, onClose }) {
           }`}
         >
           <CheckSquare size={15} />
-          Task
+          {t('quickAdd.tabTask')}
         </button>
       </div>
 
@@ -168,15 +171,15 @@ export default function QuickAddModal({ open, onClose }) {
         {tab === 'event' ? (
           <>
             <Input
-              label="Title"
+              label={t('events.titleLabel')}
               value={evTitle}
               onChange={(e) => setEvTitle(e.target.value)}
-              placeholder="Soccer Practice"
+              placeholder={t('events.titlePlaceholder')}
               required
               autoFocus
             />
             <Input
-              label="Time (today)"
+              label={t('quickAdd.timeToday')}
               type="time"
               value={evTime}
               onChange={(e) => setEvTime(e.target.value)}
@@ -185,7 +188,7 @@ export default function QuickAddModal({ open, onClose }) {
             {familyKids.length > 0 && (
               <div>
                 <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                  Child <span className="font-normal text-slate-400">(optional)</span>
+                  {t('events.childLabel')} <span className="font-normal text-slate-400">({t('common.optional')})</span>
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {familyKids.map((kid) => {
@@ -214,7 +217,7 @@ export default function QuickAddModal({ open, onClose }) {
               </div>
             )}
             <div>
-              <span className="mb-1.5 block text-sm font-medium text-slate-700">Category</span>
+              <span className="mb-1.5 block text-sm font-medium text-slate-700">{t('events.category')}</span>
               <div className="flex flex-wrap gap-2">
                 {categories.map((cat) => {
                   const active = evCategory === cat.id;
@@ -230,7 +233,7 @@ export default function QuickAddModal({ open, onClose }) {
                       }`}
                     >
                       <span className={`h-2.5 w-2.5 rounded-full ${cat.dot}`} />
-                      {cat.label}
+                      {tLabel(t, cat)}
                     </button>
                   );
                 })}
@@ -240,15 +243,15 @@ export default function QuickAddModal({ open, onClose }) {
         ) : (
           <>
             <Input
-              label="Title"
+              label={t('tasks.titleLabel')}
               value={taskTitle}
               onChange={(e) => setTaskTitle(e.target.value)}
-              placeholder="Winter Gear Inventory"
+              placeholder={t('tasks.titlePlaceholder')}
               required
               autoFocus
             />
             <div>
-              <span className="mb-1.5 block text-sm font-medium text-slate-700">Priority</span>
+              <span className="mb-1.5 block text-sm font-medium text-slate-700">{t('tasks.priority')}</span>
               <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
                 {TASK_PRIORITIES.map((p) => (
                   <button
@@ -261,13 +264,13 @@ export default function QuickAddModal({ open, onClose }) {
                         : 'text-slate-500 hover:text-slate-700'
                     }`}
                   >
-                    {p.label}
+                    {tLabel(t, p)}
                   </button>
                 ))}
               </div>
             </div>
             <div>
-              <span className="mb-1.5 block text-sm font-medium text-slate-700">Category</span>
+              <span className="mb-1.5 block text-sm font-medium text-slate-700">{t('tasks.category')}</span>
               <div className="flex flex-wrap gap-2">
                 {TASK_CATEGORY_LIST.map((cat) => {
                   const active = taskCategory === cat.id;
@@ -283,14 +286,14 @@ export default function QuickAddModal({ open, onClose }) {
                       }`}
                     >
                       <span className={`h-2.5 w-2.5 rounded-full ${cat.dot}`} />
-                      {cat.label}
+                      {tLabel(t, cat)}
                     </button>
                   );
                 })}
               </div>
             </div>
             <Input
-              label="Due date"
+              label={t('tasks.dueDate')}
               type="date"
               value={taskDueDate}
               onChange={(e) => setTaskDueDate(e.target.value)}
@@ -303,7 +306,7 @@ export default function QuickAddModal({ open, onClose }) {
 
         <div className="pt-1">
           <Button type="submit" loading={saving} className="w-full">
-            {tab === 'event' ? 'Add Event' : 'Add Task'}
+            {tab === 'event' ? t('quickAdd.addEvent') : t('quickAdd.addTask')}
           </Button>
         </div>
       </form>

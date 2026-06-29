@@ -1,14 +1,9 @@
 import { Repeat } from 'lucide-react';
 import { FREQS } from '../../utils/recurrence';
-
-const FREQ_LABEL = {
-  daily: 'day',
-  weekly: 'week',
-  monthly: 'month',
-  yearly: 'year',
-};
+import useT from '../../hooks/useT';
 
 export default function RecurrenceField({ value, onChange }) {
+  const { t, tn } = useT();
   const enabled = Boolean(value && value.freq);
   const freq = value?.freq || 'weekly';
   const interval = value?.interval || 1;
@@ -27,7 +22,7 @@ export default function RecurrenceField({ value, onChange }) {
     <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
       <label className="flex items-center justify-between gap-3">
         <span className="flex items-center gap-2 text-sm font-medium text-slate-700">
-          <Repeat size={14} /> Repeat
+          <Repeat size={14} /> {t('recurrence.repeat')}
         </span>
         <input
           type="checkbox"
@@ -40,7 +35,7 @@ export default function RecurrenceField({ value, onChange }) {
       {enabled && (
         <div className="mt-3 space-y-2">
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="text-slate-600">Every</span>
+            <span className="text-slate-600">{t('recurrence.every')}</span>
             <input
               type="number"
               min={1}
@@ -56,13 +51,13 @@ export default function RecurrenceField({ value, onChange }) {
             >
               {FREQS.map((f) => (
                 <option key={f} value={f}>
-                  {FREQ_LABEL[f]}{interval > 1 ? 's' : ''}
+                  {tn(`recurrence.${f}`, interval)}
                 </option>
               ))}
             </select>
           </div>
           <label className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-            <span>Until</span>
+            <span>{t('recurrence.until')}</span>
             <input
               type="date"
               value={until}
@@ -75,7 +70,7 @@ export default function RecurrenceField({ value, onChange }) {
                 onClick={() => patch({ until: null })}
                 className="text-xs font-medium text-slate-500 hover:text-slate-700"
               >
-                clear
+                {t('recurrence.clear')}
               </button>
             )}
           </label>

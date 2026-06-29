@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Pencil, ShoppingBag, Wallet } from 'lucide-react';
+import useT from '../../hooks/useT';
 
 export default function GiftBudgetCard({ budget, gifts, onBudgetSave }) {
+  const { t } = useT();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
@@ -33,12 +35,12 @@ export default function GiftBudgetCard({ budget, gifts, onBudgetSave }) {
     <div className="rounded-2xl bg-white p-5 shadow-card space-y-4">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-          Total Progress
+          {t('gifts.totalProgress')}
         </span>
         <button
           onClick={startEdit}
           className="text-slate-400 hover:text-slate-600 transition"
-          aria-label="Edit budget"
+          aria-label={t('gifts.editBudget')}
         >
           <Pencil size={14} />
         </button>
@@ -61,13 +63,13 @@ export default function GiftBudgetCard({ budget, gifts, onBudgetSave }) {
             disabled={saving}
             className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-50"
           >
-            {saving ? '…' : 'Save'}
+            {saving ? '…' : t('common.save')}
           </button>
           <button
             onClick={() => setEditing(false)}
             className="text-sm text-slate-400 hover:text-slate-600"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
         </div>
       ) : (
@@ -100,7 +102,7 @@ export default function GiftBudgetCard({ budget, gifts, onBudgetSave }) {
               <ShoppingBag size={16} />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Spent</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('gifts.spent')}</p>
               <p className="text-lg font-bold text-slate-900">
                 ${spent.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </p>
@@ -111,7 +113,7 @@ export default function GiftBudgetCard({ budget, gifts, onBudgetSave }) {
               <Wallet size={16} />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-amber-600">Remaining</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-600">{t('gifts.remaining')}</p>
               <p className="text-lg font-bold text-amber-700">
                 ${remaining.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </p>

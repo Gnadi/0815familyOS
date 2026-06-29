@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
 import Button from '../common/Button';
+import useT from '../../hooks/useT';
 
 const STATUSES = [
-  { id: 'idea',   label: 'Idea' },
-  { id: 'bought', label: 'Bought' },
-  { id: 'gifted', label: 'Gifted' },
+  { id: 'idea',   labelKey: 'gifts.statusIdea' },
+  { id: 'bought', labelKey: 'gifts.statusBought' },
+  { id: 'gifted', labelKey: 'gifts.statusGifted' },
 ];
 
 const STATUS_ACTIVE = {
@@ -16,6 +17,7 @@ const STATUS_ACTIVE = {
 };
 
 export default function GiftFormModal({ open, onClose, onSubmit, onDelete, initial, recipients }) {
+  const { t } = useT();
   const [title, setTitle] = useState('');
   const [kidId, setKidId] = useState('');
   const [price, setPrice] = useState('');
@@ -45,14 +47,14 @@ export default function GiftFormModal({ open, onClose, onSubmit, onDelete, initi
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!title.trim()) return setError('Please enter a gift title.');
-    if (!kidId) return setError('Please select a recipient.');
+    if (!title.trim()) return setError(t('gifts.errGiftTitle'));
+    if (!kidId) return setError(t('gifts.errRecipient'));
     setError('');
     setSaving(true);
     try {
       await onSubmit({ title, kidId, price: parseFloat(price) || 0, status, notes });
     } catch (err) {
-      setError(err.message || 'Could not save gift.');
+      setError(err.message || t('gifts.errSaveGift'));
     } finally {
       setSaving(false);
     }
@@ -60,7 +62,7 @@ export default function GiftFormModal({ open, onClose, onSubmit, onDelete, initi
 
   async function handleDelete() {
     if (!onDelete) return;
-    const ok = window.confirm('Delete this gift? This cannot be undone.');
+    const ok = window.confirm(t('gifts.confirmDeleteGift'));
     if (!ok) return;
     setDeleting(true);
     try {
@@ -73,22 +75,22 @@ export default function GiftFormModal({ open, onClose, onSubmit, onDelete, initi
   const isEdit = Boolean(initial);
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Gift' : 'New Gift'}>
+    <Modal open={open} onClose={onClose} title={isEdit ? t('gifts.modalEditTitle') : t('gifts.modalNewTitle')}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
-          label="Gift title"
+          label={t('gifts.giftTitleLabel')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Wooden Block Set"
+          placeholder={t('gifts.giftTitlePlaceholder')}
           required
           autoFocus
         />
 
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">For</span>
+          <span className="mb-1.5 block text-sm font-medium text-slate-700">{t('gifts.forWhom')}</span>
           {recipients.length === 0 ? (
             <p className="text-sm text-slate-400">
-              No recipients yet. Add kids in Settings or a person in the Gift Planner first.
+              {t('gifts.noRecipientsInline')}
             </p>
           ) : (
             <div className="flex flex-wrap gap-2">
@@ -112,7 +114,7 @@ export default function GiftFormModal({ open, onClose, onSubmit, onDelete, initi
 
         <div>
           <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Price <span className="font-normal text-slate-400">(optional)</span>
+            {t('gifts.price')} <span className="font-normal text-slate-400">({t('common.optional')})</span>
           </span>
           <div className="relative">
             <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">$</span>
@@ -129,7 +131,7 @@ export default function GiftFormModal({ open, onClose, onSubmit, onDelete, initi
         </div>
 
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">Status</span>
+          <span className="mb-1.5 block text-sm font-medium text-slate-700">{t('gifts.status')}</span>
           <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
             {STATUSES.map((s) => (
               <button
@@ -140,7 +142,7 @@ export default function GiftFormModal({ open, onClose, onSubmit, onDelete, initi
                   status === s.id ? STATUS_ACTIVE[s.id] : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
-                {s.label}
+                {t(s.labelKey)}
               </button>
             ))}
           </div>
@@ -148,14 +150,14 @@ export default function GiftFormModal({ open, onClose, onSubmit, onDelete, initi
 
         <label className="block">
           <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Notes <span className="font-normal text-slate-400">(optional)</span>
+            {t('gifts.notes')} <span className="font-normal text-slate-400">({t('common.optional')})</span>
           </span>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
             className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
-            placeholder="Link, size, or store info…"
+            placeholder={t('gifts.notesPlaceholder')}
           />
         </label>
 
@@ -164,11 +166,11 @@ export default function GiftFormModal({ open, onClose, onSubmit, onDelete, initi
         <div className="flex gap-2 pt-2">
           {isEdit && onDelete && (
             <Button type="button" variant="danger" onClick={handleDelete} loading={deleting}>
-              Delete
+              {t('common.delete')}
             </Button>
           )}
           <Button type="submit" loading={saving} className="ml-auto">
-            {isEdit ? 'Save Changes' : 'Add Gift'}
+            {isEdit ? t('gifts.saveChanges') : t('gifts.addGiftBtn')}
           </Button>
         </div>
       </form>

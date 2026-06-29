@@ -18,12 +18,14 @@ import ProTipBanner from '../components/tasks/ProTipBanner';
 import TaskFormModal from '../components/tasks/TaskFormModal';
 import { TaskCardPreview } from '../components/tasks/TaskCard';
 import useAuth from '../hooks/useAuth';
+import useT from '../hooks/useT';
 import useTasks from '../hooks/useTasks';
 import useFamilyMembers from '../hooks/useFamilyMembers';
 import { updateTask, updateTaskStatus, deleteTask } from '../services/tasks';
 
 export default function TasksPage() {
   const { userDoc } = useAuth();
+  const { t } = useT();
   const { tasks, loading } = useTasks(userDoc?.familyId);
   const members = useFamilyMembers();
   const [editingTask, setEditingTask] = useState(null);
@@ -34,8 +36,8 @@ export default function TasksPage() {
   const filteredTasks = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return tasks;
-    return tasks.filter((t) => {
-      const haystack = [t.title, t.description, t.category, t.priority]
+    return tasks.filter((task) => {
+      const haystack = [task.title, task.description, task.category, task.priority]
         .filter(Boolean)
         .join(' ')
         .toLowerCase();
@@ -52,7 +54,7 @@ export default function TasksPage() {
     useSensor(KeyboardSensor)
   );
 
-  const activeTask = activeTaskId ? filteredTasks.find((t) => t.id === activeTaskId) : null;
+  const activeTask = activeTaskId ? filteredTasks.find((task) => task.id === activeTaskId) : null;
 
   async function handleEditSubmit(values) {
     if (!editingTask) return;
@@ -81,7 +83,7 @@ export default function TasksPage() {
     const nextStatus = over.data.current?.status;
     const previousStatus = active.data.current?.status;
     if (!nextStatus || nextStatus === previousStatus) return;
-    const draggedTask = tasks.find((t) => t.id === active.id);
+    const draggedTask = tasks.find((task) => task.id === active.id);
     try {
       await updateTaskStatus(active.id, nextStatus, previousStatus, draggedTask);
     } catch (err) {
@@ -95,12 +97,12 @@ export default function TasksPage() {
 
   return (
     <>
-      <TopBar title="Task Board" />
+      <TopBar title={t('tasks.title')} />
       <main className="mx-auto max-w-md px-4 py-5">
         <div className="mb-5">
-          <h1 className="text-2xl font-bold text-slate-900">Weekly Household Logistics</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{t('tasks.heading')}</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Strategic oversight for the family ecosystem.
+            {t('tasks.subtitle')}
           </p>
         </div>
 
@@ -110,14 +112,14 @@ export default function TasksPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search tasks…"
+            placeholder={t('tasks.searchTasks')}
             className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-9 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              aria-label="Clear search"
+              aria-label={t('tasks.clearSearch')}
               className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
             >
               <X size={14} />
