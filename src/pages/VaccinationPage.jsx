@@ -292,7 +292,7 @@ export default function VaccinationPage() {
   if (!loading && kids.length === 0) {
     return (
       <>
-        <TopBar title={t('health.title')} showBell={false} onBack={() => navigate('/dashboard')} />
+        <TopBar title={t('health.title')} onBack={() => navigate('/dashboard')} />
         <main className="mx-auto max-w-md px-5 py-16 text-center">
           <p className="text-2xl">💉</p>
           <p className="mt-3 text-base font-semibold text-slate-900">{t('health.noKids')}</p>
@@ -306,7 +306,7 @@ export default function VaccinationPage() {
 
   return (
     <>
-      <TopBar title={t('health.title')} showBell={false} onBack={() => navigate('/dashboard')} />
+      <TopBar title={t('health.title')} onBack={() => navigate('/dashboard')} />
       <main className="mx-auto max-w-md space-y-6 px-5 py-6">
         <p className="text-sm text-slate-500">{t('health.subtitle')}</p>
 
