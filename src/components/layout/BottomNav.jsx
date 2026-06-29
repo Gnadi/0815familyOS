@@ -30,11 +30,10 @@ function NavItem({ to, label, Icon, showLabels }) {
     >
       <Icon size={showLabels ? 22 : 26} />
       {showLabels && (
-        // Long locales (e.g. German "Einstellungen") overflow the narrow
-        // column. Allow the label to hyphenate/wrap within its width instead
-        // of colliding with the neighbouring item. <html lang> tracks the
-        // active locale, so hyphens-auto breaks at proper points.
-        <span className="block w-full px-0.5 text-center text-[11px] font-medium leading-tight hyphens-auto [overflow-wrap:break-word]">
+        // Keep labels on a single line. Nav labels are kept short per locale
+        // (e.g. "Konto" instead of "Einstellungen") so they fit the narrow
+        // column without wrapping into the neighbouring item.
+        <span className="block w-full px-0.5 text-center text-[11px] font-medium leading-tight whitespace-nowrap">
           {label}
         </span>
       )}
@@ -57,7 +56,7 @@ function IOSTabItem({ to, label, Icon }) {
       }
     >
       <Icon size={24} strokeWidth={2} />
-      <span className="block w-full px-0.5 text-center text-[10px] font-medium leading-tight hyphens-auto [overflow-wrap:break-word]">
+      <span className="block w-full px-0.5 text-center text-[10px] font-medium leading-none whitespace-nowrap">
         {label}
       </span>
     </NavLink>
