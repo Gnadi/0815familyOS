@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, ListChecks, X } from 'lucide-react';
 import { lockBodyScroll } from '../../utils/scrollLock';
+import useT from '../../hooks/useT';
 
 // Fullscreen, step-at-a-time cooking guide. Screen 0 is the ingredients
 // overview; screens 1..N each show one instruction step in large type.
 export default function CookingMode({ open, onClose, recipe }) {
+  const { t } = useT();
   const ingredients = recipe?.ingredients || [];
   const steps = recipe?.instructions || [];
   const total = steps.length + 1; // +1 for the ingredients intro
@@ -92,7 +94,7 @@ export default function CookingMode({ open, onClose, recipe }) {
         <button
           type="button"
           onClick={onClose}
-          aria-label="Exit cooking mode"
+          aria-label={t('food.exitCookingMode')}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 active:scale-95"
         >
           <X size={20} />
@@ -103,7 +105,7 @@ export default function CookingMode({ open, onClose, recipe }) {
       <div className="flex flex-1 flex-col overflow-y-auto px-6 py-8">
         {onIntro ? (
           <div className="mx-auto w-full max-w-lg">
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900">Ingredients</h2>
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900">{t('food.ingredients')}</h2>
             {ingredients.length > 0 ? (
               <ul className="mt-6 space-y-4">
                 {ingredients.map((item, i) => (
@@ -114,13 +116,13 @@ export default function CookingMode({ open, onClose, recipe }) {
                 ))}
               </ul>
             ) : (
-              <p className="mt-6 text-lg text-slate-400">No ingredients listed.</p>
+              <p className="mt-6 text-lg text-slate-400">{t('food.noIngredientsListed')}</p>
             )}
           </div>
         ) : (
           <div className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center">
             <p className="text-sm font-bold uppercase tracking-wider text-brand-500">
-              Step {screen} of {steps.length}
+              {t('food.stepXofY', { current: screen, total: steps.length })}
             </p>
             <p className="mt-4 text-3xl font-medium leading-snug tracking-tight text-slate-900">
               {stepText}
@@ -136,11 +138,11 @@ export default function CookingMode({ open, onClose, recipe }) {
           onClick={() => setShowIngredients(false)}
         >
           <div className="flex items-center justify-between px-6 pt-6">
-            <h2 className="text-2xl font-bold text-slate-900">Ingredients</h2>
+            <h2 className="text-2xl font-bold text-slate-900">{t('food.ingredients')}</h2>
             <button
               type="button"
               onClick={() => setShowIngredients(false)}
-              aria-label="Close ingredients"
+              aria-label={t('food.closeIngredients')}
               className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600"
             >
               <X size={20} />
@@ -175,7 +177,7 @@ export default function CookingMode({ open, onClose, recipe }) {
             onClick={() => setShowIngredients(true)}
             className="flex h-14 shrink-0 items-center justify-center gap-2 rounded-2xl bg-slate-100 px-4 text-sm font-semibold text-slate-700 active:scale-95"
           >
-            <ListChecks size={20} /> Ingredients
+            <ListChecks size={20} /> {t('food.ingredients')}
           </button>
         )}
 
@@ -185,7 +187,7 @@ export default function CookingMode({ open, onClose, recipe }) {
             onClick={next}
             className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-brand-500 text-lg font-semibold text-white transition active:scale-[0.99]"
           >
-            {onIntro ? 'Start cooking' : 'Next'} <ChevronRight size={24} />
+            {onIntro ? t('food.startCooking') : t('food.next')} <ChevronRight size={24} />
           </button>
         ) : (
           <button
@@ -193,7 +195,7 @@ export default function CookingMode({ open, onClose, recipe }) {
             onClick={onClose}
             className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-500 text-lg font-semibold text-white transition active:scale-[0.99]"
           >
-            Done
+            {t('common.done')}
           </button>
         )}
       </div>

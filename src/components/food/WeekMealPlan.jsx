@@ -5,6 +5,8 @@ import Spinner from '../common/Spinner';
 import AvatarStack from '../common/AvatarStack';
 import MealEntryModal from './MealEntryModal';
 import { MEAL_SLOTS } from '../../constants/mealSlots';
+import useT from '../../hooks/useT';
+import { tLabel } from '../../i18n/labels';
 
 // Normalise a user-entered recipe link into an openable absolute URL.
 function recipeHref(url) {
@@ -26,6 +28,7 @@ export default function WeekMealPlan({
   onRemoveCook,
   onViewRecipe,
 }) {
+  const { t } = useT();
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [cell, setCell] = useState(null); // { date, slot }
 
@@ -73,7 +76,7 @@ export default function WeekMealPlan({
 
   function labelFor(entry) {
     if (!entry) return null;
-    if (entry.recipeId) return recipeById[entry.recipeId]?.title || 'Recipe (deleted)';
+    if (entry.recipeId) return recipeById[entry.recipeId]?.title || t('food.recipeDeleted');
     return entry.text;
   }
 
@@ -97,7 +100,7 @@ export default function WeekMealPlan({
         <button
           type="button"
           onClick={() => setWeekStart((w) => addWeeks(w, -1))}
-          aria-label="Previous week"
+          aria-label={t('calendar.prevWeek')}
           className="rounded-full p-2.5 text-slate-500 transition hover:bg-slate-100 active:scale-95"
         >
           <ChevronLeft size={22} />
@@ -111,13 +114,13 @@ export default function WeekMealPlan({
             onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
             className="text-sm font-semibold text-brand-600 hover:underline"
           >
-            Jump to today
+            {t('food.jumpToToday')}
           </button>
         </div>
         <button
           type="button"
           onClick={() => setWeekStart((w) => addWeeks(w, 1))}
-          aria-label="Next week"
+          aria-label={t('calendar.nextWeek')}
           className="rounded-full p-2.5 text-slate-500 transition hover:bg-slate-100 active:scale-95"
         >
           <ChevronRight size={22} />
@@ -149,7 +152,7 @@ export default function WeekMealPlan({
                 <span
                   className={`text-sm font-semibold ${today ? 'text-brand-600' : 'text-slate-400'}`}
                 >
-                  {today ? 'Today' : format(day, 'MMM d')}
+                  {today ? t('common.today') : format(day, 'MMM d')}
                 </span>
               </div>
               <div className="divide-y divide-slate-100">
@@ -167,7 +170,7 @@ export default function WeekMealPlan({
                         className="flex min-w-0 flex-1 items-center gap-4 py-4 text-left"
                       >
                         <span className="w-20 shrink-0 text-xs font-bold uppercase tracking-wider text-slate-400">
-                          {slot.label}
+                          {tLabel(t, slot)}
                         </span>
                         {label ? (
                           <span className="min-w-0 flex-1 truncate text-base font-medium text-slate-900">
@@ -175,7 +178,7 @@ export default function WeekMealPlan({
                           </span>
                         ) : (
                           <span className="flex min-w-0 flex-1 items-center gap-1.5 text-base text-slate-300">
-                            <Plus size={18} /> Add a meal
+                            <Plus size={18} /> {t('food.addMeal')}
                           </span>
                         )}
                         {cook && <AvatarStack members={[cook]} max={1} size="md" />}
@@ -187,7 +190,7 @@ export default function WeekMealPlan({
                             target="_blank"
                             rel="noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            aria-label={`Open recipe link for ${label}`}
+                            aria-label={t('food.openRecipeLinkFor', { meal: label })}
                             className="shrink-0 rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-brand-600"
                           >
                             <ExternalLink size={18} />
@@ -199,7 +202,7 @@ export default function WeekMealPlan({
                               e.stopPropagation();
                               onViewRecipe?.(recipe);
                             }}
-                            aria-label={`View recipe ${label}`}
+                            aria-label={t('food.viewRecipe', { meal: label })}
                             className="shrink-0 rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-brand-600"
                           >
                             <BookOpen size={18} />

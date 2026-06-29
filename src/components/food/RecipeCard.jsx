@@ -1,7 +1,10 @@
 import { ExternalLink, Link2 } from 'lucide-react';
 import { getRecipeCategory } from '../../constants/recipeCategories';
+import useT from '../../hooks/useT';
+import { tLabel } from '../../i18n/labels';
 
 export default function RecipeCard({ recipe, onClick }) {
+  const { t } = useT();
   const cat = getRecipeCategory(recipe.category);
 
   return (
@@ -17,7 +20,7 @@ export default function RecipeCard({ recipe, onClick }) {
         </div>
         <div className="mt-1.5 flex items-center gap-2">
           <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${cat.chipBg} ${cat.chipText}`}>
-            {cat.label}
+            {tLabel(t, cat)}
           </span>
           {recipe.ingredients.length > 0 && (
             <span className="truncate text-xs text-slate-400">
@@ -32,7 +35,7 @@ export default function RecipeCard({ recipe, onClick }) {
           target="_blank"
           rel="noreferrer"
           onClick={(e) => e.stopPropagation()}
-          aria-label="Open recipe link"
+          aria-label={t('food.openRecipeLink')}
           className="shrink-0 rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-brand-600"
         >
           <ExternalLink size={16} />

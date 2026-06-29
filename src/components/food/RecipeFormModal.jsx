@@ -4,6 +4,8 @@ import Modal from '../common/Modal';
 import Input from '../common/Input';
 import Button from '../common/Button';
 import { RECIPE_CATEGORIES, DEFAULT_RECIPE_CATEGORY } from '../../constants/recipeCategories';
+import useT from '../../hooks/useT';
+import { tLabel } from '../../i18n/labels';
 
 // A dynamic list always shows at least one (empty) row so there's somewhere
 // to type; empty rows are stripped on submit.
@@ -12,6 +14,7 @@ function seedRows(list) {
 }
 
 export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, initial }) {
+  const { t } = useT();
   const [title, setTitle] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [category, setCategory] = useState(DEFAULT_RECIPE_CATEGORY);
@@ -51,7 +54,7 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!title.trim()) return setError('Please enter a recipe title.');
+    if (!title.trim()) return setError(t('food.errRecipeTitle'));
     setError('');
     setSaving(true);
     try {
@@ -64,7 +67,7 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
         notes,
       });
     } catch (err) {
-      setError(err.message || 'Could not save recipe.');
+      setError(err.message || t('food.errSaveRecipe'));
     } finally {
       setSaving(false);
     }
@@ -72,7 +75,7 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
 
   async function handleDelete() {
     if (!onDelete) return;
-    const ok = window.confirm('Delete this recipe? This cannot be undone.');
+    const ok = window.confirm(t('food.confirmDeleteRecipe'));
     if (!ok) return;
     setDeleting(true);
     try {
@@ -85,25 +88,25 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
   const isEdit = Boolean(initial);
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Recipe' : 'New Recipe'}>
+    <Modal open={open} onClose={onClose} title={isEdit ? t('food.modalEditRecipe') : t('food.modalNewRecipe')}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
-          label="Title"
+          label={t('food.recipeTitleLabel')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Grandma's Lasagna"
+          placeholder={t('food.recipeTitlePlaceholder')}
           required
           autoFocus
         />
 
         <div>
           <Input
-            label="Link (optional)"
+            label={t('food.linkOptional')}
             type="url"
             inputMode="url"
             value={sourceUrl}
             onChange={(e) => setSourceUrl(e.target.value)}
-            placeholder="chefkoch.de/rezept/…"
+            placeholder={t('food.linkPlaceholder')}
           />
           {sourceUrl.trim() && (
             <a
@@ -112,13 +115,13 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
               rel="noreferrer"
               className="mt-1.5 inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:underline"
             >
-              <ExternalLink size={14} /> Open link
+              <ExternalLink size={14} /> {t('food.openLink')}
             </a>
           )}
         </div>
 
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">Category</span>
+          <span className="mb-1.5 block text-sm font-medium text-slate-700">{t('food.category')}</span>
           <div className="flex flex-wrap gap-2">
             {RECIPE_CATEGORIES.map((c) => (
               <button
@@ -131,7 +134,7 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
                     : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                 }`}
               >
-                {c.label}
+                {tLabel(t, c)}
               </button>
             ))}
           </div>
@@ -139,7 +142,7 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
 
         <div>
           <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Ingredients <span className="font-normal text-slate-400">(optional)</span>
+            {t('food.ingredients')} <span className="font-normal text-slate-400">({t('common.optional')})</span>
           </span>
           <div className="space-y-2">
             {ingredients.map((value, i) => (
@@ -154,13 +157,13 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
                       addRow(setIngredients)();
                     }
                   }}
-                  placeholder={`Ingredient ${i + 1} — e.g. 500g flour`}
+                  placeholder={t('food.ingredientPlaceholder', { n: i + 1 })}
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 placeholder:text-slate-400 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
                 />
                 <button
                   type="button"
                   onClick={() => removeRow(setIngredients)(i)}
-                  aria-label={`Remove ingredient ${i + 1}`}
+                  aria-label={t('food.removeIngredient', { n: i + 1 })}
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                 >
                   <X size={16} />
@@ -173,13 +176,13 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
             onClick={() => addRow(setIngredients)()}
             className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:underline"
           >
-            <Plus size={16} /> Add ingredient
+            <Plus size={16} /> {t('food.addIngredient')}
           </button>
         </div>
 
         <div>
           <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Steps <span className="font-normal text-slate-400">(optional)</span>
+            {t('food.steps')} <span className="font-normal text-slate-400">({t('common.optional')})</span>
           </span>
           <div className="space-y-2">
             {steps.map((value, i) => (
@@ -191,13 +194,13 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
                   value={value}
                   onChange={(e) => updateRow(setSteps)(i, e.target.value)}
                   rows={2}
-                  placeholder={`Step ${i + 1} — what to do`}
+                  placeholder={t('food.stepPlaceholder', { n: i + 1 })}
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 placeholder:text-slate-400 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
                 />
                 <button
                   type="button"
                   onClick={() => removeRow(setSteps)(i)}
-                  aria-label={`Remove step ${i + 1}`}
+                  aria-label={t('food.removeStep', { n: i + 1 })}
                   className="mt-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                 >
                   <X size={16} />
@@ -210,20 +213,20 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
             onClick={() => addRow(setSteps)()}
             className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:underline"
           >
-            <Plus size={16} /> Add step
+            <Plus size={16} /> {t('food.addStep')}
           </button>
         </div>
 
         <label className="block">
           <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Notes <span className="font-normal text-slate-400">(optional)</span>
+            {t('food.notes')} <span className="font-normal text-slate-400">({t('common.optional')})</span>
           </span>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
             className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
-            placeholder="Serves 4, freezes well…"
+            placeholder={t('food.notesPlaceholder')}
           />
         </label>
 
@@ -232,11 +235,11 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
         <div className="flex gap-2 pt-2">
           {isEdit && onDelete && (
             <Button type="button" variant="danger" onClick={handleDelete} loading={deleting}>
-              Delete
+              {t('common.delete')}
             </Button>
           )}
           <Button type="submit" loading={saving} className="ml-auto">
-            {isEdit ? 'Save Changes' : 'Add Recipe'}
+            {isEdit ? t('food.saveChanges') : t('food.addRecipe')}
           </Button>
         </div>
       </form>

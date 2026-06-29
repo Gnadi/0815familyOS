@@ -2,6 +2,8 @@ import { ChefHat, ExternalLink, Pencil } from 'lucide-react';
 import Modal from '../common/Modal';
 import Button from '../common/Button';
 import { getRecipeCategory } from '../../constants/recipeCategories';
+import useT from '../../hooks/useT';
+import { tLabel } from '../../i18n/labels';
 
 function recipeHref(url) {
   const trimmed = (url || '').trim();
@@ -12,6 +14,7 @@ function recipeHref(url) {
 // Read-only view of a recipe — the jumping-off point for editing or starting
 // fullscreen cooking mode.
 export default function RecipeDetailModal({ open, onClose, recipe, onEdit, onStartCooking }) {
+  const { t } = useT();
   if (!recipe) return null;
 
   const cat = getRecipeCategory(recipe.category);
@@ -22,7 +25,7 @@ export default function RecipeDetailModal({ open, onClose, recipe, onEdit, onSta
   const footer = (
     <div className="flex gap-2">
       <Button type="button" variant="secondary" onClick={onEdit} className="flex-1">
-        <Pencil size={16} /> Edit
+        <Pencil size={16} /> {t('common.edit')}
       </Button>
       <Button
         type="button"
@@ -30,7 +33,7 @@ export default function RecipeDetailModal({ open, onClose, recipe, onEdit, onSta
         disabled={steps.length === 0}
         className="flex-1"
       >
-        <ChefHat size={18} /> Start cooking
+        <ChefHat size={18} /> {t('food.startCooking')}
       </Button>
     </div>
   );
@@ -40,7 +43,7 @@ export default function RecipeDetailModal({ open, onClose, recipe, onEdit, onSta
       <div className="space-y-5">
         <div className="flex flex-wrap items-center gap-2">
           <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${cat.chipBg} ${cat.chipText}`}>
-            {cat.label}
+            {tLabel(t, cat)}
           </span>
           {href && (
             <a
@@ -49,7 +52,7 @@ export default function RecipeDetailModal({ open, onClose, recipe, onEdit, onSta
               rel="noreferrer"
               className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:underline"
             >
-              <ExternalLink size={14} /> Open link
+              <ExternalLink size={14} /> {t('food.openLink')}
             </a>
           )}
         </div>
@@ -57,7 +60,7 @@ export default function RecipeDetailModal({ open, onClose, recipe, onEdit, onSta
         {ingredients.length > 0 && (
           <div>
             <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-slate-400">
-              Ingredients
+              {t('food.ingredients')}
             </h3>
             <ul className="space-y-1.5">
               {ingredients.map((item, i) => (
@@ -73,7 +76,7 @@ export default function RecipeDetailModal({ open, onClose, recipe, onEdit, onSta
         {steps.length > 0 && (
           <div>
             <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-slate-400">
-              Steps
+              {t('food.steps')}
             </h3>
             <ol className="space-y-3">
               {steps.map((step, i) => (
@@ -91,7 +94,7 @@ export default function RecipeDetailModal({ open, onClose, recipe, onEdit, onSta
         {recipe.notes && (
           <div>
             <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-slate-400">
-              Notes
+              {t('food.notes')}
             </h3>
             <p className="whitespace-pre-line text-base leading-relaxed text-slate-600">
               {recipe.notes}
@@ -101,7 +104,7 @@ export default function RecipeDetailModal({ open, onClose, recipe, onEdit, onSta
 
         {ingredients.length === 0 && steps.length === 0 && (
           <p className="rounded-xl border border-dashed border-slate-200 bg-white p-4 text-center text-sm text-slate-400">
-            No ingredients or steps yet. Tap Edit to add them.
+            {t('food.noIngredientsSteps')}
           </p>
         )}
       </div>
