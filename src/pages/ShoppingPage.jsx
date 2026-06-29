@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import { Plus, ShoppingBasket, Trash2 } from 'lucide-react';
+import { Plus, ShoppingBasket, BadgePercent, Footprints, Hourglass } from 'lucide-react';
 import TopBar from '../components/layout/TopBar';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
+import ShoppingItemModal from '../components/shopping/ShoppingItemModal';
 import useAuth from '../hooks/useAuth';
 import useT from '../hooks/useT';
+import useLongPress from '../hooks/useLongPress';
 import useShoppingItems from '../hooks/useShoppingItems';
+import { guessProductIcon } from '../utils/productIcons';
 import {
-  clearCompletedShoppingItems,
   createShoppingItem,
-  deleteShoppingItem,
   setShoppingItemDone,
 } from '../services/shopping';
 
@@ -18,10 +19,11 @@ export default function ShoppingPage() {
   const { t } = useT();
   const { items, loading } = useShoppingItems(userDoc?.familyId);
   const [title, setTitle] = useState('');
-  const [quantity, setQuantity] = useState('');
+  const [editingId, setEditingId] = useState(null);
 
-  const open = items.filter((i) => !i.done);
-  const done = items.filter((i) => i.done);
+  const toBuy = items.filter((i) => !i.done);
+  const recent = items.filter((i) => i.done);
+  const editingItem = items.find((i) => i.id === editingId) || null;
 
   async function handleAdd(e) {
     e.preventDefault();
@@ -30,42 +32,15 @@ export default function ShoppingPage() {
       familyId: userDoc.familyId,
       userId: user.uid,
       title,
-      quantity,
+      icon: guessProductIcon(title),
     });
     setTitle('');
-    setQuantity('');
   }
 
   return (
     <>
       <TopBar title={t('shopping.title')} showBell={false} />
-      <main className="mx-auto max-w-md space-y-5 px-5 py-5">
-        <form onSubmit={handleAdd} className="flex gap-2 rounded-2xl bg-white p-3 shadow-card">
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={t('shopping.whatNeed')}
-            className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-            autoFocus
-          />
-          <input
-            type="text"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            placeholder={t('shopping.qtyPlaceholder')}
-            className="w-16 rounded-xl border border-slate-200 bg-white px-2 py-2 text-center text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-          />
-          <button
-            type="submit"
-            disabled={!title.trim()}
-            aria-label={t('shopping.addItem')}
-            className="flex items-center justify-center rounded-xl bg-brand-500 px-3 text-white shadow-sm hover:bg-brand-600 disabled:opacity-40"
-          >
-            <Plus size={18} />
-          </button>
-        </form>
-
+      <main className="mx-auto max-w-md space-y-6 px-5 pb-28 pt-5">
         {loading ? (
           <Spinner />
         ) : items.length === 0 ? (
@@ -76,72 +51,123 @@ export default function ShoppingPage() {
           />
         ) : (
           <>
-            <section className="space-y-2">
-              {open.length === 0 ? (
-                <p className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-center text-sm text-slate-400">
-                  {t('shopping.allChecked')}
-                </p>
-              ) : (
-                open.map((item) => (
-                  <ShoppingRow key={item.id} item={item} t={t} />
-                ))
-              )}
-            </section>
+            <Section
+              title={t('shopping.toBuy')}
+              count={toBuy.length}
+              empty={t('shopping.allChecked')}
+              items={toBuy}
+              variant="buy"
+              onToggle={(item) => setShoppingItemDone(item.id, true)}
+              onEdit={(item) => setEditingId(item.id)}
+              t={t}
+            />
 
-            {done.length > 0 && (
-              <section>
-                <div className="mb-2 flex items-center justify-between">
-                  <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    {t('shopping.doneCount', { count: done.length })}
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={() => clearCompletedShoppingItems(userDoc.familyId)}
-                    className="text-xs font-semibold text-slate-500 hover:text-red-600"
-                  >
-                    {t('shopping.clearAll')}
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {done.map((item) => (
-                    <ShoppingRow key={item.id} item={item} t={t} />
-                  ))}
-                </div>
-              </section>
+            {recent.length > 0 && (
+              <Section
+                title={t('shopping.recentlyUsed')}
+                count={recent.length}
+                items={recent}
+                variant="recent"
+                onToggle={(item) => setShoppingItemDone(item.id, false)}
+                onEdit={(item) => setEditingId(item.id)}
+                t={t}
+              />
             )}
           </>
         )}
       </main>
+
+      {/* Add bar pinned to the bottom of the viewport, like the design. */}
+      <form
+        onSubmit={handleAdd}
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/90 px-5 py-3 backdrop-blur"
+      >
+        <div className="mx-auto flex max-w-md items-center gap-2">
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={t('shopping.whatNeed')}
+            className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          />
+          <button
+            type="submit"
+            disabled={!title.trim()}
+            aria-label={t('shopping.addItem')}
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white shadow-sm hover:bg-brand-600 disabled:opacity-40"
+          >
+            <Plus size={22} />
+          </button>
+        </div>
+      </form>
+
+      <ShoppingItemModal item={editingItem} onClose={() => setEditingId(null)} />
     </>
   );
 }
 
-function ShoppingRow({ item, t }) {
+function Section({ title, count, empty, items, variant, onToggle, onEdit, t }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-card">
-      <input
-        type="checkbox"
-        checked={item.done}
-        onChange={(e) => setShoppingItemDone(item.id, e.target.checked)}
-        className="h-5 w-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-        aria-label={item.done ? t('shopping.markNotDone') : t('shopping.markDone')}
-      />
-      <div className="min-w-0 flex-1">
-        <p className={`text-sm font-medium ${item.done ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
-          {item.title}
-        </p>
-        {item.quantity && (
-          <p className="text-xs text-slate-500">{item.quantity}</p>
-        )}
+    <section>
+      <div className="mb-3 flex items-center gap-2">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{title}</h2>
+        <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-600">
+          {count}
+        </span>
       </div>
-      <button
-        type="button"
-        onClick={() => deleteShoppingItem(item.id)}
-        aria-label={t('shopping.deleteItem')}
-        className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-red-600"
-      >
-        <Trash2 size={16} />
-      </button>
-    </div>
+      {items.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-slate-200 p-4 text-center text-sm text-slate-400">
+          {empty}
+        </p>
+      ) : (
+        <div className="grid grid-cols-3 gap-3">
+          {items.map((item) => (
+            <ProductTile
+              key={item.id}
+              item={item}
+              variant={variant}
+              onToggle={onToggle}
+              onEdit={onEdit}
+              t={t}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ProductTile({ item, variant, onToggle, onEdit, t }) {
+  const handlers = useLongPress(
+    () => onEdit(item),
+    () => onToggle(item),
+  );
+
+  const icon = item.icon || guessProductIcon(item.title);
+  const isBuy = variant === 'buy';
+
+  return (
+    <button
+      type="button"
+      {...handlers}
+      title={t('shopping.tileHint')}
+      className={`relative flex aspect-square select-none flex-col items-center justify-center gap-1.5 rounded-2xl p-2 text-center shadow-card transition-transform active:scale-95 ${
+        isBuy
+          ? 'bg-rose-400 text-white hover:bg-rose-500'
+          : 'bg-teal-400 text-white hover:bg-teal-500'
+      }`}
+    >
+      {/* Priority badges, top-right */}
+      {(item.urgent || item.offer || item.ifConvenient) && (
+        <span className="absolute right-1.5 top-1.5 flex gap-1">
+          {item.urgent && <Footprints size={14} className="drop-shadow" />}
+          {item.offer && <BadgePercent size={14} className="drop-shadow" />}
+          {item.ifConvenient && <Hourglass size={14} className="drop-shadow" />}
+        </span>
+      )}
+      <span className="text-3xl leading-none">{icon}</span>
+      <span className="line-clamp-2 text-xs font-semibold leading-tight">{item.title}</span>
+      {item.quantity && <span className="text-[11px] font-medium opacity-90">{item.quantity}</span>}
+    </button>
   );
 }
