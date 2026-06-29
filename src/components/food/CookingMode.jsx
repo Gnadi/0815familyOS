@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, ListChecks, X } from 'lucide-react';
+import { lockBodyScroll } from '../../utils/scrollLock';
 
 // Fullscreen, step-at-a-time cooking guide. Screen 0 is the ingredients
 // overview; screens 1..N each show one instruction step in large type.
@@ -31,12 +33,14 @@ export default function CookingMode({ open, onClose, recipe }) {
       else if (e.key === 'Escape') onClose?.();
     };
     document.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = '';
-    };
+    return () => document.removeEventListener('keydown', onKey);
   }, [open, next, back, onClose]);
+
+  // Freeze the background (same approach as Modal — see utils/scrollLock).
+  useEffect(() => {
+    if (!open) return undefined;
+    return lockBodyScroll();
+  }, [open]);
 
   // Best-effort screen wake lock so the screen doesn't dim mid-recipe. Silently
   // ignored on browsers without the API.
@@ -63,13 +67,13 @@ export default function CookingMode({ open, onClose, recipe }) {
     };
   }, [open]);
 
-  if (!open || !recipe) return null;
+  if (!open || !recipe || typeof document === 'undefined') return null;
 
   const onIntro = screen === 0;
   const stepText = onIntro ? null : steps[screen - 1];
 
-  return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-white">
+  return createPortal(
+    <div className="fixed inset-0 z-[60] flex flex-col bg-white" style={{ height: '100dvh' }}>
       {/* Header: progress + exit */}
       <div className="flex items-center gap-3 px-5 pt-5">
         <div className="min-w-0 flex-1">
@@ -193,6 +197,7 @@ export default function CookingMode({ open, onClose, recipe }) {
           </button>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
