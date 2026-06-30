@@ -9,7 +9,7 @@ import useAuth from '../hooks/useAuth';
 import useT from '../hooks/useT';
 import useLongPress from '../hooks/useLongPress';
 import useShoppingItems from '../hooks/useShoppingItems';
-import { guessProductIcon } from '../utils/productIcons';
+import { guessProductIcon, productInitial, LETTER_ICON } from '../utils/productIcons';
 import {
   createShoppingItem,
   setShoppingItemDone,
@@ -152,8 +152,8 @@ function ProductTile({ item, variant, onToggle, onEdit, t }) {
     () => onToggle(item),
   );
 
-  const icon = item.icon || guessProductIcon(item.title);
   const isBuy = variant === 'buy';
+  const useLetter = item.icon === LETTER_ICON;
 
   return (
     <button
@@ -174,7 +174,13 @@ function ProductTile({ item, variant, onToggle, onEdit, t }) {
           {item.ifConvenient && <Hourglass size={14} className="drop-shadow" />}
         </span>
       )}
-      <span className="text-3xl leading-none">{icon}</span>
+      {useLetter ? (
+        <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white/80 text-xl font-bold leading-none">
+          {productInitial(item.title)}
+        </span>
+      ) : (
+        <span className="text-3xl leading-none">{item.icon || guessProductIcon(item.title)}</span>
+      )}
       <span className="line-clamp-2 text-xs font-semibold leading-tight">{item.title}</span>
       {item.quantity && <span className="text-[11px] font-medium opacity-90">{item.quantity}</span>}
     </button>
