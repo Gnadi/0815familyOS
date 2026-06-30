@@ -18,6 +18,7 @@ import { db } from '../lib/firebase';
 import { generateInviteCode } from '../utils/inviteCode';
 import { DEFAULT_CATEGORY } from '../constants/eventCategories';
 import { reassignEventsCategory } from './events';
+import { seedDefaultShoppingItems } from './shopping';
 import { generateEncryptionKey } from '../utils/encryption';
 
 const familiesRef = collection(db, 'families');
@@ -28,7 +29,7 @@ async function codeIsUnique(code) {
   return snap.empty;
 }
 
-export async function createFamily({ name, uid }) {
+export async function createFamily({ name, uid, locale = 'en' }) {
   let code = generateInviteCode();
   for (let i = 0; i < 5; i += 1) {
     if (await codeIsUnique(code)) break;
@@ -44,6 +45,13 @@ export async function createFamily({ name, uid }) {
     createdAt: serverTimestamp(),
   });
   await updateDoc(doc(db, 'users', uid), { familyId: ref.id });
+  // Seed starter shopping items so the list isn't empty on first use.
+  // Best-effort — never let this fail family creation.
+  try {
+    await seedDefaultShoppingItems({ familyId: ref.id, userId: uid, locale });
+  } catch {
+    /* ignore seeding failures */
+  }
   return { id: ref.id, inviteCode: code };
 }
 
