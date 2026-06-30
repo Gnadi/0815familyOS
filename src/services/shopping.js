@@ -12,6 +12,7 @@ import {
   getDocs,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { DEFAULT_SHOPPING_ITEMS } from '../constants/defaultShoppingItems';
 
 const itemsRef = collection(db, 'shoppingItems');
 
@@ -64,6 +65,32 @@ export function createShoppingItem({ familyId, userId, title, quantity, icon }) 
     updatedAt: serverTimestamp(),
     completedAt: null,
   });
+}
+
+// Seed a new family's list with typical everyday products as "recently used"
+// suggestions so the page isn't empty on first use. Best-effort: callers
+// should not let a seeding failure block family creation.
+export function seedDefaultShoppingItems({ familyId, userId, locale = 'en' }) {
+  const batch = writeBatch(db);
+  for (const item of DEFAULT_SHOPPING_ITEMS) {
+    const title = item[locale] || item.en;
+    batch.set(doc(itemsRef), {
+      familyId,
+      userId,
+      title,
+      quantity: '',
+      icon: item.icon || '',
+      urgent: false,
+      offer: false,
+      ifConvenient: false,
+      done: true,
+      seeded: true,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      completedAt: serverTimestamp(),
+    });
+  }
+  return batch.commit();
 }
 
 export function setShoppingItemDone(id, done) {

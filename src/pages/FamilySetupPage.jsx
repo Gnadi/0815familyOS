@@ -29,7 +29,7 @@ function ModeCard({ icon: Icon, title, description, onClick }) {
 
 export default function FamilySetupPage() {
   const { user, userDoc, loading } = useAuth();
-  const { t } = useT();
+  const { t, locale } = useT();
   const navigate = useNavigate();
   const [mode, setMode] = useState(null); // 'create' | 'join' | null
   const [familyName, setFamilyName] = useState('');
@@ -49,7 +49,7 @@ export default function FamilySetupPage() {
     setBusy(true);
     try {
       await ensureUserDoc(user);
-      const { inviteCode } = await createFamily({ name: familyName, uid: user.uid });
+      const { inviteCode } = await createFamily({ name: familyName, uid: user.uid, locale });
       setCreatedCode(inviteCode);
     } catch (err) {
       setError(err.message || t('familySetup.errCreateFailed'));
