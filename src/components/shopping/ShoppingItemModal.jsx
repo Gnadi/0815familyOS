@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Footprints, BadgePercent, Hourglass, Image as ImageIcon, Trash2 } from 'lucide-react';
 import Modal from '../common/Modal';
 import useT from '../../hooks/useT';
-import { PRODUCT_ICONS, guessProductIcon } from '../../utils/productIcons';
+import { PRODUCT_ICONS, guessProductIcon, productInitial, LETTER_ICON } from '../../utils/productIcons';
 import { deleteShoppingItem, updateShoppingItem } from '../../services/shopping';
 
 export default function ShoppingItemModal({ item, onClose }) {
@@ -18,7 +18,8 @@ export default function ShoppingItemModal({ item, onClose }) {
 
   if (!item) return null;
 
-  const icon = item.icon || guessProductIcon(item.title);
+  const useLetter = item.icon === LETTER_ICON;
+  const emojiIcon = useLetter ? '' : (item.icon || guessProductIcon(item.title));
 
   function commitQuantity() {
     if ((item.quantity || '') !== quantity.trim()) {
@@ -109,7 +110,13 @@ export default function ShoppingItemModal({ item, onClose }) {
             onClick={() => setIconPickerOpen((v) => !v)}
             className="flex w-full flex-col items-center gap-2 rounded-2xl bg-slate-100 py-5 text-slate-700 hover:bg-slate-200"
           >
-            <span className="text-3xl leading-none">{icon}</span>
+            {useLetter ? (
+              <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-slate-400 text-xl font-bold leading-none">
+                {productInitial(item.title)}
+              </span>
+            ) : (
+              <span className="text-3xl leading-none">{emojiIcon}</span>
+            )}
             <span className="flex items-center gap-1.5 text-sm font-medium">
               <ImageIcon size={16} />
               {t('shopping.changeIcon')}
@@ -118,13 +125,27 @@ export default function ShoppingItemModal({ item, onClose }) {
 
           {iconPickerOpen && (
             <div className="mt-3 grid grid-cols-8 gap-2 rounded-2xl border border-slate-200 p-3">
+              {/* First-letter option as an alternative to an emoji */}
+              <button
+                type="button"
+                onClick={() => pickIcon(LETTER_ICON)}
+                className={`flex aspect-square items-center justify-center rounded-xl hover:bg-slate-100 ${
+                  useLetter ? 'bg-brand-100 ring-2 ring-brand-400' : ''
+                }`}
+                aria-label={t('shopping.useLetter')}
+                title={t('shopping.useLetter')}
+              >
+                <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-slate-500 text-sm font-bold leading-none">
+                  {productInitial(item.title)}
+                </span>
+              </button>
               {PRODUCT_ICONS.map((emoji, i) => (
                 <button
                   key={`${emoji}-${i}`}
                   type="button"
                   onClick={() => pickIcon(emoji)}
                   className={`flex aspect-square items-center justify-center rounded-xl text-xl hover:bg-slate-100 ${
-                    icon === emoji ? 'bg-brand-100 ring-2 ring-brand-400' : ''
+                    emojiIcon === emoji ? 'bg-brand-100 ring-2 ring-brand-400' : ''
                   }`}
                   aria-label={t('shopping.changeIcon')}
                 >

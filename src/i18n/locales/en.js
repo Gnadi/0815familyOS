@@ -673,6 +673,7 @@ export default {
     ifConvenient: 'If convenient',
     settings: 'Settings',
     changeIcon: 'Change icon',
+    useLetter: 'Use first letter',
     doneCount: 'Done · {count}',
     clearAll: 'Clear all',
     markNotDone: 'Mark as not done',
