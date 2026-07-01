@@ -12,7 +12,6 @@ import {
   Sparkles,
   ShieldCheck,
   Heart,
-  Home,
   Zap,
   Bell,
   Users,
@@ -20,6 +19,7 @@ import {
   Check,
 } from 'lucide-react';
 import Seo from '../components/seo/Seo';
+import BrandMark from '../components/brand/BrandMark';
 import useAuth from '../hooks/useAuth';
 import useT from '../hooks/useT';
 import { SITE_URL, SITE_NAME } from '../config/site';
@@ -85,9 +85,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
           <Link to="/" className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-500 text-white shadow-sm">
-              <Home size={18} />
-            </span>
+            <BrandMark className="h-8 w-8 shadow-sm rounded-xl" />
             <span className="text-base font-bold tracking-tight">{t('common.appName')}</span>
           </Link>
           <nav className="hidden items-center gap-7 text-sm font-medium text-slate-600 md:flex">
@@ -415,9 +413,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl px-5 py-10">
           <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
             <Link to="/" className="flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-500 text-white">
-                <Home size={18} />
-              </span>
+              <BrandMark className="h-8 w-8 rounded-xl" />
               <span className="text-base font-bold tracking-tight">{t('common.appName')}</span>
             </Link>
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-slate-500">
