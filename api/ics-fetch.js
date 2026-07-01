@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'User-Agent': 'FamilyOS/1.0 (calendar subscription sync)',
+        'User-Agent': 'myFAOS/1.0 (calendar subscription sync)',
         Accept: 'text/calendar, text/plain, */*',
       },
       redirect: 'follow',

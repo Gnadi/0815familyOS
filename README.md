@@ -1,4 +1,4 @@
-# Family OS
+# myFAOS
 
 Mobile-first web app that helps families coordinate schedules, tasks, and
 child documentation. This repository contains the MVP build — a Shared
