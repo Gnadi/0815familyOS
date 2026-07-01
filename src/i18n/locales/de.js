@@ -2,7 +2,7 @@
 // tone. Mirrors the key structure of en.js exactly.
 export default {
   common: {
-    appName: 'Family OS',
+    appName: 'myFAOS',
     save: 'Speichern',
     saving: 'Speichern…',
     cancel: 'Abbrechen',
@@ -41,7 +41,7 @@ export default {
   },
   auth: {
     welcomeBack: 'Willkommen zurück',
-    signInSubtitle: 'Melde dich an, um zu Family OS zu gelangen.',
+    signInSubtitle: 'Melde dich an, um zu myFAOS zu gelangen.',
     email: 'E-Mail',
     password: 'Passwort',
     signIn: 'Anmelden',
@@ -227,7 +227,7 @@ export default {
     importEvents: '{n} Termine importieren',
     howAutoSyncTitle: 'So funktioniert Auto-Sync',
     howAutoSync1: 'Du fügst einen privaten iCal-Link aus deinem bestehenden Kalender ein.',
-    howAutoSync2: 'FamilyOS ruft ihn jetzt ab und hält ihn im Hintergrund aktuell.',
+    howAutoSync2: 'myFAOS ruft ihn jetzt ab und hält ihn im Hintergrund aktuell.',
     howAutoSync3: 'Synchronisierte Termine sind schreibgeschützte Spiegel: Sie werden aktualisiert oder verschwinden, wenn sich die Quelle ändert. Bearbeite sie im Originalkalender, nicht hier.',
     howAutoSync4: 'Der Link wird nur in deiner Familie gespeichert. Behandle ihn wie ein Passwort.',
     showGuide: 'Schritt-für-Schritt-Anleitung anzeigen',
@@ -262,7 +262,7 @@ export default {
           'Öffne icloud.com/calendar im Browser (ein iPhone/iPad allein reicht nicht — du brauchst die Web-Ansicht).',
           'Fahre in der Seitenleiste über den Kalender, den du teilen möchtest. Neben dem Kalendernamen erscheint ein kleines WLAN-Symbol — klicke es an.',
           'Aktiviere „Öffentlicher Kalender“. iCloud zeigt dann eine webcal://-URL an.',
-          'Kopiere den Link. Füge ihn unten in das Feld ein — FamilyOS wandelt webcal:// automatisch in https:// um.',
+          'Kopiere den Link. Füge ihn unten in das Feld ein — myFAOS wandelt webcal:// automatisch in https:// um.',
         ],
         note: 'Apple stellt keine privaten Abo-URLs bereit. Der Kalender muss auf „Öffentlich“ gesetzt sein, damit die Synchronisierung funktioniert.',
       },
@@ -315,7 +315,7 @@ export default {
     pdfComplianceUpper: 'ERFÜLLUNGSGRAD',
     pdfNoVaccines: 'Noch keine Impfungen erfasst.',
     pdfTravelText: 'Die Unterlagen von {name} erfüllen die EU-Anforderungen für internationale Reisen.',
-    pdfFooter: 'Erstellt von FamilyOS · Gesundheitsakte',
+    pdfFooter: 'Erstellt von myFAOS · Gesundheitsakte',
     statusDoneLabel: 'Erledigt',
     statusNextUpLabel: 'Als Nächstes',
     statusPendingLabel: 'Ausstehend',
@@ -703,21 +703,24 @@ export default {
     errJoinFailed: 'Beitritt zur Familie fehlgeschlagen.',
   },
   landing: {
-    metaTitle: 'Family OS — Aus Familienchaos wird Ruhe',
+    metaTitle: 'myFAOS — Aus Familienchaos wird Ruhe',
     metaDescription:
-      'Family OS ist eine kostenlose Open-Source-App, die deinen Haushalt organisiert: gemeinsamer Kalender, Aufgaben, Essensplan, Einkaufslisten, Dokumententresor, Gesundheits-Tracking und Geschenkeplanung — alles an einem Ort.',
+      'myFAOS ist eine kostenlose Open-Source-App, die deinen Haushalt organisiert: gemeinsamer Kalender, Aufgaben, Essensplan, Einkaufslisten, Dokumententresor, Gesundheits-Tracking und Geschenkeplanung — alles an einem Ort.',
     navFeatures: 'Funktionen',
     navOpenSource: 'Open Source',
     navHow: 'So funktioniert’s',
     signIn: 'Anmelden',
     getStarted: 'Loslegen',
     badgeFree: '100 % kostenlos & Open Source',
+    nameKicker: 'Was steckt im Namen?',
+    nameMeaningBody:
+      'myFAOS ist deine ganze Familie in einem Betriebssystem — Family + OS. Und ja, es klingt nach „Chaos“. Genau das verwandeln wir in Ruhe.',
     heroTitleA: 'Aus Familienchaos',
     heroTitleB: 'wird',
     heroTitleHighlight: 'ruhiger, organisierter',
     heroTitleC: 'Alltag',
     heroSubtitle:
-      'Termine, Aufgaben, Essen, Einkäufe, Dokumente — eine Familie zu organisieren heißt, hundert Kleinigkeiten gleichzeitig im Blick zu haben. Family OS bringt alles in ein gemeinsames Zuhause in Echtzeit, damit endlich alle auf demselben Stand sind.',
+      'Termine, Aufgaben, Essen, Einkäufe, Dokumente — eine Familie zu organisieren heißt, hundert Kleinigkeiten gleichzeitig im Blick zu haben. myFAOS bringt alles in ein gemeinsames Zuhause in Echtzeit, damit endlich alle auf demselben Stand sind.',
     ctaGetStartedFree: 'Loslegen — kostenlos',
     ctaViewGithub: 'Auf GitHub ansehen',
     bulletNoCard: 'Keine Kreditkarte',
@@ -736,7 +739,7 @@ export default {
     previewSynced: 'Live mit allen synchronisiert',
     mentalLoadTitle: 'Die mentale Last des Familienlebens ist real',
     mentalLoadBody:
-      'Wer hat den Zahnarzttermin? Hat jemand Brot gekauft? Wer kocht heute? Familienleben besteht aus Dutzenden Details, verstreut über Gruppenchats, Klebezettel und das Gedächtnis von irgendwem. Family OS sammelt alles an einem ruhigen, gemeinsamen Ort — damit die Planung nicht länger in deinem Kopf wohnt.',
+      'Wer hat den Zahnarzttermin? Hat jemand Brot gekauft? Wer kocht heute? Familienleben besteht aus Dutzenden Details, verstreut über Gruppenchats, Klebezettel und das Gedächtnis von irgendwem. myFAOS sammelt alles an einem ruhigen, gemeinsamen Ort — damit die Planung nicht länger in deinem Kopf wohnt.',
     statModules: 'Module, eine App',
     statRealtime: 'alle bleiben auf demselben Stand',
     statRealtimeValue: 'Echtzeit',
@@ -748,7 +751,7 @@ export default {
     osBadge: 'MIT-Lizenz',
     osTitle: 'Kostenlos und Open Source — mit Absicht',
     osBody:
-      'Family OS kostet nichts und wird es nie. Der komplette Quellcode ist öffentlich unter der MIT-Lizenz: Jeder kann ihn einsehen, ihm vertrauen, mitwirken oder sogar eine eigene Kopie betreiben. Keine Abos, keine Funktionen hinter einer Bezahlschranke, kein Verkauf der Daten deiner Familie. Einfach ein Werkzeug, das helfen soll.',
+      'myFAOS kostet nichts und wird es nie. Der komplette Quellcode ist öffentlich unter der MIT-Lizenz: Jeder kann ihn einsehen, ihm vertrauen, mitwirken oder sogar eine eigene Kopie betreiben. Keine Abos, keine Funktionen hinter einer Bezahlschranke, kein Verkauf der Daten deiner Familie. Einfach ein Werkzeug, das helfen soll.',
     osStar: 'Auf GitHub mit Stern markieren',
     osStartUsing: 'Jetzt nutzen',
     valueAlwaysFreeTitle: 'Immer kostenlos',
@@ -773,7 +776,7 @@ export default {
       'Jedes Familienmitglied sieht in Echtzeit dasselbe aktuelle Bild — auf dem Sofa oder unterwegs.',
     finalTitle: 'Bring Ruhe in die Woche deiner Familie',
     finalBody:
-      'Starte noch heute mit Family OS — kostenlos, Open Source und in Minuten bereit. Weniger Chaos im Kopf, mehr Zeit für die Menschen, die zählen.',
+      'Starte noch heute mit myFAOS — kostenlos, Open Source und in Minuten bereit. Weniger Chaos im Kopf, mehr Zeit für die Menschen, die zählen.',
     finalCta: 'Familie erstellen',
     footerPrivacy: 'Datenschutz',
     footerTerms: 'AGB',
@@ -823,7 +826,7 @@ export default {
     galleryKicker: 'In Aktion ansehen',
     galleryTitle: 'Eine ruhige, klare App, die deine Familie wirklich nutzt',
     gallerySubtitle: 'Aufgeräumte Screens, Echtzeit-Sync und ein Design, das dir nicht im Weg steht.',
-    heroShotAlt: 'Family-OS-Dashboard auf einem Smartphone',
+    heroShotAlt: 'myFAOS-Dashboard auf einem Smartphone',
     shotDashboardCap: 'Dein ganzer Tag auf einen Blick',
     shotCalendarCap: 'Alle Termine, synchron',
     shotTasksCap: 'Ein faires, visuelles Aufgaben-Board',

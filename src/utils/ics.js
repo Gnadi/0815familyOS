@@ -39,12 +39,12 @@ function fold(line) {
   return chunks.join('\r\n');
 }
 
-export function buildICS(events, { calendarName = 'FamilyOS' } = {}) {
+export function buildICS(events, { calendarName = 'myFAOS' } = {}) {
   const stamp = fmt(new Date());
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//FamilyOS//EN',
+    'PRODID:-//myFAOS//EN',
     `X-WR-CALNAME:${escape(calendarName)}`,
     'CALSCALE:GREGORIAN',
   ];

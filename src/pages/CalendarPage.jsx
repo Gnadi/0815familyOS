@@ -118,7 +118,7 @@ export default function CalendarPage() {
     const horizon = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30);
     const future = filteredEvents.filter((ev) => ev.date && ev.date >= horizon);
     downloadICS(future, `family-calendar-${today.toISOString().slice(0, 10)}.ics`, {
-      calendarName: family?.name ? `${family.name} (FamilyOS)` : 'FamilyOS',
+      calendarName: family?.name ? `${family.name} (myFAOS)` : 'myFAOS',
     });
   }
 

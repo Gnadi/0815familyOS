@@ -1,6 +1,6 @@
-# Family OS — iOS Design Concept
+# myFAOS — iOS Design Concept
 
-A concept and design system for giving Family OS an authentic **iOS look &
+A concept and design system for giving myFAOS an authentic **iOS look &
 feel**, offered as a **selectable "iOS" skin** alongside the existing Material
 (Android-flavoured) design. This document describes the design language; the
 companion implementation wires it into the app.
@@ -9,7 +9,7 @@ companion implementation wires it into the app.
 
 ## 1. Why
 
-Family OS is a mobile-first web app (React + Vite + Tailwind). Its current
+myFAOS is a mobile-first web app (React + Vite + Tailwind). Its current
 appearance is strongly **Material Design / Android**:
 
 - A **floating action button (FAB)** in the centre of the bottom navigation —

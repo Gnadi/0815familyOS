@@ -4,7 +4,7 @@
      (src/config/site.js) when the production domain is finalized. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://familyos.example/</loc>
+    <loc>https://myfaos.app/</loc>
     <lastmod>2026-06-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>

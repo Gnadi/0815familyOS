@@ -179,6 +179,25 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* What the name means */}
+      <section className="border-t border-slate-100 bg-white">
+        <div className="mx-auto max-w-3xl px-5 py-12 text-center">
+          <span className="text-sm font-semibold uppercase tracking-wide text-brand-600">
+            {t('landing.nameKicker')}
+          </span>
+          <p className="mt-3 text-2xl font-extrabold tracking-tight sm:text-3xl">
+            <span className="text-brand-500">Fa</span>mily{' '}
+            <span className="text-slate-400">+</span>{' '}
+            <span className="text-brand-500">OS</span>{' '}
+            <span className="text-slate-400">=</span>{' '}
+            my<span className="text-brand-500">FAOS</span>
+          </p>
+          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-slate-600">
+            {t('landing.nameMeaningBody')}
+          </p>
+        </div>
+      </section>
+
       {/* Chaos → order narrative */}
       <section className="border-y border-slate-100 bg-slate-50">
         <div className="mx-auto max-w-5xl px-5 py-16 text-center">

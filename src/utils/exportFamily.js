@@ -43,7 +43,7 @@ export async function exportFamilyData({ family, user, userDoc }) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `familyos-${(family?.name || 'family').toLowerCase().replace(/\s+/g, '-')}-${new Date()
+  a.download = `faos-${(family?.name || 'family').toLowerCase().replace(/\s+/g, '-')}-${new Date()
     .toISOString()
     .slice(0, 10)}.json`;
   document.body.appendChild(a);

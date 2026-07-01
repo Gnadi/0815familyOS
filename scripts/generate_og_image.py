@@ -54,7 +54,7 @@ def main():
     )
 
     # Wordmark next to the logo.
-    draw.text((bx + box + 28, by + 38), "Family OS", font=font("Outfit-Bold.ttf", 56), fill=WHITE)
+    draw.text((bx + box + 28, by + 38), "myFAOS", font=font("Outfit-Bold.ttf", 56), fill=WHITE)
 
     # Headline + value proposition.
     headline = font("Outfit-Bold.ttf", 92)

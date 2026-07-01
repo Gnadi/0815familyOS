@@ -1,4 +1,4 @@
-// Minimal ICS (iCalendar / RFC 5545) parser. We only consume what FamilyOS
+// Minimal ICS (iCalendar / RFC 5545) parser. We only consume what myFAOS
 // needs: VEVENT with SUMMARY, DESCRIPTION, DTSTART, DTEND, UID, and (limited)
 // RRULE → mapped to our { freq, interval, until } recurrence shape. Time zones
 // are read as local-floating; UTC ("Z" suffix) is honoured.
