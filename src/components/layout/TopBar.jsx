@@ -1,7 +1,8 @@
-import { ArrowLeft, ChevronLeft, Home, Plus } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, Plus } from 'lucide-react';
 import useUIPreferences from '../../hooks/useUIPreferences';
 import useT from '../../hooks/useT';
 import { useAddAction } from '../../context/AddActionContext';
+import BrandMark from '../brand/BrandMark';
 
 export default function TopBar({
   title,
@@ -60,9 +61,7 @@ export default function TopBar({
               <ArrowLeft size={20} />
             </button>
           )}
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-white">
-            <Home size={18} />
-          </div>
+          <BrandMark className="h-8 w-8 rounded-lg" />
           <h1 className="text-lg font-bold text-slate-900">{heading}</h1>
         </div>
         <div className="flex items-center gap-2">
