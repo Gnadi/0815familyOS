@@ -714,6 +714,9 @@ export default {
     signIn: 'Sign in',
     getStarted: 'Get started',
     badgeFree: '100% Free & Open Source',
+    nameKicker: "What's in the name?",
+    nameMeaningBody:
+      'myFAOS is your whole family in one operating system — Family + OS. And yes, it sounds like “chaos.” That’s exactly what it turns into calm.',
     heroTitleA: 'From family chaos',
     heroTitleB: 'to',
     heroTitleHighlight: 'calm, organized',

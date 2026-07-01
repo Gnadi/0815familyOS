@@ -712,6 +712,9 @@ export default {
     signIn: 'Anmelden',
     getStarted: 'Loslegen',
     badgeFree: '100 % kostenlos & Open Source',
+    nameKicker: 'Was steckt im Namen?',
+    nameMeaningBody:
+      'myFAOS ist deine ganze Familie in einem Betriebssystem — Family + OS. Und ja, es klingt nach „Chaos“. Genau das verwandeln wir in Ruhe.',
     heroTitleA: 'Aus Familienchaos',
     heroTitleB: 'wird',
     heroTitleHighlight: 'ruhiger, organisierter',
