@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { UIPreferencesProvider } from '../../context/UIPreferencesContext';
 import { AuthProvider } from '../../context/AuthContext';
+import { PwaInstallProvider } from '../../context/PwaInstallContext';
 import { I18nProvider } from '../../i18n/I18nContext';
 import InstallPrompt from '../pwa/InstallPrompt';
 import registerSW from '../../utils/registerSW';
@@ -19,8 +20,10 @@ export default function RootLayout() {
     <I18nProvider>
       <UIPreferencesProvider>
         <AuthProvider>
-          <Outlet />
-          <InstallPrompt />
+          <PwaInstallProvider>
+            <Outlet />
+            <InstallPrompt />
+          </PwaInstallProvider>
         </AuthProvider>
       </UIPreferencesProvider>
     </I18nProvider>

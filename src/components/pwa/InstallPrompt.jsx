@@ -1,35 +1,22 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Download, Share, Plus, Zap, Bell, WifiOff } from 'lucide-react';
-import usePwaInstall from '../../hooks/usePwaInstall';
+import { usePwaInstallContext } from '../../context/PwaInstallContext';
 import useT from '../../hooks/useT';
-
-// How long after the page settles before we surface the install invitation.
-const AUTO_OPEN_DELAY_MS = 3500;
 
 // Custom "Install myFAOS" modal. Replaces the browser's default mini-infobar
 // with a branded, on-message prompt. On Chromium/Android it fires the native
 // install flow; on iOS Safari (which has no beforeinstallprompt) it shows the
-// manual "Add to Home Screen" steps. Auto-appears once per eligible visit and
-// remembers a dismissal for 30 days (see usePwaInstall).
+// manual "Add to Home Screen" steps. Open/eligibility state is owned by
+// PwaInstallProvider (shared with the footer "Install app" link); it
+// auto-appears once per eligible visit and remembers a dismissal for 30 days.
 export default function InstallPrompt() {
   const { t } = useT();
-  const { canInstall, isIos, installed, wasRecentlyDismissed, promptInstall, dismiss } =
-    usePwaInstall();
-  const [open, setOpen] = useState(false);
+  const { canInstall, isIos, installed, promptInstall, dismiss, open, closeInstall } =
+    usePwaInstallContext();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
-
-  // Auto-open once the app is installable (or on iOS) and the user hasn't
-  // recently dismissed it or already installed.
-  useEffect(() => {
-    if (installed) return undefined;
-    if (!canInstall && !isIos) return undefined;
-    if (wasRecentlyDismissed()) return undefined;
-    const timer = setTimeout(() => setOpen(true), AUTO_OPEN_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [canInstall, isIos, installed, wasRecentlyDismissed]);
 
   // Escape-to-close.
   useEffect(() => {
@@ -43,7 +30,7 @@ export default function InstallPrompt() {
   }, [open]);
 
   function handleClose() {
-    setOpen(false);
+    closeInstall();
     dismiss();
   }
 
@@ -52,7 +39,7 @@ export default function InstallPrompt() {
     // Whether accepted or dismissed, close our modal; remember a dismissal so
     // we don't immediately re-nag if the user said "not now" in the native UI.
     if (outcome !== 'accepted') dismiss();
-    setOpen(false);
+    closeInstall();
   }
 
   if (!mounted || !open || installed) return null;
