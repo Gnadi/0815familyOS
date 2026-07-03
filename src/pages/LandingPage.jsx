@@ -17,9 +17,11 @@ import {
   Users,
   ArrowRight,
   Check,
+  Download,
 } from 'lucide-react';
 import Seo from '../components/seo/Seo';
 import BrandMark from '../components/brand/BrandMark';
+import { usePwaInstallContext } from '../context/PwaInstallContext';
 import useAuth from '../hooks/useAuth';
 import useT from '../hooks/useT';
 import { SITE_URL, SITE_NAME } from '../config/site';
@@ -47,6 +49,7 @@ const steps = [
 export default function LandingPage() {
   const { user, userDoc, loading } = useAuth();
   const { t } = useT();
+  const { canShowInstall, openInstall } = usePwaInstallContext();
   const navigate = useNavigate();
 
   const jsonLd = {
@@ -166,11 +169,12 @@ export default function LandingPage() {
           <div className="relative mx-auto w-full max-w-[280px] sm:max-w-[320px]">
             <div className="absolute -inset-6 -z-10 rounded-[3rem] bg-gradient-to-br from-brand-400/30 to-brand-600/20 blur-3xl" />
             <img
-              src="/screenshots/dashboard.png"
+              src="/screenshots/dashboard.webp"
               alt={t('landing.heroShotAlt')}
               width={390}
               height={844}
               loading="eager"
+              fetchPriority="high"
               className="w-full drop-shadow-2xl"
             />
           </div>
@@ -269,14 +273,14 @@ export default function LandingPage() {
           </div>
           <div className="mt-12 grid grid-cols-2 gap-6 sm:gap-8 lg:grid-cols-4">
             {[
-              { src: '/screenshots/dashboard.png', cap: 'shotDashboardCap' },
-              { src: '/screenshots/calendar.png', cap: 'shotCalendarCap' },
-              { src: '/screenshots/tasks.png', cap: 'shotTasksCap' },
-              { src: '/screenshots/meals.png', cap: 'shotMealsCap' },
-              { src: '/screenshots/shopping.png', cap: 'shotShoppingCap' },
-              { src: '/screenshots/gifts.png', cap: 'shotGiftsCap' },
-              { src: '/screenshots/vault.png', cap: 'shotVaultCap' },
-              { src: '/screenshots/health.png', cap: 'shotHealthCap' },
+              { src: '/screenshots/dashboard.webp', cap: 'shotDashboardCap' },
+              { src: '/screenshots/calendar.webp', cap: 'shotCalendarCap' },
+              { src: '/screenshots/tasks.webp', cap: 'shotTasksCap' },
+              { src: '/screenshots/meals.webp', cap: 'shotMealsCap' },
+              { src: '/screenshots/shopping.webp', cap: 'shotShoppingCap' },
+              { src: '/screenshots/gifts.webp', cap: 'shotGiftsCap' },
+              { src: '/screenshots/vault.webp', cap: 'shotVaultCap' },
+              { src: '/screenshots/health.webp', cap: 'shotHealthCap' },
             ].map((s) => (
               <figure key={s.src} className="flex flex-col items-center text-center">
                 <img
@@ -430,9 +434,19 @@ export default function LandingPage() {
               </a>
               <a href="#" className="hover:text-slate-800">{t('landing.footerPrivacy')}</a>
               <a href="#" className="hover:text-slate-800">{t('landing.footerTerms')}</a>
+              {canShowInstall && (
+                <button
+                  type="button"
+                  onClick={openInstall}
+                  className="inline-flex items-center gap-1.5 font-medium text-brand-600 hover:text-brand-700"
+                >
+                  <Download size={15} />
+                  {t('pwa.installButton')}
+                </button>
+              )}
             </div>
           </div>
-          <p className="mt-8 text-center text-xs text-slate-400">
+          <p className="mt-8 text-center text-xs text-slate-500">
             © {new Date().getFullYear()} {t('common.appName')} · {t('landing.footerTagline')}
           </p>
         </div>

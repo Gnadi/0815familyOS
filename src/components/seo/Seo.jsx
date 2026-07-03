@@ -27,6 +27,10 @@ export default function Seo({
 
   return (
     <Head>
+      {/* Emitted via Helmet so it lands at the very top of the pre-rendered
+          <head> (before Helmet's other managed tags), keeping the charset
+          within the first 1 KB as required. */}
+      <meta charSet="utf-8" />
       <title>{title}</title>
       <meta name="description" content={description} />
       <link rel="canonical" href={url} />
