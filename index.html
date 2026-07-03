@@ -8,12 +8,32 @@
     <!-- title + description + Open Graph/Twitter/canonical are injected per route
          by the <Seo> component (vite-react-ssg <Head>). Keeping them out of this
          template avoids duplicate tags in the pre-rendered HTML. -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- PWA: installable web app -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="myFAOS" />
+    <meta name="application-name" content="myFAOS" />
+
+    <!-- Self-hosted Inter (see public/fonts). No third-party font request:
+         faster, private, works offline, and no render-blocking CDN. Preload the
+         body weight so first paint has it; font-display:swap avoids invisible
+         text. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      href="/fonts/inter-latin-var.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
+    <link rel="stylesheet" href="/fonts/inter.css" />
+
+    <!-- Preload the above-the-fold hero screenshot (the LCP element) so it
+         starts downloading immediately, in its WebP form. -->
+    <link rel="preload" as="image" href="/screenshots/dashboard.webp" fetchpriority="high" />
   </head>
   <body>
     <div id="root"></div>
