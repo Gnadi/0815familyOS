@@ -1,10 +1,13 @@
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { isDemoMode } from '../lib/demoMode';
+import { demoDocs } from '../services/demoStore';
 
 const COLLECTIONS = ['events', 'tasks', 'gifts', 'documents', 'vaccinations', 'shoppingItems'];
 
 function toPlain(value) {
   if (value === null || value === undefined) return value;
+  if (value instanceof Date) return value.toISOString();
   if (typeof value?.toDate === 'function') return value.toDate().toISOString();
   if (Array.isArray(value)) return value.map(toPlain);
   if (typeof value === 'object') {
@@ -16,6 +19,9 @@ function toPlain(value) {
 }
 
 async function fetchCollection(name, familyId) {
+  if (isDemoMode()) {
+    return demoDocs(name).map((d) => ({ id: d.id, ...toPlain(d.data()) }));
+  }
   const q = query(collection(db, name), where('familyId', '==', familyId));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...toPlain(d.data()) }));

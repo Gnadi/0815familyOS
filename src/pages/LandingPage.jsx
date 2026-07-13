@@ -18,6 +18,7 @@ import {
   ArrowRight,
   Check,
   Download,
+  Play,
 } from 'lucide-react';
 import Seo from '../components/seo/Seo';
 import BrandMark from '../components/brand/BrandMark';
@@ -25,6 +26,7 @@ import { usePwaInstallContext } from '../context/PwaInstallContext';
 import useAuth from '../hooks/useAuth';
 import useT from '../hooks/useT';
 import { LOCALES } from '../i18n/config';
+import { enterDemo } from '../lib/demoMode';
 import { SITE_URL, SITE_NAME } from '../config/site';
 
 const GITHUB_URL = 'https://github.com/gnadi/0815familyOS';
@@ -142,7 +144,7 @@ export default function LandingPage() {
             <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg lg:mx-0">
               {t('landing.heroSubtitle')}
             </p>
-            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row lg:justify-start">
+            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:flex-wrap lg:justify-start">
               <Link
                 to="/signup"
                 className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-500 px-7 py-3.5 text-base font-semibold text-white shadow-lg shadow-brand-500/20 hover:bg-brand-600 sm:w-auto"
@@ -150,6 +152,16 @@ export default function LandingPage() {
                 {t('landing.ctaGetStartedFree')}
                 <ArrowRight size={18} />
               </Link>
+              {/* Entering the demo is a hard navigation into a fully local,
+                  in-memory sandbox — no account and no Firebase involved. */}
+              <button
+                type="button"
+                onClick={enterDemo}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-brand-300 bg-white px-7 py-3.5 text-base font-semibold text-brand-700 hover:bg-brand-50 sm:w-auto"
+              >
+                <Play size={18} />
+                {t('landing.ctaTryDemo')}
+              </button>
               <a
                 href={GITHUB_URL}
                 target="_blank"

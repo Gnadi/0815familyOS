@@ -11,8 +11,12 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { DEFAULT_RECIPE_CATEGORY } from '../constants/recipeCategories';
+import { isDemoMode } from '../lib/demoMode';
+import { demoAdd, demoDelete, demoSubscribe, demoUpdate } from './demoStore';
 
 const recipesRef = collection(db, 'recipes');
+
+const nowVal = () => (isDemoMode() ? new Date() : serverTimestamp());
 
 function toDate(value) {
   if (!value) return null;
@@ -36,30 +40,32 @@ export function toList(value) {
   return arr.map((s) => String(s).trim()).filter(Boolean);
 }
 
+function mapRecipeDocs(docs) {
+  return docs
+    .map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        ...data,
+        title: data.title || '',
+        sourceUrl: data.sourceUrl || '',
+        ingredients: toList(data.ingredients),
+        instructions: toList(data.instructions),
+        category: data.category || DEFAULT_RECIPE_CATEGORY,
+        notes: data.notes || '',
+        createdAt: toDate(data.createdAt),
+        updatedAt: toDate(data.updatedAt),
+      };
+    })
+    .sort((a, b) =>
+      a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }),
+    );
+}
+
 export function subscribeRecipes(familyId, cb) {
+  if (isDemoMode()) return demoSubscribe('recipes', (docs) => cb(mapRecipeDocs(docs)));
   const q = query(recipesRef, where('familyId', '==', familyId));
-  return onSnapshot(q, (snap) => {
-    const list = snap.docs
-      .map((d) => {
-        const data = d.data();
-        return {
-          id: d.id,
-          ...data,
-          title: data.title || '',
-          sourceUrl: data.sourceUrl || '',
-          ingredients: toList(data.ingredients),
-          instructions: toList(data.instructions),
-          category: data.category || DEFAULT_RECIPE_CATEGORY,
-          notes: data.notes || '',
-          createdAt: toDate(data.createdAt),
-          updatedAt: toDate(data.updatedAt),
-        };
-      })
-      .sort((a, b) =>
-        a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }),
-      );
-    cb(list);
-  });
+  return onSnapshot(q, (snap) => cb(mapRecipeDocs(snap.docs)));
 }
 
 export function createRecipe({
@@ -72,7 +78,7 @@ export function createRecipe({
   category,
   notes,
 }) {
-  return addDoc(recipesRef, {
+  const payload = {
     familyId,
     userId,
     title: title.trim(),
@@ -81,23 +87,28 @@ export function createRecipe({
     instructions: toList(instructions),
     category: category || DEFAULT_RECIPE_CATEGORY,
     notes: (notes || '').trim(),
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
+    createdAt: nowVal(),
+    updatedAt: nowVal(),
+  };
+  if (isDemoMode()) return demoAdd('recipes', payload);
+  return addDoc(recipesRef, payload);
 }
 
 export function updateRecipe(id, { title, sourceUrl, ingredients, instructions, category, notes }) {
-  return updateDoc(doc(db, 'recipes', id), {
+  const payload = {
     title: title.trim(),
     sourceUrl: normalizeUrl(sourceUrl),
     ingredients: toList(ingredients),
     instructions: toList(instructions),
     category: category || DEFAULT_RECIPE_CATEGORY,
     notes: (notes || '').trim(),
-    updatedAt: serverTimestamp(),
-  });
+    updatedAt: nowVal(),
+  };
+  if (isDemoMode()) return demoUpdate('recipes', id, payload);
+  return updateDoc(doc(db, 'recipes', id), payload);
 }
 
 export function deleteRecipe(id) {
+  if (isDemoMode()) return demoDelete('recipes', id);
   return deleteDoc(doc(db, 'recipes', id));
 }

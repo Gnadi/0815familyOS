@@ -7,6 +7,7 @@ import {
 } from 'firebase/auth';
 import { auth, googleProvider } from '../lib/firebase';
 import { ensureUserDoc } from './users';
+import { exitDemo, isDemoMode } from '../lib/demoMode';
 
 // Firebase auth error codes mapped to i18n keys (authErrors.*). Callers pass a
 // `t` function so messages render in the active language; without one we fall
@@ -64,5 +65,11 @@ export async function signInWithGoogle() {
 }
 
 export function signOut() {
+  // Signing out of the demo simply leaves it (hard navigation back to the
+  // landing page); there is no Firebase session to clear.
+  if (isDemoMode()) {
+    exitDemo('/');
+    return Promise.resolve();
+  }
   return fbSignOut(auth);
 }

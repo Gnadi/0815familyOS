@@ -15,6 +15,8 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { parseICS } from '../utils/icsParser';
+import { isDemoMode } from '../lib/demoMode';
+import { demoAdd, demoDocs, demoUpdate } from './demoStore';
 
 const eventsRef = collection(db, 'events');
 
@@ -37,6 +39,9 @@ export async function fetchRemoteICS(url) {
 }
 
 export async function addSubscription(familyId, { label, url }) {
+  // URL subscriptions need the server-side ICS proxy and periodic re-syncs —
+  // out of scope for the offline demo. The one-time file import still works.
+  if (isDemoMode()) throw new Error('Calendar subscriptions are disabled in the demo.');
   const trimmedUrl = String(url || '').trim();
   if (!trimmedUrl) throw new Error('URL is required.');
   const sub = {
@@ -83,6 +88,7 @@ export async function removeSubscription(familyId, subId) {
 // Sync a subscription: fetch the remote ICS, diff against existing synced
 // events for this subscription, upsert by UID, delete stale ones.
 export async function syncSubscription({ familyId, userId, subscription }) {
+  if (isDemoMode()) throw new Error('Calendar subscriptions are disabled in the demo.');
   const { events: remoteEvents } = await fetchRemoteICS(subscription.url);
 
   const q = query(eventsRef, where('familyId', '==', familyId));
@@ -168,6 +174,44 @@ export async function importEventsFromParsed({
     if (skipPast && e.date < todayStart && !e.recurrence) return false;
     return true;
   });
+
+  // Demo: same upsert-by-UID semantics against the in-memory store, so the
+  // one-time file import stays fully functional offline.
+  if (isDemoMode()) {
+    const byUid = new Map();
+    demoDocs('events').forEach((d) => {
+      const uid = d.data().externalId;
+      if (uid) byUid.set(uid, d.id);
+    });
+    let created = 0;
+    let updated = 0;
+    for (const ev of candidates) {
+      const payload = {
+        familyId,
+        userId,
+        title: ev.title || 'Untitled',
+        description: ev.description || '',
+        category: 'general',
+        date: ev.date,
+        kids: [],
+        responsibleParent: '',
+        effortLevel: '',
+        recurrence: ev.recurrence || null,
+        source: 'import',
+        externalId: ev.uid || null,
+        updatedAt: new Date(),
+      };
+      const knownId = ev.uid ? byUid.get(ev.uid) : null;
+      if (knownId) {
+        await demoUpdate('events', knownId, payload);
+        updated += 1;
+      } else {
+        await demoAdd('events', { ...payload, createdAt: new Date() });
+        created += 1;
+      }
+    }
+    return { created, updated, skipped: parsed.events.length - candidates.length };
+  }
 
   // Look up existing imports to dedupe by UID.
   const q = query(eventsRef, where('familyId', '==', familyId));

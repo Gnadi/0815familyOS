@@ -20,8 +20,33 @@ import { DEFAULT_CATEGORY } from '../constants/eventCategories';
 import { reassignEventsCategory } from './events';
 import { seedDefaultShoppingItems } from './shopping';
 import { generateEncryptionKey } from '../utils/encryption';
+import { isDemoMode } from '../lib/demoMode';
+import { demoGetFamily, demoSubscribeFamily, demoUpdateFamily } from './demoStore';
 
 const familiesRef = collection(db, 'families');
+
+// Demo-aware family read/patch used by the CRUD helpers below, so each of
+// them stays a single code path regardless of mode.
+async function readFamilyData(familyId) {
+  if (isDemoMode()) return demoGetFamily();
+  const snap = await getDoc(doc(db, 'families', familyId));
+  return snap.data() || {};
+}
+
+function writeFamily(familyId, patch) {
+  if (isDemoMode()) return demoUpdateFamily(patch);
+  return updateDoc(doc(db, 'families', familyId), patch);
+}
+
+// arrayUnion-style append that works in both modes: in demo the array is
+// rebuilt from the store; against Firestore the atomic arrayUnion is kept.
+function appendToFamilyArray(familyId, field, value) {
+  if (isDemoMode()) {
+    const list = demoGetFamily()[field] || [];
+    return demoUpdateFamily({ [field]: [...list, value] });
+  }
+  return updateDoc(doc(db, 'families', familyId), { [field]: arrayUnion(value) });
+}
 
 async function codeIsUnique(code) {
   const q = query(familiesRef, where('inviteCode', '==', code), limit(1));
@@ -71,6 +96,7 @@ export async function joinFamilyByCode({ code, uid }) {
 }
 
 export function subscribeFamily(familyId, cb) {
+  if (isDemoMode()) return demoSubscribeFamily(cb);
   return onSnapshot(doc(db, 'families', familyId), (snap) => {
     cb(snap.exists() ? { id: snap.id, ...snap.data() } : null);
   });
@@ -84,9 +110,7 @@ export async function addFamilyCategory(familyId, { label, color }) {
     label: trimmed,
     color,
   };
-  await updateDoc(doc(db, 'families', familyId), {
-    customCategories: arrayUnion(category),
-  });
+  await appendToFamilyArray(familyId, 'customCategories', category);
   return category;
 }
 
@@ -98,17 +122,14 @@ export async function addKid(familyId, name, existingKidsCount = 0) {
     name: trimmed,
     color: KID_COLORS[existingKidsCount % KID_COLORS.length],
   };
-  await updateDoc(doc(db, 'families', familyId), {
-    kids: arrayUnion(kid),
-  });
+  await appendToFamilyArray(familyId, 'kids', kid);
   return kid;
 }
 
 export async function removeKid(familyId, kid) {
-  const famRef = doc(db, 'families', familyId);
-  const snap = await getDoc(famRef);
-  const list = (snap.data()?.kids || []).filter((k) => k && k.id !== kid.id);
-  await updateDoc(famRef, { kids: list });
+  const data = await readFamilyData(familyId);
+  const list = (data.kids || []).filter((k) => k && k.id !== kid.id);
+  await writeFamily(familyId, { kids: list });
 }
 
 // Gift-only recipients (e.g. grandparents) that exist solely in the Gift
@@ -123,16 +144,13 @@ export async function addGiftRecipient(familyId, name, existingCount = 0, birthd
     color: KID_COLORS[existingCount % KID_COLORS.length],
     birthday: birthday ? String(birthday) : null,
   };
-  await updateDoc(doc(db, 'families', familyId), {
-    giftRecipients: arrayUnion(recipient),
-  });
+  await appendToFamilyArray(familyId, 'giftRecipients', recipient);
   return recipient;
 }
 
 export async function updateGiftRecipient(familyId, recipientId, fields) {
-  const famRef = doc(db, 'families', familyId);
-  const snap = await getDoc(famRef);
-  const list = (snap.data()?.giftRecipients || []).map((r) => {
+  const data = await readFamilyData(familyId);
+  const list = (data.giftRecipients || []).map((r) => {
     if (!r || r.id !== recipientId) return r;
     const next = { ...r };
     if (fields.name !== undefined) next.name = String(fields.name).trim() || r.name;
@@ -141,16 +159,15 @@ export async function updateGiftRecipient(familyId, recipientId, fields) {
     }
     return next;
   });
-  await updateDoc(famRef, { giftRecipients: list });
+  await writeFamily(familyId, { giftRecipients: list });
 }
 
 export async function removeGiftRecipient(familyId, recipient) {
-  const famRef = doc(db, 'families', familyId);
-  const snap = await getDoc(famRef);
-  const list = (snap.data()?.giftRecipients || []).filter(
+  const data = await readFamilyData(familyId);
+  const list = (data.giftRecipients || []).filter(
     (r) => r && r.id !== recipient.id
   );
-  await updateDoc(famRef, { giftRecipients: list });
+  await writeFamily(familyId, { giftRecipients: list });
 }
 
 // Meal cooks: external people (e.g. grandparents, a babysitter) who can be
@@ -165,25 +182,21 @@ export async function addCook(familyId, name, existingCount = 0) {
     name: trimmed,
     color: KID_COLORS[existingCount % KID_COLORS.length],
   };
-  await updateDoc(doc(db, 'families', familyId), {
-    cooks: arrayUnion(cook),
-  });
+  await appendToFamilyArray(familyId, 'cooks', cook);
   return cook;
 }
 
 export async function removeCook(familyId, cook) {
-  const famRef = doc(db, 'families', familyId);
-  const snap = await getDoc(famRef);
-  const list = (snap.data()?.cooks || []).filter((c) => c && c.id !== cook.id);
-  await updateDoc(famRef, { cooks: list });
+  const data = await readFamilyData(familyId);
+  const list = (data.cooks || []).filter((c) => c && c.id !== cook.id);
+  await writeFamily(familyId, { cooks: list });
 }
 
 // Update a single kid's editable fields (currently: name, birthday).
 // `birthday` is stored as an ISO date string YYYY-MM-DD or null.
 export async function updateKid(familyId, kidId, fields) {
-  const famRef = doc(db, 'families', familyId);
-  const snap = await getDoc(famRef);
-  const list = (snap.data()?.kids || []).map((k) => {
+  const data = await readFamilyData(familyId);
+  const list = (data.kids || []).map((k) => {
     if (!k || k.id !== kidId) return k;
     const next = { ...k };
     if (fields.name !== undefined) next.name = String(fields.name).trim() || k.name;
@@ -192,14 +205,14 @@ export async function updateKid(familyId, kidId, fields) {
     }
     return next;
   });
-  await updateDoc(famRef, { kids: list });
+  await writeFamily(familyId, { kids: list });
 }
 
 // Delete a category. Built-ins are hidden via `disabledBuiltins`; customs are
 // removed from `customCategories`. Any events still pointing at the deleted
 // category are reassigned to `general` so they never render as "unknown".
 export function updateGiftBudget(familyId, amount) {
-  return updateDoc(doc(db, 'families', familyId), {
+  return writeFamily(familyId, {
     giftBudget: Math.max(0, Number(amount) || 0),
   });
 }
@@ -209,17 +222,16 @@ export async function deleteCategory(familyId, category) {
     throw new Error("'General' cannot be deleted.");
   }
   await reassignEventsCategory(familyId, category.id, DEFAULT_CATEGORY);
-  const famRef = doc(db, 'families', familyId);
   if (category.builtin) {
-    await updateDoc(famRef, { disabledBuiltins: arrayUnion(category.id) });
+    await appendToFamilyArray(familyId, 'disabledBuiltins', category.id);
   } else {
     // arrayRemove needs an exact object match; we read-filter-write instead
     // so users can delete a custom category even if its shape drifted.
-    const snap = await getDoc(famRef);
-    const list = (snap.data()?.customCategories || []).filter(
+    const data = await readFamilyData(familyId);
+    const list = (data.customCategories || []).filter(
       (c) => c && c.id !== category.id
     );
-    await updateDoc(famRef, { customCategories: list });
+    await writeFamily(familyId, { customCategories: list });
   }
 }
 
@@ -232,20 +244,19 @@ export async function addVaultCategory(familyId, vaultType, { label, color }) {
     color,
   };
   const field = vaultType === 'trophy' ? 'customTrophyCategories' : 'customDocCategories';
-  await updateDoc(doc(db, 'families', familyId), { [field]: arrayUnion(category) });
+  await appendToFamilyArray(familyId, field, category);
   return category;
 }
 
 export async function deleteVaultCategory(familyId, vaultType, category) {
-  const famRef = doc(db, 'families', familyId);
   const customField = vaultType === 'trophy' ? 'customTrophyCategories' : 'customDocCategories';
   const disabledField = vaultType === 'trophy' ? 'disabledTrophyCategories' : 'disabledDocCategories';
 
   if (category.builtin) {
-    await updateDoc(famRef, { [disabledField]: arrayUnion(category.id) });
+    await appendToFamilyArray(familyId, disabledField, category.id);
   } else {
-    const snap = await getDoc(famRef);
-    const list = (snap.data()?.[customField] || []).filter((c) => c && c.id !== category.id);
-    await updateDoc(famRef, { [customField]: list });
+    const data = await readFamilyData(familyId);
+    const list = (data[customField] || []).filter((c) => c && c.id !== category.id);
+    await writeFamily(familyId, { [customField]: list });
   }
 }

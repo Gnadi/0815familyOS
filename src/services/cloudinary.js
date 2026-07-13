@@ -1,4 +1,5 @@
 import { encryptBlob } from '../utils/encryption';
+import { isDemoMode } from '../lib/demoMode';
 
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 
@@ -22,6 +23,11 @@ export function validateFile(file) {
 }
 
 export async function uploadFile(file, encryptionKey = null) {
+  if (isDemoMode()) {
+    const err = new Error('File uploads are disabled in the demo.');
+    err.code = 'demo/upload-disabled';
+    throw err;
+  }
   if (!CLOUD_NAME) {
     throw new Error('Cloudinary is not configured.');
   }

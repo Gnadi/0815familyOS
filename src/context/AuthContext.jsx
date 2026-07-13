@@ -1,4 +1,5 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
+import { isDemoMode } from '../lib/demoMode';
 
 export const AuthContext = createContext({
   user: null,
@@ -6,6 +7,7 @@ export const AuthContext = createContext({
   family: null,
   encryptionKey: null,
   loading: true,
+  isDemo: false,
   signOut: () => {},
 });
 
@@ -23,8 +25,25 @@ export function AuthProvider({ children }) {
   const [family, setFamily] = useState(null);
   const [encryptionKey, setEncryptionKey] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Stable for the lifetime of the page: entering/leaving the demo is always
+  // a hard navigation (see lib/demoMode.js), so the provider initializes down
+  // exactly one path per load and never has to tear listeners across modes.
+  const demo = isDemoMode();
 
   useEffect(() => {
+    // Demo: fabricate the signed-in user from the demo store and never touch
+    // Firebase Auth — no listener attached, no network. Everything downstream
+    // (userDoc, family, data hooks) routes through the demo-aware services.
+    if (demo) {
+      let cancelled = false;
+      (async () => {
+        const { demoUser } = await import('../services/demoStore');
+        if (!cancelled) setUser(demoUser());
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }
     let unsub = () => {};
     let cancelled = false;
     (async () => {
@@ -50,7 +69,7 @@ export function AuthProvider({ children }) {
       cancelled = true;
       unsub();
     };
-  }, []);
+  }, [demo]);
 
   useEffect(() => {
     if (!user) return undefined;
@@ -58,6 +77,15 @@ export function AuthProvider({ children }) {
     let unsub = () => {};
     let cancelled = false;
     (async () => {
+      if (demo) {
+        const { demoSubscribeUserDoc } = await import('../services/demoStore');
+        if (cancelled) return;
+        unsub = demoSubscribeUserDoc((d) => {
+          setUserDoc(d);
+          setLoading(false);
+        });
+        return;
+      }
       const { subscribeUserDoc } = await import('../services/users');
       if (cancelled) return;
       unsub = subscribeUserDoc(user.uid, (d) => {
@@ -69,7 +97,7 @@ export function AuthProvider({ children }) {
       cancelled = true;
       unsub();
     };
-  }, [user]);
+  }, [user, demo]);
 
   useEffect(() => {
     if (!userDoc?.familyId) {
@@ -126,8 +154,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, userDoc, family, encryptionKey, loading, signOut }),
-    [user, userDoc, family, encryptionKey, loading, signOut],
+    () => ({ user, userDoc, family, encryptionKey, loading, isDemo: demo, signOut }),
+    [user, userDoc, family, encryptionKey, loading, demo, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

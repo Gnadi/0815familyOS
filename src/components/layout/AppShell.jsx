@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import BottomNav from './BottomNav';
+import DemoBanner from './DemoBanner';
 import EventFormModal from '../calendar/EventFormModal';
 import TaskFormModal from '../tasks/TaskFormModal';
 import GiftFormModal from '../gifts/GiftFormModal';
@@ -88,6 +89,7 @@ export default function AppShell() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
+      <DemoBanner />
       <AddActionContext.Provider value={handleFab}>
         <Outlet context={{ setCreateDefaultDate, setVaultAdd, setHealthFabCallback, setFoodFabCallback, setShoppingFabCallback }} />
       </AddActionContext.Provider>

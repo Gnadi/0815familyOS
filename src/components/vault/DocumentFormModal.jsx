@@ -207,7 +207,12 @@ export default function DocumentFormModal({
         filePublicId = result.publicId;
         fileName = file.name;
       } catch (err) {
-        if (err.message === 'Cloudinary is not configured.') {
+        if (err.code === 'demo/upload-disabled') {
+          setFileWarning(t('vault.uploadDemoDisabled'));
+          fileUrl = null;
+          filePublicId = null;
+          fileName = null;
+        } else if (err.message === 'Cloudinary is not configured.') {
           setFileWarning(t('vault.uploadNotConfigured'));
           fileUrl = null;
           filePublicId = null;

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { isDemoMode } from '../lib/demoMode';
+import { demoUserDoc } from '../services/demoStore';
 import useAuth from './useAuth';
 
 export default function useFamilyMembers() {
@@ -11,6 +13,12 @@ export default function useFamilyMembers() {
     const ids = family?.memberIds || [];
     if (!ids.length) {
       setMembers([]);
+      return;
+    }
+    // Demo: the only member is the fake demo user — no Firestore lookup.
+    if (isDemoMode()) {
+      const d = demoUserDoc();
+      setMembers([{ uid: d.uid, displayName: d.displayName }]);
       return;
     }
     Promise.all(ids.map((uid) => getDoc(doc(db, 'users', uid)))).then((snaps) => {

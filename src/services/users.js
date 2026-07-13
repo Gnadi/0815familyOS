@@ -7,6 +7,8 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { isDemoMode } from '../lib/demoMode';
+import { demoUpdateUserDoc } from './demoStore';
 
 export async function ensureUserDoc(user, extras = {}) {
   const ref = doc(db, 'users', user.uid);
@@ -29,5 +31,6 @@ export function subscribeUserDoc(uid, cb) {
 }
 
 export function updateUserDoc(uid, patch) {
+  if (isDemoMode()) return demoUpdateUserDoc(patch);
   return updateDoc(doc(db, 'users', uid), patch);
 }
