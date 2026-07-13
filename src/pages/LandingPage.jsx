@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Calendar,
@@ -18,8 +18,6 @@ import {
   ArrowRight,
   Check,
   Download,
-  Loader2,
-  Play,
 } from 'lucide-react';
 import Seo from '../components/seo/Seo';
 import BrandMark from '../components/brand/BrandMark';
@@ -51,11 +49,9 @@ const steps = [
 
 export default function LandingPage() {
   const { user, userDoc, loading } = useAuth();
-  const { t, locale } = useT();
+  const { t } = useT();
   const { canShowInstall, openInstall } = usePwaInstallContext();
   const navigate = useNavigate();
-  const [demoBusy, setDemoBusy] = useState(false);
-  const [demoError, setDemoError] = useState('');
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -75,30 +71,10 @@ export default function LandingPage() {
   // HTML. Crawlers and logged-out visitors see the full content immediately.
   useEffect(() => {
     if (loading) return;
-    // While the demo is being set up, an anonymous user briefly exists
-    // without a familyId — hold the redirect until seeding finishes and
-    // handleDemo navigates explicitly.
-    if (demoBusy) return;
     if (user && userDoc?.familyId) navigate('/dashboard', { replace: true });
     else if (user && userDoc && !userDoc.familyId)
       navigate('/family-setup', { replace: true });
-  }, [user, userDoc, loading, demoBusy, navigate]);
-
-  async function handleDemo() {
-    if (demoBusy) return;
-    setDemoError('');
-    setDemoBusy(true);
-    try {
-      // Imported lazily so Firebase Auth stays out of the landing bundle
-      // (and out of the Node pre-render) until someone actually clicks.
-      const { startDemo } = await import('../services/demo');
-      await startDemo({ t, locale });
-      navigate('/dashboard', { replace: true });
-    } catch {
-      setDemoError(t('landing.demoFailed'));
-      setDemoBusy(false);
-    }
-  }
+  }, [user, userDoc, loading, navigate]);
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
@@ -166,7 +142,7 @@ export default function LandingPage() {
             <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg lg:mx-0">
               {t('landing.heroSubtitle')}
             </p>
-            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:flex-wrap lg:justify-start">
+            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row lg:justify-start">
               <Link
                 to="/signup"
                 className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-500 px-7 py-3.5 text-base font-semibold text-white shadow-lg shadow-brand-500/20 hover:bg-brand-600 sm:w-auto"
@@ -174,15 +150,6 @@ export default function LandingPage() {
                 {t('landing.ctaGetStartedFree')}
                 <ArrowRight size={18} />
               </Link>
-              <button
-                type="button"
-                onClick={handleDemo}
-                disabled={demoBusy}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-brand-300 bg-white px-7 py-3.5 text-base font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-70 sm:w-auto"
-              >
-                {demoBusy ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} />}
-                {demoBusy ? t('landing.demoStarting') : t('landing.ctaTryDemo')}
-              </button>
               <a
                 href={GITHUB_URL}
                 target="_blank"
@@ -193,7 +160,6 @@ export default function LandingPage() {
                 {t('landing.ctaViewGithub')}
               </a>
             </div>
-            {demoError && <p className="mt-3 text-sm text-red-600">{demoError}</p>}
             <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-slate-500 lg:justify-start">
               <span className="inline-flex items-center gap-1.5"><Check size={15} className="text-brand-500" /> {t('landing.bulletNoCard')}</span>
               <span className="inline-flex items-center gap-1.5"><Check size={15} className="text-brand-500" /> {t('landing.bulletNoAds')}</span>
