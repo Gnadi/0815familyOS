@@ -14,6 +14,7 @@ import { LOCALE_STORAGE_KEY, matchLocale } from '../i18n/config';
 import { DEFAULT_SHOPPING_ITEMS } from '../constants/defaultShoppingItems';
 
 const DEMO_UID = 'demo-user';
+const DEMO_PARTNER_UID = 'demo-partner';
 const DEMO_FAMILY_ID = 'demo-family';
 
 // Static AES-256-GCM key (bytes 0..31, base64url). The document vault expects
@@ -74,11 +75,19 @@ export function buildSeed() {
     return { createdAt: created, updatedAt: created };
   };
 
+  // Two parents so Workload Balance has a real split to show. Only the first
+  // one "is" the visitor (userDoc below); the partner exists as a family
+  // member for assignments and the members list.
+  const members = [
+    { uid: DEMO_UID, displayName: t('demo.userName') },
+    { uid: DEMO_PARTNER_UID, displayName: t('demo.partnerName') },
+  ];
+
   const family = {
     name: t('demo.familyName'),
     inviteCode: 'DEMO42',
     createdBy: DEMO_UID,
-    memberIds: [DEMO_UID],
+    memberIds: members.map((m) => m.uid),
     encryptionKeyJwk: DEMO_ENCRYPTION_JWK,
     kids: [
       { id: 'kid_emma', name: t('demo.kid1'), color: 'violet', birthday: isoInDays(18, -7) },
@@ -109,9 +118,9 @@ export function buildSeed() {
     date,
     kids,
     // responsibleParent holds the member's displayName (see EventFormModal),
-    // not a uid.
-    responsibleParent: extras.assigned ? t('demo.userName') : '',
-    effortLevel: '',
+    // not a uid. `extras.parent` is an index into `members`.
+    responsibleParent: extras.parent === undefined ? '' : members[extras.parent].displayName,
+    effortLevel: extras.effort || '',
     recurrence: extras.recurrence || null,
     ...meta(),
   });
@@ -126,7 +135,7 @@ export function buildSeed() {
     category,
     points: extras.points ?? 1,
     dueDate,
-    assigneeIds: extras.assigned ? [DEMO_UID] : [],
+    assigneeIds: extras.parent === undefined ? [] : [members[extras.parent].uid],
     progress: extras.progress ?? (status === 'completed' ? 100 : 0),
     recurrence: null,
     completedAt: status === 'completed' ? at(-1, 18) : null,
@@ -167,19 +176,19 @@ export function buildSeed() {
     [
       'events',
       new Map([
-        ['demo_ev_soccer', event(t('demo.evSoccer'), at(0, 15), 'sports', ['kid_emma'], { assigned: true })],
-        ['demo_ev_grandparents', event(t('demo.evGrandparents'), at(0, 18, 30), 'family', ['kid_emma', 'kid_ben'])],
-        ['demo_ev_dentist', event(t('demo.evDentist'), at(1, 9), 'health', ['kid_ben'], { assigned: true })],
-        ['demo_ev_swim', event(t('demo.evSwim'), at(2, 16), 'sports', ['kid_emma'], { recurrence: { freq: 'weekly', interval: 1, until: null } })],
-        ['demo_ev_market', event(t('demo.evMarket'), at(4, 10), 'general')],
-        ['demo_ev_party', event(t('demo.evParty'), at(6, 14), 'family', ['kid_emma'])],
+        ['demo_ev_soccer', event(t('demo.evSoccer'), at(0, 15), 'sports', ['kid_emma'], { parent: 0, effort: 'medium' })],
+        ['demo_ev_grandparents', event(t('demo.evGrandparents'), at(0, 18, 30), 'family', ['kid_emma', 'kid_ben'], { parent: 1, effort: 'low' })],
+        ['demo_ev_dentist', event(t('demo.evDentist'), at(1, 9), 'health', ['kid_ben'], { parent: 1, effort: 'medium' })],
+        ['demo_ev_swim', event(t('demo.evSwim'), at(2, 16), 'sports', ['kid_emma'], { parent: 0, effort: 'low', recurrence: { freq: 'weekly', interval: 1, until: null } })],
+        ['demo_ev_market', event(t('demo.evMarket'), at(4, 10), 'general', [], { parent: 1, effort: 'low' })],
+        ['demo_ev_party', event(t('demo.evParty'), at(6, 14), 'family', ['kid_emma'], { parent: 0, effort: 'medium' })],
       ]),
     ],
     [
       'tasks',
       new Map([
-        ['demo_task_bike', task(t('demo.taskBike'), at(1, 18), 'inProgress', 'high', 'maintenance', { assigned: true, progress: 50 })],
-        ['demo_task_camp', task(t('demo.taskCamp'), at(3, 12), 'planned', 'urgent', 'general', { assigned: true })],
+        ['demo_task_bike', task(t('demo.taskBike'), at(1, 18), 'inProgress', 'high', 'maintenance', { parent: 0, progress: 50 })],
+        ['demo_task_camp', task(t('demo.taskCamp'), at(3, 12), 'planned', 'urgent', 'general', { parent: 1 })],
         ['demo_task_passports', task(t('demo.taskPassports'), at(10, 12), 'backlog', 'normal', 'general')],
         ['demo_task_plants', task(t('demo.taskPlants'), at(-1, 12), 'completed', 'low', 'maintenance')],
       ]),
@@ -232,5 +241,5 @@ export function buildSeed() {
     ],
   ]);
 
-  return { collections, family, userDoc };
+  return { collections, family, userDoc, members };
 }

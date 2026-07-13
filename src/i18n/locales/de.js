@@ -872,6 +872,7 @@ export default {
     bannerExit: 'Demo beenden',
     familyName: 'Familie Demo',
     userName: 'Alex',
+    partnerName: 'Sarah',
     kid1: 'Emma',
     kid2: 'Ben',
     evSoccer: 'Emma — Fußballtraining',

@@ -99,6 +99,12 @@ export function demoUpdateFamily(patch) {
 
 // --- identity ---------------------------------------------------------------
 
+// Both demo parents, in the { uid, displayName } shape useFamilyMembers
+// produces from Firestore user docs.
+export function demoMembers() {
+  return ensure().members;
+}
+
 // Minimal stand-in for the Firebase User object; downstream code only reads
 // uid / displayName / email.
 export function demoUser() {
