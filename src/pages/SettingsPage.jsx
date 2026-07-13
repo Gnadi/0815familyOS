@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Cake, Check, Copy, Download, Languages, LogOut, Moon, Palette, Plus, Smartphone, Sun, Trash2, Users } from 'lucide-react';
+import { ArrowDown, ArrowUp, Cake, Check, Copy, Download, Languages, LayoutGrid, LogOut, Moon, Palette, Plus, Smartphone, Sun, Trash2, Users } from 'lucide-react';
+import { QUICK_ACCESS_ENTRIES } from '../constants/quickAccessEntries';
 import TopBar from '../components/layout/TopBar';
 import Button from '../components/common/Button';
 import useAuth from '../hooks/useAuth';
@@ -23,7 +24,7 @@ const SKIN_LABEL_KEYS = { material: 'settings.skinMaterial', ios: 'settings.skin
 
 export default function SettingsPage() {
   const { user, userDoc, family, signOut } = useAuth();
-  const { theme, setTheme, mode, setMode, skin, setSkin, showLabels, setShowLabels } = useUIPreferences();
+  const { theme, setTheme, mode, setMode, skin, setSkin, showLabels, setShowLabels, quickAccess, setQuickAccess } = useUIPreferences();
   const { t, tn, locale, setLocale } = useT();
   const [newKidName, setNewKidName] = useState('');
   const [exportBusy, setExportBusy] = useState(false);
@@ -36,6 +37,27 @@ export default function SettingsPage() {
     await addKid(family.id, name, family.kids?.length || 0);
     setNewKidName('');
   }
+
+  function toggleQuickAccess(id) {
+    setQuickAccess(
+      quickAccess.includes(id) ? quickAccess.filter((x) => x !== id) : [...quickAccess, id],
+    );
+  }
+
+  function moveQuickAccess(id, delta) {
+    const idx = quickAccess.indexOf(id);
+    const next = idx + delta;
+    if (idx < 0 || next < 0 || next >= quickAccess.length) return;
+    const reordered = [...quickAccess];
+    [reordered[idx], reordered[next]] = [reordered[next], reordered[idx]];
+    setQuickAccess(reordered);
+  }
+
+  // Enabled shortcuts first (in their chosen order), then the remaining ones.
+  const quickAccessRows = [
+    ...quickAccess.map((id) => QUICK_ACCESS_ENTRIES.find((e) => e.id === id)).filter(Boolean),
+    ...QUICK_ACCESS_ENTRIES.filter((e) => !quickAccess.includes(e.id)),
+  ];
 
   async function handleExport() {
     if (!family?.id) return;
@@ -160,6 +182,60 @@ export default function SettingsPage() {
               className="h-5 w-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
             />
           </label>
+        </section>
+
+        <section className="rounded-2xl bg-white p-5 shadow-card">
+          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
+            <LayoutGrid size={14} /> {t('settings.quickAccess')}
+          </h2>
+          <p className="mt-3 text-sm text-slate-600">{t('settings.quickAccessDesc')}</p>
+          <div className="mt-3 space-y-2">
+            {quickAccessRows.map((entry) => {
+              const Icon = entry.icon;
+              const label = t(entry.labelKey);
+              const enabled = quickAccess.includes(entry.id);
+              const position = quickAccess.indexOf(entry.id);
+              return (
+                <div key={entry.id} className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
+                  <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${entry.bg} ${entry.color}`}>
+                    <Icon size={17} />
+                  </div>
+                  <span className={`flex-1 text-sm font-medium ${enabled ? 'text-slate-900' : 'text-slate-400'}`}>
+                    {label}
+                  </span>
+                  {enabled && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => moveQuickAccess(entry.id, -1)}
+                        disabled={position === 0}
+                        aria-label={t('settings.moveUp', { name: label })}
+                        className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400"
+                      >
+                        <ArrowUp size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveQuickAccess(entry.id, 1)}
+                        disabled={position === quickAccess.length - 1}
+                        aria-label={t('settings.moveDown', { name: label })}
+                        className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400"
+                      >
+                        <ArrowDown size={15} />
+                      </button>
+                    </>
+                  )}
+                  <input
+                    type="checkbox"
+                    checked={enabled}
+                    onChange={() => toggleQuickAccess(entry.id)}
+                    aria-label={t('settings.toggleShortcut', { name: label })}
+                    className="h-5 w-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                  />
+                </div>
+              );
+            })}
+          </div>
         </section>
 
         <section className="rounded-2xl bg-white p-5 shadow-card">
