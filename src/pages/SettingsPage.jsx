@@ -11,6 +11,7 @@ import { LOCALES } from '../i18n/config';
 import { addKid, removeKid, updateKid } from '../services/families';
 import { exportFamilyData } from '../utils/exportFamily';
 import CalendarImportSection from '../components/settings/CalendarImportSection';
+import CalendarFeedSection from '../components/settings/CalendarFeedSection';
 
 // THEME/SKIN ids → settings.* translation keys for their human labels.
 const THEME_LABEL_KEYS = {
@@ -342,6 +343,8 @@ export default function SettingsPage() {
         )}
 
         {family && <CalendarImportSection />}
+
+        {family && <CalendarFeedSection />}
 
         {family && (
           <section className="rounded-2xl bg-white p-5 shadow-card">

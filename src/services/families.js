@@ -2,6 +2,7 @@ import {
   addDoc,
   arrayUnion,
   collection,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -68,6 +69,20 @@ export async function joinFamilyByCode({ code, uid }) {
   await updateDoc(famDoc.ref, { memberIds: arrayUnion(uid) });
   await updateDoc(doc(db, 'users', uid), { familyId: famDoc.id });
   return { id: famDoc.id };
+}
+
+// ICS feed token: a per-family capability secret that the /api/ics-feed
+// endpoint resolves back to the family. Enabling again (or "resetting")
+// simply mints a new token, which invalidates any previously shared URL.
+export async function enableIcsFeed(familyId) {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  const token = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  await updateDoc(doc(db, 'families', familyId), { icsFeedToken: token });
+  return token;
+}
+
+export function disableIcsFeed(familyId) {
+  return updateDoc(doc(db, 'families', familyId), { icsFeedToken: deleteField() });
 }
 
 export function subscribeFamily(familyId, cb) {

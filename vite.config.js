@@ -7,8 +7,10 @@ export default defineConfig({
   ssgOptions: {
     script: 'async',
     formatting: 'minify',
-    // Pre-render ONLY the public marketing landing page. Auth/app routes stay
+    // Pre-render ONLY the public marketing/legal pages. Auth/app routes stay
     // client-side (they depend on Firebase auth and must not be crawled).
-    includedRoutes: (paths) => paths.filter((path) => path === '/'),
+    // Note: vite-react-ssg reports child routes without a leading slash.
+    includedRoutes: (paths) =>
+      paths.filter((path) => ['/', 'privacy', 'terms'].includes(path)),
   },
 });

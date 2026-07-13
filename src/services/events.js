@@ -31,24 +31,33 @@ function normalizeRecurrence(rec) {
   return { freq, interval, until };
 }
 
+function mapEventDoc(d) {
+  const data = d.data();
+  return {
+    id: d.id,
+    ...data,
+    category: normalizeCategory(data.category),
+    date: data.date?.toDate ? data.date.toDate() : data.date,
+    kids: data.kids || [],
+    responsibleParent: data.responsibleParent || '',
+    effortLevel: data.effortLevel || '',
+    recurrence: normalizeRecurrence(data.recurrence),
+  };
+}
+
 export function subscribeEvents(familyId, cb) {
   const q = query(eventsRef, where('familyId', '==', familyId), orderBy('date', 'asc'));
   return onSnapshot(q, (snap) => {
-    const list = snap.docs.map((d) => {
-      const data = d.data();
-      return {
-        id: d.id,
-        ...data,
-        category: normalizeCategory(data.category),
-        date: data.date?.toDate ? data.date.toDate() : data.date,
-        kids: data.kids || [],
-        responsibleParent: data.responsibleParent || '',
-        effortLevel: data.effortLevel || '',
-        recurrence: normalizeRecurrence(data.recurrence),
-      };
-    });
-    cb(list);
+    cb(snap.docs.map(mapEventDoc));
   });
+}
+
+// One-shot fetch for flows that don't need a live listener (e.g. the
+// Settings .ics export).
+export async function fetchEventsOnce(familyId) {
+  const q = query(eventsRef, where('familyId', '==', familyId), orderBy('date', 'asc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(mapEventDoc);
 }
 
 export function createEvent({ familyId, userId, title, description, date, category, kids, responsibleParent, effortLevel, recurrence }) {

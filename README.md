@@ -47,6 +47,9 @@ src/
 2. **Create a Firebase project**
    - In the Firebase console, enable the **Email/Password** and **Google**
      sign-in providers (Authentication → Sign-in method).
+   - Also enable the **Anonymous** provider — the landing page's
+     "Try the live demo" button signs visitors in anonymously and seeds a
+     throwaway demo family for them.
    - Create a Firestore database (start in production mode).
    - Copy your web-app config into a new `.env` at the project root
      (see `.env.example` for keys).
@@ -61,12 +64,22 @@ src/
    `VITE_CLOUDINARY_*` env vars are reserved for future image-upload
    features (e.g. Document Vault). They can be left empty for the MVP.
 
-5. **Run locally**
+5. **Calendar subscription feed (optional)**
+   Settings → "Calendar Feed & Export" lets families subscribe to their
+   events from Google/Apple/Outlook via `/api/ics-feed`. That endpoint reads
+   Firestore with the Admin SDK and needs a `FIREBASE_SERVICE_ACCOUNT`
+   environment variable on the deployment (Vercel → Project → Settings →
+   Environment Variables) containing the JSON of a service-account key
+   (Firebase console → Project settings → Service accounts → Generate new
+   private key). Without it the endpoint returns 503; the one-time `.ics`
+   download in Settings still works because it runs client-side.
+
+6. **Run locally**
    ```bash
    npm run dev
    ```
 
-6. **Production build**
+7. **Production build**
    ```bash
    npm run build
    npm run preview

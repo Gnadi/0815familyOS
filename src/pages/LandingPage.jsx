@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Calendar,
@@ -18,12 +18,15 @@ import {
   ArrowRight,
   Check,
   Download,
+  Loader2,
+  Play,
 } from 'lucide-react';
 import Seo from '../components/seo/Seo';
 import BrandMark from '../components/brand/BrandMark';
 import { usePwaInstallContext } from '../context/PwaInstallContext';
 import useAuth from '../hooks/useAuth';
 import useT from '../hooks/useT';
+import { LOCALES } from '../i18n/config';
 import { SITE_URL, SITE_NAME } from '../config/site';
 
 const GITHUB_URL = 'https://github.com/gnadi/0815familyOS';
@@ -48,9 +51,11 @@ const steps = [
 
 export default function LandingPage() {
   const { user, userDoc, loading } = useAuth();
-  const { t } = useT();
+  const { t, locale } = useT();
   const { canShowInstall, openInstall } = usePwaInstallContext();
   const navigate = useNavigate();
+  const [demoBusy, setDemoBusy] = useState(false);
+  const [demoError, setDemoError] = useState('');
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -70,10 +75,30 @@ export default function LandingPage() {
   // HTML. Crawlers and logged-out visitors see the full content immediately.
   useEffect(() => {
     if (loading) return;
+    // While the demo is being set up, an anonymous user briefly exists
+    // without a familyId — hold the redirect until seeding finishes and
+    // handleDemo navigates explicitly.
+    if (demoBusy) return;
     if (user && userDoc?.familyId) navigate('/dashboard', { replace: true });
     else if (user && userDoc && !userDoc.familyId)
       navigate('/family-setup', { replace: true });
-  }, [user, userDoc, loading, navigate]);
+  }, [user, userDoc, loading, demoBusy, navigate]);
+
+  async function handleDemo() {
+    if (demoBusy) return;
+    setDemoError('');
+    setDemoBusy(true);
+    try {
+      // Imported lazily so Firebase Auth stays out of the landing bundle
+      // (and out of the Node pre-render) until someone actually clicks.
+      const { startDemo } = await import('../services/demo');
+      await startDemo({ t, locale });
+      navigate('/dashboard', { replace: true });
+    } catch {
+      setDemoError(t('landing.demoFailed'));
+      setDemoBusy(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
@@ -97,6 +122,7 @@ export default function LandingPage() {
             <a href="#how" className="hover:text-slate-900">{t('landing.navHow')}</a>
           </nav>
           <div className="flex items-center gap-2">
+            <LocaleSwitch />
             <Link
               to="/login"
               className="hidden rounded-full px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:inline-flex"
@@ -140,7 +166,7 @@ export default function LandingPage() {
             <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg lg:mx-0">
               {t('landing.heroSubtitle')}
             </p>
-            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row lg:justify-start">
+            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:flex-wrap lg:justify-start">
               <Link
                 to="/signup"
                 className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-500 px-7 py-3.5 text-base font-semibold text-white shadow-lg shadow-brand-500/20 hover:bg-brand-600 sm:w-auto"
@@ -148,6 +174,15 @@ export default function LandingPage() {
                 {t('landing.ctaGetStartedFree')}
                 <ArrowRight size={18} />
               </Link>
+              <button
+                type="button"
+                onClick={handleDemo}
+                disabled={demoBusy}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-brand-300 bg-white px-7 py-3.5 text-base font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-70 sm:w-auto"
+              >
+                {demoBusy ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} />}
+                {demoBusy ? t('landing.demoStarting') : t('landing.ctaTryDemo')}
+              </button>
               <a
                 href={GITHUB_URL}
                 target="_blank"
@@ -158,6 +193,7 @@ export default function LandingPage() {
                 {t('landing.ctaViewGithub')}
               </a>
             </div>
+            {demoError && <p className="mt-3 text-sm text-red-600">{demoError}</p>}
             <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-slate-500 lg:justify-start">
               <span className="inline-flex items-center gap-1.5"><Check size={15} className="text-brand-500" /> {t('landing.bulletNoCard')}</span>
               <span className="inline-flex items-center gap-1.5"><Check size={15} className="text-brand-500" /> {t('landing.bulletNoAds')}</span>
@@ -174,7 +210,9 @@ export default function LandingPage() {
               width={390}
               height={844}
               loading="eager"
-              fetchPriority="high"
+              // Lowercase: React 18 drops the camelCase form with a warning,
+              // which would strip the LCP priority hint from the SSG output.
+              fetchpriority="high"
               className="w-full drop-shadow-2xl"
             />
           </div>
@@ -432,8 +470,8 @@ export default function LandingPage() {
                 <Github size={15} />
                 GitHub
               </a>
-              <a href="#" className="hover:text-slate-800">{t('landing.footerPrivacy')}</a>
-              <a href="#" className="hover:text-slate-800">{t('landing.footerTerms')}</a>
+              <Link to="/privacy" className="hover:text-slate-800">{t('landing.footerPrivacy')}</Link>
+              <Link to="/terms" className="hover:text-slate-800">{t('landing.footerTerms')}</Link>
               {canShowInstall && (
                 <button
                   type="button"
@@ -444,6 +482,7 @@ export default function LandingPage() {
                   {t('pwa.installButton')}
                 </button>
               )}
+              <LocaleSwitch />
             </div>
           </div>
           <p className="mt-8 text-center text-xs text-slate-500">
@@ -451,6 +490,33 @@ export default function LandingPage() {
           </p>
         </div>
       </footer>
+    </div>
+  );
+}
+
+// Compact EN/DE toggle for the public pages. The active locale is applied
+// after hydration (see I18nProvider), so server HTML and first client paint
+// always match; the highlight simply updates once the real locale is known.
+function LocaleSwitch() {
+  const { locale, setLocale } = useT();
+  return (
+    <div className="flex items-center rounded-full border border-slate-200 bg-white p-0.5">
+      {LOCALES.map((l) => (
+        <button
+          key={l.code}
+          type="button"
+          onClick={() => setLocale(l.code)}
+          aria-label={l.label}
+          aria-pressed={locale === l.code}
+          className={`rounded-full px-2.5 py-1 text-xs font-semibold uppercase transition ${
+            locale === l.code
+              ? 'bg-slate-900 text-white'
+              : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          {l.code}
+        </button>
+      ))}
     </div>
   );
 }

@@ -309,6 +309,22 @@ export default {
       },
     },
   },
+  calFeed: {
+    title: 'Kalender-Feed & Export',
+    intro: 'Familientermine in Google Kalender, Apple Kalender oder Outlook sehen. Einmal abonnieren — neue Termine erscheinen dort automatisch.',
+    enable: 'Kalender-Feed aktivieren',
+    feedUrl: 'Feed-URL',
+    copied: 'Kopiert!',
+    subscribeHint: 'Wähle in deiner Kalender-App „Kalender hinzufügen → Per URL“ (Google) oder „Neues Kalenderabonnement“ (Apple) und füge diese Adresse ein.',
+    secretWarning: 'Jeder mit diesem Link kann euren Familienkalender lesen. Falls er in falsche Hände gerät, setze den Link zurück — der alte funktioniert sofort nicht mehr.',
+    reset: 'Link zurücksetzen',
+    resetConfirm: 'Feed-Link zurücksetzen? Kalender-Apps mit dem alten Link erhalten keine Updates mehr.',
+    disable: 'Deaktivieren',
+    disableConfirm: 'Kalender-Feed deaktivieren? Der Link funktioniert sofort nicht mehr.',
+    download: '.ics-Datei herunterladen',
+    downloadHint: 'Einmaliger Export des letzten Monats und der nächsten 12 Monate zum Import in einen anderen Kalender.',
+    failed: 'Etwas ist schiefgelaufen. Bitte versuche es erneut.',
+  },
   health: {
     title: 'Gesundheitsakte',
     subtitle: 'Impf-Tracking für deinen Haushalt',
@@ -743,6 +759,9 @@ export default {
     heroSubtitle:
       'Termine, Aufgaben, Essen, Einkäufe, Dokumente — eine Familie zu organisieren heißt, hundert Kleinigkeiten gleichzeitig im Blick zu haben. myFAOS bringt alles in ein gemeinsames Zuhause in Echtzeit, damit endlich alle auf demselben Stand sind.',
     ctaGetStartedFree: 'Loslegen — kostenlos',
+    ctaTryDemo: 'Live-Demo ausprobieren',
+    demoStarting: 'Demo wird eingerichtet…',
+    demoFailed: 'Die Demo konnte nicht gestartet werden. Bitte versuche es erneut.',
     ctaViewGithub: 'Auf GitHub ansehen',
     bulletNoCard: 'Keine Kreditkarte',
     bulletNoAds: 'Keine Werbung, kein Tracking',
@@ -856,5 +875,160 @@ export default {
     shotGiftsCap: 'Geschenkideen & Budget im Blick',
     shotVaultCap: 'Wichtige Dokumente, sicher verwahrt',
     shotHealthCap: 'Impfungen im Zeitplan',
+  },
+  demo: {
+    banner: 'Du erkundest eine Demo-Familie — nichts hier ist mit einem Konto verknüpft.',
+    bannerCta: 'Kostenloses Konto erstellen',
+    familyName: 'Familie Demo',
+    userName: 'Alex',
+    kid1: 'Emma',
+    kid2: 'Ben',
+    evSoccer: 'Emma — Fußballtraining',
+    evGrandparents: 'Abendessen bei Oma & Opa',
+    evDentist: 'Ben — Zahnarzttermin',
+    evSwim: 'Emma — Schwimmkurs',
+    evMarket: 'Wochenmarkt',
+    evParty: 'Geburtstagsparty bei Leo',
+    taskBike: 'Bens Fahrradreifen flicken',
+    taskCamp: 'Ferienlager buchen',
+    taskPassports: 'Reisepässe verlängern',
+    taskPlants: 'Blumen gießen',
+    giftLego: 'LEGO Feuerwache',
+    giftBook: 'Abenteuer-Buchreihe',
+    vaccTetanus: 'Tetanus-Auffrischung',
+    mealToday: 'Spaghetti Bolognese',
+    mealTomorrow: 'Gemüsecurry',
+  },
+  legal: {
+    backHome: 'Zur Startseite',
+    privacy: {
+      title: 'Datenschutzerklärung',
+      metaDescription:
+        'Wie myFAOS mit den Daten deiner Familie umgeht: was wir speichern, wo es liegt und welche Rechte du hast.',
+      updated: 'Stand: 13. Juli 2026',
+      sections: [
+        {
+          h: 'Wer wir sind',
+          p: [
+            'myFAOS ist ein kostenloser Open-Source-Familienorganizer und wird als unabhängiges Projekt von seinem Maintainer betrieben. Bei Fragen oder Anliegen zum Datenschutz erreichst du uns unter johannes.gnadlinger1997@gmail.com.',
+            'Diese Erklärung beschreibt, welche Daten die App verarbeitet, wo sie gespeichert werden und welche Rechte du hast. Der Quellcode ist öffentlich auf GitHub — alles hier Beschriebene lässt sich nachprüfen.',
+          ],
+        },
+        {
+          h: 'Welche Daten wir speichern',
+          p: [
+            'Kontodaten: deine E-Mail-Adresse, dein Anzeigename und eine interne Nutzer-ID, angelegt bei der Registrierung per E-Mail/Passwort oder Google.',
+            'Familiendaten: alles, was deine Familie in die App einträgt — Kalendertermine, Aufgaben, Essenspläne, Rezepte, Einkaufslisten, Geschenkideen und -budgets, hochgeladene Dokumente sowie Gesundheitsdaten wie Impfungen. Dazu können Namen und Geburtstage deiner Kinder gehören, die du in eigener elterlicher Verantwortung einträgst.',
+            'Einstellungen wie Sprache, Theme und Dashboard-Layout werden nur in deinem Browser (localStorage) gespeichert und verlassen dein Gerät nicht.',
+            'Wir erheben keine Analytics-, Tracking- oder Werbedaten und verkaufen oder teilen niemals Daten zu Marketingzwecken.',
+          ],
+        },
+        {
+          h: 'Wo deine Daten liegen',
+          p: [
+            'Anmeldung und Datenbank laufen über Google Firebase (Google Ireland Ltd. / Google LLC). Deine Daten werden in Googles Cloud-Infrastruktur gespeichert und nach Googles Auftragsverarbeitungsbedingungen verarbeitet.',
+            'Hochgeladene Bilder und Dokumente werden bei Cloudinary gespeichert. Dokumente im Dokumententresor werden vor dem Upload in deinem Browser verschlüsselt (AES-256-GCM) — der Speicheranbieter erhält also nur verschlüsselte Dateien.',
+            'Website und API werden bei Vercel gehostet.',
+          ],
+        },
+        {
+          h: 'Wer deine Daten sehen kann',
+          p: [
+            'Familiendaten sind nur für Mitglieder deiner Familie sichtbar — also Personen, die mit deinem Einladungscode beigetreten sind. Der Zugriff wird durch Sicherheitsregeln der Datenbank erzwungen.',
+            'Wenn du in den Einstellungen den optionalen Kalender-Feed aktivierst, kann jeder mit diesem geheimen Feed-Link die Termine eurer Familie lesen. Du kannst den Link jederzeit zurücksetzen oder deaktivieren.',
+          ],
+        },
+        {
+          h: 'Cookies und lokaler Speicher',
+          p: [
+            'Wir verwenden keine Werbe- oder Analyse-Cookies. Die App speichert deine Anmeldesitzung und UI-Einstellungen im lokalen Speicher deines Browsers — das ist für die Funktion der App zwingend erforderlich.',
+          ],
+        },
+        {
+          h: 'Deine Rechte',
+          p: [
+            'Nach der DSGVO hast du das Recht auf Auskunft, Berichtigung, Datenübertragbarkeit und Löschung deiner personenbezogenen Daten sowie auf Widerspruch gegen und Einschränkung der Verarbeitung.',
+            'Du kannst die vollständigen Daten deiner Familie jederzeit unter Einstellungen → Daten exportieren. Zum Löschen deines Kontos samt Daten genügt eine Nachricht an die oben genannte Adresse — wir entfernen sie ohne unnötige Verzögerung.',
+          ],
+        },
+        {
+          h: 'Daten von Kindern',
+          p: [
+            'Angaben zu Kindern (Namen, Geburtstage, Impfdaten) werden freiwillig von ihren Eltern bzw. Erziehungsberechtigten eingetragen, die dafür verantwortlich bleiben. Kinder nutzen die App nicht selbst; es werden keine Daten direkt von ihnen erhoben.',
+          ],
+        },
+        {
+          h: 'Änderungen dieser Erklärung',
+          p: [
+            'Ändert sich diese Erklärung, veröffentlichen wir die neue Fassung mit aktualisiertem Datum auf dieser Seite. Auf wesentliche Änderungen weisen wir in der App hin.',
+          ],
+        },
+      ],
+    },
+    terms: {
+      title: 'Nutzungsbedingungen',
+      metaDescription:
+        'Die Bedingungen für die Nutzung von myFAOS, dem kostenlosen Open-Source-Familienorganizer.',
+      updated: 'Stand: 13. Juli 2026',
+      sections: [
+        {
+          h: 'Was myFAOS ist',
+          p: [
+            'myFAOS ist eine kostenlose Open-Source-Web-App, die Familien bei der Organisation ihres Alltags hilft. Mit der Registrierung oder Nutzung der App stimmst du diesen Bedingungen zu.',
+            'Die Software steht unter der im GitHub-Repository veröffentlichten Lizenz; diese Bedingungen regeln die Nutzung des gehosteten Dienstes unter myfaos.app.',
+          ],
+        },
+        {
+          h: 'Dein Konto',
+          p: [
+            'Du musst bei der Registrierung korrekte Angaben machen und deine Zugangsdaten schützen. Für Aktivitäten über dein Konto bist du verantwortlich.',
+            'Der Einladungscode deiner Familie gewährt Zugriff auf alle Daten eurer Familie — gib ihn nur an Personen weiter, die zu deiner Familie gehören.',
+          ],
+        },
+        {
+          h: 'Zulässige Nutzung',
+          p: [
+            'Nutze den Dienst nur für rechtmäßige, persönliche, nicht-kommerzielle Zwecke. Versuche nicht, den Dienst zu stören, auf Daten anderer Familien zuzugreifen oder Inhalte zu speichern, die rechtswidrig sind oder Rechte Dritter verletzen.',
+          ],
+        },
+        {
+          h: 'Deine Inhalte',
+          p: [
+            'Alles, was du und deine Familie in die App eintragt, bleibt euer Eigentum. Wir beanspruchen keine Rechte daran und nutzen eure Inhalte ausschließlich, um den Dienst für euch zu betreiben — speichern, zwischen euren Geräten synchronisieren und sichern.',
+            'Du kannst deine Daten jederzeit unter Einstellungen → Daten exportieren.',
+          ],
+        },
+        {
+          h: 'Verfügbarkeit und Gewährleistung',
+          p: [
+            'myFAOS ist ein kostenloses Community-Projekt und wird ohne Gewährleistung jeglicher Art bereitgestellt („wie besehen“). Wir bemühen uns um einen zuverlässigen Betrieb, können aber weder unterbrechungsfreie Verfügbarkeit noch die Abwesenheit von Datenverlust garantieren — bitte nutze den eingebauten Export für eigene Sicherungen wichtiger Informationen.',
+          ],
+        },
+        {
+          h: 'Haftung',
+          p: [
+            'Soweit gesetzlich zulässig, haften wir nur für Vorsatz und grobe Fahrlässigkeit. Bei leichter Fahrlässigkeit haften wir nur für die Verletzung wesentlicher Vertragspflichten und begrenzt auf den vorhersehbaren, typischen Schaden. Zwingende gesetzliche Haftung (z. B. für Schäden an Leben, Körper oder Gesundheit) bleibt unberührt.',
+          ],
+        },
+        {
+          h: 'Beendigung',
+          p: [
+            'Du kannst die Nutzung jederzeit beenden und die Löschung deines Kontos verlangen. Wir können Konten sperren oder löschen, die gegen diese Bedingungen verstoßen oder den Dienst missbrauchen, und den gehosteten Dienst mit angemessener Vorankündigung einstellen — der Open-Source-Code bleibt zum Selbst-Hosten verfügbar.',
+          ],
+        },
+        {
+          h: 'Änderungen dieser Bedingungen',
+          p: [
+            'Wir können diese Bedingungen aktualisieren; die aktuelle Fassung ist stets mit Datum auf dieser Seite veröffentlicht. Nutzt du den Dienst nach Inkrafttreten einer Änderung weiter, gilt die neue Fassung.',
+          ],
+        },
+        {
+          h: 'Kontakt',
+          p: [
+            'Fragen zu diesen Bedingungen: johannes.gnadlinger1997@gmail.com.',
+          ],
+        },
+      ],
+    },
   },
 };
