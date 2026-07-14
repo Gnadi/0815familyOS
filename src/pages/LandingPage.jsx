@@ -226,7 +226,7 @@ export default function LandingPage() {
             {t('landing.mentalLoadBody')}
           </p>
           <div className="mx-auto mt-10 grid max-w-4xl gap-4 sm:grid-cols-3">
-            <StatCard value="7" label={t('landing.statModules')} />
+            <StatCard value="1" label={t('landing.statOneApp')} />
             <StatCard value={t('landing.statRealtimeValue')} label={t('landing.statRealtime')} />
             <StatCard value="€0" label={t('landing.statFree')} />
           </div>

@@ -770,7 +770,7 @@ export default {
     mentalLoadTitle: 'Die mentale Last des Familienlebens ist real',
     mentalLoadBody:
       'Wer hat den Zahnarzttermin? Hat jemand Brot gekauft? Wer kocht heute? Familienleben besteht aus Dutzenden Details, verstreut über Gruppenchats, Klebezettel und das Gedächtnis von irgendwem. myFAOS sammelt alles an einem ruhigen, gemeinsamen Ort — damit die Planung nicht länger in deinem Kopf wohnt.',
-    statModules: 'Module, eine App',
+    statOneApp: 'App statt fünf',
     statRealtime: 'alle bleiben auf demselben Stand',
     statRealtimeValue: 'Echtzeit',
     statFree: 'kostenlos, für immer',

@@ -772,7 +772,7 @@ export default {
     mentalLoadTitle: 'The mental load of family life is real',
     mentalLoadBody:
       "Who has the dentist appointment? Did anyone buy bread? Whose turn is it to cook? Family life runs on dozens of details scattered across group chats, sticky notes, and someone's memory. myFAOS gathers all of it into one calm, shared place — so the planning stops living in your head.",
-    statModules: 'modules, one app',
+    statOneApp: 'app instead of five',
     statRealtime: 'everyone stays in sync',
     statRealtimeValue: 'Real-time',
     statFree: 'free, forever',
