@@ -700,6 +700,7 @@ export default {
     ifConvenient: 'Wenn es passt',
     settings: 'Einstellungen',
     changeIcon: 'Symbol ändern',
+    useLetter: 'Anfangsbuchstabe verwenden',
     doneCount: 'Erledigt · {count}',
     clearAll: 'Alle löschen',
     markNotDone: 'Als offen markieren',

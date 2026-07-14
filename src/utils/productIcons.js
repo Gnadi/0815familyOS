@@ -88,6 +88,17 @@ const KEYWORD_ICONS = [
   [['hund', 'katze', 'tierfutter', 'dog', 'cat', 'pet'], '🐾'],
 ];
 
+// Sentinel stored in an item's `icon` field to mean "show the product's first
+// letter instead of an emoji". Resolved at render time so it tracks the title
+// if the name is edited.
+export const LETTER_ICON = '__letter__';
+
+// First letter of a product name, uppercased, for the letter-icon style.
+export function productInitial(name) {
+  const ch = (name || '').trim().charAt(0);
+  return ch ? ch.toUpperCase() : '?';
+}
+
 export function guessProductIcon(name) {
   const lower = (name || '').toLowerCase();
   if (!lower.trim()) return '🛒';
