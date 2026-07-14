@@ -1,4 +1,5 @@
 import { createContext, useEffect, useMemo, useState } from 'react';
+import { DEFAULT_QUICK_ACCESS, QUICK_ACCESS_IDS } from '../constants/quickAccessEntries';
 
 export const THEMES = [
   { id: 'blue',    label: 'Blue',    swatch: '#3B82F6' },
@@ -21,6 +22,7 @@ const THEME_KEY = 'familyos:theme';
 const MODE_KEY = 'familyos:mode';
 const SKIN_KEY = 'familyos:skin';
 const LABELS_KEY = 'familyos:showLabels';
+const QUICK_ACCESS_KEY = 'familyos:quickAccess';
 
 export const UIPreferencesContext = createContext({
   theme: 'blue',
@@ -31,7 +33,16 @@ export const UIPreferencesContext = createContext({
   setSkin: () => {},
   showLabels: true,
   setShowLabels: () => {},
+  quickAccess: DEFAULT_QUICK_ACCESS,
+  setQuickAccess: () => {},
 });
+
+// Drops unknown ids and duplicates while preserving the stored order, so
+// stale localStorage entries can't render broken shortcuts.
+function sanitizeQuickAccess(list) {
+  if (!Array.isArray(list)) return null;
+  return [...new Set(list)].filter((id) => QUICK_ACCESS_IDS.includes(id));
+}
 
 function readTheme() {
   if (typeof window === 'undefined') return 'blue';
@@ -57,11 +68,22 @@ function readShowLabels() {
   return stored === null ? true : stored === 'true';
 }
 
+function readQuickAccess() {
+  if (typeof window === 'undefined') return DEFAULT_QUICK_ACCESS;
+  try {
+    const parsed = sanitizeQuickAccess(JSON.parse(window.localStorage.getItem(QUICK_ACCESS_KEY)));
+    return parsed ?? DEFAULT_QUICK_ACCESS;
+  } catch {
+    return DEFAULT_QUICK_ACCESS;
+  }
+}
+
 export function UIPreferencesProvider({ children }) {
   const [theme, setThemeState] = useState(readTheme);
   const [mode, setModeState] = useState(readMode);
   const [skin, setSkinState] = useState(readSkin);
   const [showLabels, setShowLabelsState] = useState(readShowLabels);
+  const [quickAccess, setQuickAccessState] = useState(readQuickAccess);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -82,6 +104,10 @@ export function UIPreferencesProvider({ children }) {
     window.localStorage.setItem(LABELS_KEY, String(showLabels));
   }, [showLabels]);
 
+  useEffect(() => {
+    window.localStorage.setItem(QUICK_ACCESS_KEY, JSON.stringify(quickAccess));
+  }, [quickAccess]);
+
   function setTheme(next) {
     if (THEME_IDS.includes(next)) setThemeState(next);
   }
@@ -94,9 +120,18 @@ export function UIPreferencesProvider({ children }) {
     if (SKIN_IDS.includes(next)) setSkinState(next);
   }
 
+  function setQuickAccess(next) {
+    const sanitized = sanitizeQuickAccess(next);
+    if (sanitized) setQuickAccessState(sanitized);
+  }
+
   const value = useMemo(
-    () => ({ theme, setTheme, mode, setMode, skin, setSkin, showLabels, setShowLabels: setShowLabelsState }),
-    [theme, mode, skin, showLabels],
+    () => ({
+      theme, setTheme, mode, setMode, skin, setSkin,
+      showLabels, setShowLabels: setShowLabelsState,
+      quickAccess, setQuickAccess,
+    }),
+    [theme, mode, skin, showLabels, quickAccess],
   );
 
   return (

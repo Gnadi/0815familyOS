@@ -5,6 +5,7 @@ import Button from '../components/common/Button';
 import useAuth from '../hooks/useAuth';
 import useT from '../hooks/useT';
 import { signInWithEmail, signInWithGoogle, toFriendlyError } from '../services/auth';
+import { exitDemo, isDemoMode } from '../lib/demoMode';
 
 export default function LoginPage() {
   const { user } = useAuth();
@@ -16,6 +17,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  // A hand-typed /login while in the demo means "leave the demo and log in":
+  // clear the flag and reload this page down the normal (Firebase) path.
+  if (isDemoMode()) {
+    exitDemo(window.location.pathname);
+    return null;
+  }
   if (user) return <Navigate to="/dashboard" replace />;
 
   async function handleSubmit(e) {

@@ -29,11 +29,11 @@ export default function DashboardPage() {
           </div>
         )}
         <DailyPreview />
+        <QuickAccess />
         <WeeklyPreview />
         <UpcomingBirthdays />
         <WorkloadBalance />
         <HealthAlerts />
-        <QuickAccess />
       </main>
     </>
   );

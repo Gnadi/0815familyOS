@@ -1,5 +1,7 @@
 import RootLayout from './components/layout/RootLayout';
 import LandingPage from './pages/LandingPage';
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
 
 // Adapts a `() => import('./Page')` (default export = component) into the
 // React Router `lazy` shape (`{ Component }`). Keeping the protected/auth
@@ -17,6 +19,10 @@ export const routes = [
     element: <RootLayout />,
     children: [
       { index: true, element: <LandingPage /> },
+      // Static-imported (not lazy) like the landing page so both legal pages
+      // can be pre-rendered to static HTML during the SSG build.
+      { path: 'privacy', element: <PrivacyPage /> },
+      { path: 'terms', element: <TermsPage /> },
       { path: 'login', lazy: lazyDefault(() => import('./pages/LoginPage')) },
       { path: 'signup', lazy: lazyDefault(() => import('./pages/SignupPage')) },
       {

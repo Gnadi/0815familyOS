@@ -5,7 +5,12 @@ import {
   browserLocalPersistence,
   GoogleAuthProvider,
 } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from 'firebase/firestore';
 
 const config = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -26,7 +31,25 @@ const app = initializeApp(config);
 // however, eagerly validates the API key / touches browser storage, so it is
 // only initialized on the client. It is exclusively used inside effects and
 // handlers, so the null SSR fallbacks are never dereferenced during the build.
-export const db = getFirestore(app);
+//
+// In the browser, Firestore runs with a persistent (IndexedDB) local cache so
+// the app keeps working offline: listeners serve cached data instantly and
+// writes queue until the connection returns. The multi-tab manager keeps the
+// cache consistent when the app is open in several tabs. During SSG (Node)
+// there is no IndexedDB, so the default in-memory instance is used instead.
+function createDb() {
+  if (import.meta.env.SSR) return getFirestore(app);
+  try {
+    return initializeFirestore(app, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+    });
+  } catch {
+    // e.g. IndexedDB unavailable (old private-browsing modes) — fall back to
+    // the default in-memory cache rather than breaking the app.
+    return getFirestore(app);
+  }
+}
+export const db = createDb();
 export const auth = import.meta.env.SSR ? null : getAuth(app);
 export const googleProvider = import.meta.env.SSR ? null : new GoogleAuthProvider();
 

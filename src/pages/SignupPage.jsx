@@ -5,6 +5,7 @@ import Button from '../components/common/Button';
 import useAuth from '../hooks/useAuth';
 import useT from '../hooks/useT';
 import { signUpWithEmail, signInWithGoogle, toFriendlyError } from '../services/auth';
+import { exitDemo, isDemoMode } from '../lib/demoMode';
 
 export default function SignupPage() {
   const { user } = useAuth();
@@ -17,6 +18,12 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  // A hand-typed /signup while in the demo means "leave the demo and sign
+  // up": clear the flag and reload this page down the normal (Firebase) path.
+  if (isDemoMode()) {
+    exitDemo(window.location.pathname);
+    return null;
+  }
   if (user) return <Navigate to="/family-setup" replace />;
 
   function validate() {

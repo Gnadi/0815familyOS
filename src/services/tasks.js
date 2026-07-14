@@ -13,8 +13,13 @@ import {
 import { db } from '../lib/firebase';
 import { DEFAULT_TASK_CATEGORY } from '../constants/taskCategories';
 import { nextOccurrenceAfter } from '../utils/recurrence';
+import { isDemoMode } from '../lib/demoMode';
+import { demoAdd, demoDelete, demoSubscribe, demoUpdate } from './demoStore';
 
 const tasksRef = collection(db, 'tasks');
+
+const nowVal = () => (isDemoMode() ? new Date() : serverTimestamp());
+const dateVal = (d) => (isDemoMode() ? d : Timestamp.fromDate(d));
 
 function normalizeCategory(category) {
   return typeof category === 'string' && category.trim() ? category : DEFAULT_TASK_CATEGORY;
@@ -53,33 +58,35 @@ export function subscribeTasks(familyId, cb) {
   // Single-field `familyId` query only — Firestore auto-indexes this so we
   // don't need a composite index. Sort client-side; a family's task list is
   // small enough that this is cheaper than maintaining an index.
+  if (isDemoMode()) return demoSubscribe('tasks', (docs) => cb(mapTaskDocs(docs)));
   const q = query(tasksRef, where('familyId', '==', familyId));
-  return onSnapshot(q, (snap) => {
-    const list = snap.docs
-      .map((d) => {
-        const data = d.data();
-        return {
-          id: d.id,
-          ...data,
-          category: normalizeCategory(data.category),
-          status: normalizeStatus(data.status),
-          priority: normalizePriority(data.priority),
-          points: Number(data.points) || 0,
-          progress: Number(data.progress) || 0,
-          assigneeIds: Array.isArray(data.assigneeIds) ? data.assigneeIds : [],
-          recurrence: normalizeRecurrence(data.recurrence),
-          dueDate: toDate(data.dueDate),
-          completedAt: toDate(data.completedAt),
-          createdAt: toDate(data.createdAt),
-        };
-      })
-      .sort((a, b) => {
-        const ta = a.createdAt ? a.createdAt.getTime() : 0;
-        const tb = b.createdAt ? b.createdAt.getTime() : 0;
-        return tb - ta;
-      });
-    cb(list);
-  });
+  return onSnapshot(q, (snap) => cb(mapTaskDocs(snap.docs)));
+}
+
+function mapTaskDocs(docs) {
+  return docs
+    .map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        ...data,
+        category: normalizeCategory(data.category),
+        status: normalizeStatus(data.status),
+        priority: normalizePriority(data.priority),
+        points: Number(data.points) || 0,
+        progress: Number(data.progress) || 0,
+        assigneeIds: Array.isArray(data.assigneeIds) ? data.assigneeIds : [],
+        recurrence: normalizeRecurrence(data.recurrence),
+        dueDate: toDate(data.dueDate),
+        completedAt: toDate(data.completedAt),
+        createdAt: toDate(data.createdAt),
+      };
+    })
+    .sort((a, b) => {
+      const ta = a.createdAt ? a.createdAt.getTime() : 0;
+      const tb = b.createdAt ? b.createdAt.getTime() : 0;
+      return tb - ta;
+    });
 }
 
 export function createTask({
@@ -97,7 +104,7 @@ export function createTask({
   recurrence,
 }) {
   const normStatus = normalizeStatus(status);
-  return addDoc(tasksRef, {
+  const payload = {
     familyId,
     userId,
     title: title.trim(),
@@ -106,14 +113,16 @@ export function createTask({
     priority: normalizePriority(priority),
     category: normalizeCategory(category),
     points: Math.max(0, Number(points) || 0),
-    dueDate: Timestamp.fromDate(dueDate),
+    dueDate: dateVal(dueDate),
     assigneeIds: Array.isArray(assigneeIds) ? assigneeIds : [],
     progress: clampProgress(progress, normStatus),
     recurrence: normalizeRecurrence(recurrence),
-    completedAt: normStatus === 'completed' ? serverTimestamp() : null,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
+    completedAt: normStatus === 'completed' ? nowVal() : null,
+    createdAt: nowVal(),
+    updatedAt: nowVal(),
+  };
+  if (isDemoMode()) return demoAdd('tasks', payload);
+  return addDoc(tasksRef, payload);
 }
 
 export function updateTask(id, fields) {
@@ -138,20 +147,22 @@ export function updateTask(id, fields) {
   if (normStatus === 'completed' && previousStatus !== 'completed' && normRec) {
     const next = nextOccurrenceAfter(dueDate, normRec);
     if (next) {
-      return updateDoc(doc(db, 'tasks', id), {
+      const rollForward = {
         title: title.trim(),
         description: description?.trim() || '',
         status: 'planned',
         priority: normalizePriority(priority),
         category: normalizeCategory(category),
         points: Math.max(0, Number(points) || 0),
-        dueDate: Timestamp.fromDate(next),
+        dueDate: dateVal(next),
         assigneeIds: Array.isArray(assigneeIds) ? assigneeIds : [],
         progress: 0,
         recurrence: normRec,
         completedAt: null,
-        updatedAt: serverTimestamp(),
-      });
+        updatedAt: nowVal(),
+      };
+      if (isDemoMode()) return demoUpdate('tasks', id, rollForward);
+      return updateDoc(doc(db, 'tasks', id), rollForward);
     }
   }
 
@@ -162,17 +173,18 @@ export function updateTask(id, fields) {
     priority: normalizePriority(priority),
     category: normalizeCategory(category),
     points: Math.max(0, Number(points) || 0),
-    dueDate: Timestamp.fromDate(dueDate),
+    dueDate: dateVal(dueDate),
     assigneeIds: Array.isArray(assigneeIds) ? assigneeIds : [],
     progress: clampProgress(progress, normStatus),
     recurrence: normRec,
-    updatedAt: serverTimestamp(),
+    updatedAt: nowVal(),
   };
   if (normStatus === 'completed' && previousStatus !== 'completed') {
-    payload.completedAt = serverTimestamp();
+    payload.completedAt = nowVal();
   } else if (normStatus !== 'completed' && previousStatus === 'completed') {
     payload.completedAt = null;
   }
+  if (isDemoMode()) return demoUpdate('tasks', id, payload);
   return updateDoc(doc(db, 'tasks', id), payload);
 }
 
@@ -188,22 +200,24 @@ export function updateTaskStatus(id, status, previousStatus, task = null) {
   if (normStatus === 'completed' && previousStatus !== 'completed' && rec && task?.dueDate) {
     const next = nextOccurrenceAfter(task.dueDate, rec);
     if (next) {
-      return updateDoc(doc(db, 'tasks', id), {
+      const rollForward = {
         status: 'planned',
         progress: 0,
         completedAt: null,
-        dueDate: Timestamp.fromDate(next),
-        updatedAt: serverTimestamp(),
-      });
+        dueDate: dateVal(next),
+        updatedAt: nowVal(),
+      };
+      if (isDemoMode()) return demoUpdate('tasks', id, rollForward);
+      return updateDoc(doc(db, 'tasks', id), rollForward);
     }
   }
 
   const payload = {
     status: normStatus,
-    updatedAt: serverTimestamp(),
+    updatedAt: nowVal(),
   };
   if (normStatus === 'completed') {
-    payload.completedAt = serverTimestamp();
+    payload.completedAt = nowVal();
     payload.progress = 100;
   } else if (previousStatus === 'completed') {
     payload.completedAt = null;
@@ -211,9 +225,11 @@ export function updateTaskStatus(id, status, previousStatus, task = null) {
   } else if (normStatus === 'backlog' || normStatus === 'planned') {
     payload.progress = 0;
   }
+  if (isDemoMode()) return demoUpdate('tasks', id, payload);
   return updateDoc(doc(db, 'tasks', id), payload);
 }
 
 export function deleteTask(id) {
+  if (isDemoMode()) return demoDelete('tasks', id);
   return deleteDoc(doc(db, 'tasks', id));
 }

@@ -122,6 +122,9 @@ export default {
     qaGiftPlanner: 'Gift Planner',
     qaHealthLedger: 'Health Ledger',
     qaShoppingList: 'Shopping List',
+    qaCalendar: 'Calendar',
+    qaTasks: 'Tasks',
+    qaMealPlanner: 'Meal Planner',
   },
   cat: {
     general: 'General',
@@ -190,6 +193,11 @@ export default {
     light: 'Light',
     dark: 'Dark',
     showMenuLabels: 'Show menu labels',
+    quickAccess: 'Quick Access',
+    quickAccessDesc: 'Choose which shortcuts appear on the dashboard and in what order.',
+    moveUp: 'Move {name} up',
+    moveDown: 'Move {name} down',
+    toggleShortcut: 'Show {name} in Quick Access',
     themeBlue: 'Blue',
     themeEmerald: 'Emerald',
     themeRose: 'Rose',
@@ -303,6 +311,13 @@ export default {
       },
     },
   },
+  calFeed: {
+    title: 'Calendar Export',
+    intro: 'Take your family events with you: export them as an .ics file and import it into Google Calendar, Apple Calendar or Outlook.',
+    download: 'Download .ics file',
+    downloadHint: 'Exports the past month and the next 12 months, with recurring events included.',
+    failed: 'Something went wrong. Please try again.',
+  },
   health: {
     title: 'Health Ledger',
     subtitle: 'Vaccination tracking for your household',
@@ -390,6 +405,7 @@ export default {
     replaceFile: 'Replace file',
     attachFile: 'Attach file',
     uploadNotConfigured: 'File upload is not configured — document saved without attachment.',
+    uploadDemoDisabled: 'File uploads are disabled in the demo — the entry was saved without the file.',
     errFileTooLarge: 'File exceeds the 2 GB size limit.',
     errFileType: 'Only PDF, DOCX, XLS, and XLSX files are allowed.',
     notes: 'Notes',
@@ -737,6 +753,7 @@ export default {
     heroSubtitle:
       'Schedules, chores, meals, shopping, documents — running a family is a hundred little things at once. myFAOS brings them into one shared, real-time home so everyone is finally on the same page.',
     ctaGetStartedFree: "Get started — it's free",
+    ctaTryDemo: 'Try the live demo',
     ctaViewGithub: 'View on GitHub',
     bulletNoCard: 'No credit card',
     bulletNoAds: 'No ads, no tracking',
@@ -850,5 +867,171 @@ export default {
     shotGiftsCap: 'Gift ideas & budget, tracked',
     shotVaultCap: 'Important documents, kept safe',
     shotHealthCap: 'Vaccinations on schedule',
+  },
+  demo: {
+    banner: "You're exploring a demo — everything stays in this tab and resets when you leave.",
+    bannerCta: 'Create your free account',
+    bannerExit: 'Exit demo',
+    familyName: 'Demo Family',
+    userName: 'Alex',
+    partnerName: 'Sarah',
+    kid1: 'Emma',
+    kid2: 'Ben',
+    evSoccer: 'Emma — soccer practice',
+    evGrandparents: 'Dinner with grandparents',
+    evDentist: 'Ben — dentist appointment',
+    evSwim: 'Emma — swim class',
+    evMarket: 'Farmers market',
+    evParty: "Birthday party at Leo's",
+    taskBike: "Fix Ben's bike tire",
+    taskCamp: 'Book summer camp',
+    taskPassports: 'Renew the passports',
+    taskPlants: 'Water the plants',
+    giftLego: 'LEGO fire station',
+    giftBook: 'Adventure book series',
+    vaccTetanus: 'Tetanus booster',
+    mealTomorrow: 'Veggie curry',
+    recipe1Title: 'Spaghetti Bolognese',
+    recipe1Ingredients: 'Spaghetti\nMinced beef\nTomato passata\nOnion\nGarlic\nParmesan',
+    recipe1Steps: 'Sauté the onion and garlic\nBrown the minced beef\nAdd the passata and simmer for 20 minutes\nServe over spaghetti',
+    recipe2Title: 'Veggie curry',
+    recipe2Ingredients: 'Rice\nCoconut milk\nCurry paste\nBroccoli\nCarrots\nChickpeas',
+    recipe2Steps: 'Cook the rice\nFry the curry paste and add the vegetables\nPour in the coconut milk and simmer for 15 minutes\nServe with the rice',
+    shopMilk: 'Oat milk',
+    shopJuice: 'Apple juice',
+    shopCandles: 'Birthday candles',
+    docContract: 'Kita contract',
+    trophySwim: 'Seahorse swim badge',
+  },
+  legal: {
+    backHome: 'Back to home',
+    privacy: {
+      title: 'Privacy Policy',
+      metaDescription:
+        'How myFAOS handles your family’s data: what we store, where it lives, and the rights you have over it.',
+      updated: 'Last updated: July 13, 2026',
+      sections: [
+        {
+          h: 'Who we are',
+          p: [
+            'myFAOS is a free, open-source family organizer. It is operated as an independent project by its maintainer. For any privacy question or request, contact us at johannes.gnadlinger1997@gmail.com.',
+            'This policy explains what data the app processes, where it is stored, and what rights you have. The source code is public on GitHub, so everything described here can be verified.',
+          ],
+        },
+        {
+          h: 'What data we store',
+          p: [
+            'Account data: your email address, display name, and an internal user ID, created when you sign up with email/password or Google.',
+            'Family data: everything your family enters into the app — calendar events, tasks, meal plans, recipes, shopping items, gift ideas and budgets, uploaded documents, and health records such as vaccinations. This can include the names and birthdays of your children, which you add under your own parental responsibility.',
+            'Preferences such as language, theme, and dashboard layout are stored only in your browser (localStorage) and never leave your device.',
+            'We do not collect analytics, usage tracking, or advertising identifiers, and we never sell or share data for marketing.',
+          ],
+        },
+        {
+          h: 'Where your data lives',
+          p: [
+            'Authentication and the database are provided by Google Firebase (Google Ireland Ltd. / Google LLC). Your data is stored in Google’s cloud infrastructure and processed under Google’s data processing terms.',
+            'Uploaded images and documents are stored with Cloudinary. Documents in the Document Vault are encrypted in your browser (AES-256-GCM) before upload, so the storage provider only ever receives encrypted files.',
+            'The website and its API are hosted on Vercel.',
+          ],
+        },
+        {
+          h: 'Who can see your data',
+          p: [
+            'Family data is only visible to members of your family — people who joined with your invite code. Access is enforced by database security rules.',
+          ],
+        },
+        {
+          h: 'Cookies and local storage',
+          p: [
+            'We use no advertising or analytics cookies. The app stores your sign-in session and UI preferences in your browser’s local storage, which is strictly necessary for the app to function.',
+          ],
+        },
+        {
+          h: 'Your rights',
+          p: [
+            'Under the GDPR you have the right to access, correct, export, and delete your personal data, and to object to or restrict its processing.',
+            'You can export your family’s complete data at any time from Settings → Data. To delete your account and its data, contact us at the address above and we will remove it without undue delay.',
+          ],
+        },
+        {
+          h: 'Children’s data',
+          p: [
+            'Information about children (names, birthdays, vaccination records) is entered voluntarily by their parents or guardians, who remain responsible for it. Children do not use the app themselves and no data is collected from them directly.',
+          ],
+        },
+        {
+          h: 'Changes to this policy',
+          p: [
+            'If this policy changes, the new version will be published on this page with an updated date. Substantial changes will be announced in the app.',
+          ],
+        },
+      ],
+    },
+    terms: {
+      title: 'Terms of Service',
+      metaDescription:
+        'The terms that apply when you use myFAOS, the free and open-source family organizer.',
+      updated: 'Last updated: July 13, 2026',
+      sections: [
+        {
+          h: 'What myFAOS is',
+          p: [
+            'myFAOS is a free, open-source web app that helps families organize their everyday life. By creating an account or using the app you agree to these terms.',
+            'The software is released under the license published in the GitHub repository; these terms govern your use of the hosted service at myfaos.app.',
+          ],
+        },
+        {
+          h: 'Your account',
+          p: [
+            'You must provide accurate information when signing up and keep your credentials safe. You are responsible for activity that happens through your account.',
+            'Your family’s invite code grants access to all of your family’s data — share it only with people who belong in your family.',
+          ],
+        },
+        {
+          h: 'Acceptable use',
+          p: [
+            'Use the service only for lawful, personal, non-commercial purposes. Do not attempt to disrupt the service, access other families’ data, or store content that is illegal or infringes the rights of others.',
+          ],
+        },
+        {
+          h: 'Your content',
+          p: [
+            'Everything you and your family enter into the app remains yours. We claim no ownership and use your content only to operate the service for you — storing it, syncing it between your family’s devices, and backing it up.',
+            'You can export your data at any time from Settings → Data.',
+          ],
+        },
+        {
+          h: 'Availability and warranty',
+          p: [
+            'myFAOS is a free community project, provided "as is" and "as available", without warranties of any kind. We do our best to keep the service reliable, but we cannot guarantee uninterrupted availability or the absence of data loss — please use the built-in export to keep your own backups of important information.',
+          ],
+        },
+        {
+          h: 'Liability',
+          p: [
+            'To the extent permitted by law, we are liable only for damage caused intentionally or by gross negligence. Liability for slight negligence is limited to breaches of essential contractual duties and to foreseeable, typical damage. Mandatory statutory liability (e.g. for injury to life, body, or health) remains unaffected.',
+          ],
+        },
+        {
+          h: 'Termination',
+          p: [
+            'You can stop using the service and request deletion of your account at any time. We may suspend or terminate accounts that violate these terms or abuse the service, and we may discontinue the hosted service with reasonable advance notice — the open-source code remains available for self-hosting.',
+          ],
+        },
+        {
+          h: 'Changes to these terms',
+          p: [
+            'We may update these terms; the current version is always published on this page with its date. If you continue to use the service after a change takes effect, the new terms apply.',
+          ],
+        },
+        {
+          h: 'Contact',
+          p: [
+            'Questions about these terms: johannes.gnadlinger1997@gmail.com.',
+          ],
+        },
+      ],
+    },
   },
 };
