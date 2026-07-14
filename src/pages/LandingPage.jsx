@@ -1,9 +1,13 @@
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Eye,
-  Scale,
-  Brain,
+  Calendar,
+  FileText,
+  Gift,
+  ListChecks,
+  UtensilsCrossed,
+  ShoppingBasket,
+  Syringe,
   Github,
   Sparkles,
   ShieldCheck,
@@ -24,18 +28,19 @@ import useT from '../hooks/useT';
 import { LOCALES } from '../i18n/config';
 import { enterDemo } from '../lib/demoMode';
 import { SITE_URL, SITE_NAME } from '../config/site';
-import { QUICK_ACCESS_ENTRIES } from '../constants/quickAccessEntries';
 
 const GITHUB_URL = 'https://github.com/gnadi/0815familyOS';
 
-// The features section sells outcomes, not modules: these three pillars stay
-// true no matter which modules ship, so the page never needs editing when a
-// feature is added. The concrete module list below it is derived from
-// QUICK_ACCESS_ENTRIES — the app's own module registry — and updates itself.
-const pillars = [
-  { Icon: Eye, key: 'pillarPicture' },
-  { Icon: Scale, key: 'pillarLoad' },
-  { Icon: Brain, key: 'pillarHead' },
+// The product modules, each keyed to the landing namespace. Order is roughly
+// "most-used first" so the strongest features lead the grid.
+const features = [
+  { Icon: Calendar, key: 'Calendar' },
+  { Icon: ListChecks, key: 'Tasks' },
+  { Icon: UtensilsCrossed, key: 'Meals' },
+  { Icon: ShoppingBasket, key: 'Shopping' },
+  { Icon: FileText, key: 'Vault' },
+  { Icon: Syringe, key: 'Health' },
+  { Icon: Gift, key: 'Gifts' },
 ];
 
 const steps = [
@@ -221,7 +226,7 @@ export default function LandingPage() {
             {t('landing.mentalLoadBody')}
           </p>
           <div className="mx-auto mt-10 grid max-w-4xl gap-4 sm:grid-cols-3">
-            <StatCard value={QUICK_ACCESS_ENTRIES.length} label={t('landing.statModules')} />
+            <StatCard value="1" label={t('landing.statOneApp')} />
             <StatCard value={t('landing.statRealtimeValue')} label={t('landing.statRealtime')} />
             <StatCard value="€0" label={t('landing.statFree')} />
           </div>
@@ -242,44 +247,29 @@ export default function LandingPage() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 sm:grid-cols-3">
-          {pillars.map((p) => (
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {features.map((f) => (
             <article
-              key={p.key}
-              className="group flex flex-col rounded-3xl border border-slate-200 bg-white p-7 shadow-card transition hover:-translate-y-1 hover:border-brand-200 hover:shadow-lg"
+              key={f.key}
+              className="group flex flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-card transition hover:-translate-y-1 hover:border-brand-200 hover:shadow-lg"
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-500 transition group-hover:bg-brand-500 group-hover:text-white">
-                <p.Icon size={24} />
+                <f.Icon size={24} />
               </div>
-              <h3 className="mt-5 text-lg font-bold text-slate-900">{t(`landing.${p.key}Title`)}</h3>
+              <h3 className="mt-5 text-lg font-bold text-slate-900">{t(`landing.feat${f.key}Title`)}</h3>
               <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-600">
-                {t(`landing.${p.key}Body`)}
+                {t(`landing.feat${f.key}Desc`)}
               </p>
+              <ul className="mt-4 space-y-1.5">
+                {[1, 2, 3].map((n) => (
+                  <li key={n} className="flex items-center gap-2 text-sm text-slate-500">
+                    <Check size={15} className="flex-shrink-0 text-brand-500" />
+                    {t(`landing.feat${f.key}P${n}`)}
+                  </li>
+                ))}
+              </ul>
             </article>
           ))}
-        </div>
-
-        {/* The concrete module list, sourced from the app's own registry so it
-            stays current without landing-page edits. Labels reuse the
-            dashboard.qa* strings already maintained for the app UI. */}
-        <div className="mt-10 rounded-3xl border border-slate-200 bg-slate-50 px-6 py-8 text-center">
-          <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">
-            {t('landing.modulesLead')}
-          </p>
-          <ul className="mt-5 flex flex-wrap justify-center gap-2.5">
-            {QUICK_ACCESS_ENTRIES.map(({ id, icon: Icon, labelKey }) => (
-              <li
-                key={id}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm"
-              >
-                <Icon size={16} className="text-brand-500" />
-                {t(labelKey)}
-              </li>
-            ))}
-          </ul>
-          <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-slate-500">
-            {t('landing.modulesNote')}
-          </p>
         </div>
       </section>
 

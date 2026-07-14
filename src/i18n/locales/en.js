@@ -772,26 +772,14 @@ export default {
     mentalLoadTitle: 'The mental load of family life is real',
     mentalLoadBody:
       "Who has the dentist appointment? Did anyone buy bread? Whose turn is it to cook? Family life runs on dozens of details scattered across group chats, sticky notes, and someone's memory. myFAOS gathers all of it into one calm, shared place — so the planning stops living in your head.",
-    statModules: 'modules, one app',
+    statOneApp: 'app instead of five',
     statRealtime: 'everyone stays in sync',
     statRealtimeValue: 'Real-time',
     statFree: 'free, forever',
-    featuresKicker: 'What it does for you',
-    featuresTitle: 'Less asking, less nagging, less remembering',
+    featuresKicker: 'Everything in one place',
+    featuresTitle: 'One app for the whole household',
     featuresSubtitle:
-      'myFAOS isn’t a pile of features — it fixes the three things that make running a family exhausting.',
-    pillarPictureTitle: 'Everyone sees the same picture',
-    pillarPictureBody:
-      'Appointments, plans, and last-minute changes live in one shared place that updates in real time for the whole family. Nobody has to ask “what’s on this week?” — and nobody has to be the one who always answers it.',
-    pillarLoadTitle: 'The load gets shared, not carried',
-    pillarLoadBody:
-      'When chores, errands, and to-dos are visible and assigned, they stop defaulting to one person’s mental list. Everyone sees what’s open, picks things up, and knows the split is fair.',
-    pillarHeadTitle: 'The details get out of your head',
-    pillarHeadBody:
-      'Write it down once — dinner plans, the shopping list, school forms, vaccination dates, gift ideas — and find it in seconds when it matters. Your memory stops being the family’s database.',
-    modulesLead: 'All of this is already inside',
-    modulesNote:
-      'Every module is free and works with the others — and new ones are added as the app grows. No upgrades, no add-ons.',
+      'Each module solves one real source of family stress. Use the ones you need — they all work together, and they all stay in sync.',
     osBadge: 'MIT licensed',
     osTitle: 'Free and open source — by design',
     osBody:
@@ -825,6 +813,48 @@ export default {
     footerPrivacy: 'Privacy',
     footerTerms: 'Terms',
     footerTagline: 'Free & open source under the MIT license.',
+    featCalendarTitle: 'Shared Calendar',
+    featCalendarDesc:
+      "Every appointment, practice, and parents' evening in one place. Changes sync in real time, so the moment one parent adds an event, everyone sees it.",
+    featCalendarP1: 'Week & month views',
+    featCalendarP2: 'Live sync across the family',
+    featCalendarP3: 'No more double-bookings',
+    featTasksTitle: 'Task Manager',
+    featTasksDesc:
+      'A simple board for chores, homework, and to-dos. Assign them, set priorities, and watch a weekly capacity view so no single person is buried.',
+    featTasksP1: 'Assign & prioritize',
+    featTasksP2: 'Weekly capacity heatmap',
+    featTasksP3: 'Fair workload balance',
+    featMealsTitle: 'Meal Plan & Recipes',
+    featMealsDesc:
+      "Plan the week's dinners, save the recipes everyone loves, and decide who cooks — so 'what's for dinner?' is answered before it's even asked.",
+    featMealsP1: 'Weekly meal plan',
+    featMealsP2: 'Saved family recipes',
+    featMealsP3: 'Cook rotation',
+    featShoppingTitle: 'Shopping List',
+    featShoppingDesc:
+      'A shared list the whole household can add to. Whoever passes the store picks up everything — nothing forgotten, no duplicate milk.',
+    featShoppingP1: 'Shared in real time',
+    featShoppingP2: 'Tick off on the go',
+    featShoppingP3: 'Built for groceries',
+    featVaultTitle: 'Document Vault',
+    featVaultDesc:
+      'Keep medical records, school forms, and important child documents organized and easy to find — instead of scattered across drawers and inboxes.',
+    featVaultP1: 'Child documents',
+    featVaultP2: 'Medical & school records',
+    featVaultP3: 'Find it in seconds',
+    featHealthTitle: 'Health & Vaccinations',
+    featHealthDesc:
+      "Track each child's vaccinations and health milestones so you always know what's done and what's coming up next.",
+    featHealthP1: 'Vaccination history',
+    featHealthP2: 'Per-child tracking',
+    featHealthP3: 'Stay ahead of due dates',
+    featGiftsTitle: 'Gift Planner',
+    featGiftsDesc:
+      'Collect gift ideas year-round for birthdays and holidays, so you are never caught empty-handed and never buy the same thing twice.',
+    featGiftsP1: 'Idea collection',
+    featGiftsP2: 'Birthdays & holidays',
+    featGiftsP3: 'No more last-minute panic',
     galleryKicker: 'See it in action',
     galleryTitle: 'A calm, focused app your family will actually use',
     gallerySubtitle: 'Clean screens, real-time sync, and a design that gets out of your way.',
