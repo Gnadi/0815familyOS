@@ -774,10 +774,22 @@ export default {
     statRealtime: 'alle bleiben auf demselben Stand',
     statRealtimeValue: 'Echtzeit',
     statFree: 'kostenlos, für immer',
-    featuresKicker: 'Alles an einem Ort',
-    featuresTitle: 'Eine App für den ganzen Haushalt',
+    featuresKicker: 'Was es dir bringt',
+    featuresTitle: 'Weniger fragen, weniger mahnen, weniger merken müssen',
     featuresSubtitle:
-      'Jedes Modul löst eine echte Quelle von Familienstress. Nutze die, die du brauchst — sie arbeiten alle zusammen und bleiben immer synchron.',
+      'myFAOS ist kein Funktionsstapel — es löst die drei Dinge, die Familienorganisation so anstrengend machen.',
+    pillarPictureTitle: 'Alle sehen dasselbe Bild',
+    pillarPictureBody:
+      'Termine, Pläne und kurzfristige Änderungen leben an einem gemeinsamen Ort, der sich für die ganze Familie in Echtzeit aktualisiert. Niemand muss mehr fragen „Was steht diese Woche an?“ — und niemand muss immer die Antwort sein.',
+    pillarLoadTitle: 'Die Last wird geteilt, nicht getragen',
+    pillarLoadBody:
+      'Wenn Hausarbeit, Besorgungen und To-dos sichtbar und zugewiesen sind, landen sie nicht mehr automatisch auf der mentalen Liste einer einzigen Person. Alle sehen, was offen ist, packen mit an — und wissen, dass die Aufteilung fair ist.',
+    pillarHeadTitle: 'Die Details verlassen deinen Kopf',
+    pillarHeadBody:
+      'Einmal aufschreiben — Essensplan, Einkaufsliste, Schulformulare, Impftermine, Geschenkideen — und in Sekunden wiederfinden, wenn es zählt. Dein Gedächtnis ist nicht länger die Datenbank der Familie.',
+    modulesLead: 'Alles davon ist schon drin',
+    modulesNote:
+      'Jedes Modul ist kostenlos und arbeitet mit den anderen zusammen — und neue kommen dazu, während die App wächst. Ohne Upgrades, ohne Extras.',
     osBadge: 'MIT-Lizenz',
     osTitle: 'Kostenlos und Open Source — mit Absicht',
     osBody:
@@ -811,48 +823,6 @@ export default {
     footerPrivacy: 'Datenschutz',
     footerTerms: 'AGB',
     footerTagline: 'Kostenlos & Open Source unter der MIT-Lizenz.',
-    featCalendarTitle: 'Gemeinsamer Kalender',
-    featCalendarDesc:
-      'Jeder Termin, jedes Training und jeder Elternabend an einem Ort. Änderungen synchronisieren in Echtzeit — sobald ein Elternteil einen Termin einträgt, sehen ihn alle.',
-    featCalendarP1: 'Wochen- & Monatsansicht',
-    featCalendarP2: 'Live-Sync für die ganze Familie',
-    featCalendarP3: 'Keine Doppelbuchungen mehr',
-    featTasksTitle: 'Aufgabenverwaltung',
-    featTasksDesc:
-      'Ein einfaches Board für Hausarbeit, Hausaufgaben und To-dos. Weise sie zu, setze Prioritäten und behalte die Wochenauslastung im Blick, damit niemand überlastet wird.',
-    featTasksP1: 'Zuweisen & priorisieren',
-    featTasksP2: 'Wöchentliche Auslastungs-Heatmap',
-    featTasksP3: 'Faire Arbeitsverteilung',
-    featMealsTitle: 'Essensplan & Rezepte',
-    featMealsDesc:
-      'Plane das Abendessen der Woche, speichere die Lieblingsrezepte aller und lege fest, wer kocht — so ist „Was gibt’s zu essen?“ beantwortet, bevor die Frage kommt.',
-    featMealsP1: 'Wöchentlicher Essensplan',
-    featMealsP2: 'Gespeicherte Familienrezepte',
-    featMealsP3: 'Koch-Rotation',
-    featShoppingTitle: 'Einkaufsliste',
-    featShoppingDesc:
-      'Eine gemeinsame Liste, zu der der ganze Haushalt etwas hinzufügen kann. Wer am Laden vorbeikommt, nimmt alles mit — nichts vergessen, keine doppelte Milch.',
-    featShoppingP1: 'In Echtzeit geteilt',
-    featShoppingP2: 'Unterwegs abhaken',
-    featShoppingP3: 'Für Einkäufe gemacht',
-    featVaultTitle: 'Dokumententresor',
-    featVaultDesc:
-      'Halte Arztunterlagen, Schulformulare und wichtige Kinderdokumente geordnet und schnell auffindbar — statt verstreut über Schubladen und Postfächer.',
-    featVaultP1: 'Kinderdokumente',
-    featVaultP2: 'Arzt- & Schulunterlagen',
-    featVaultP3: 'In Sekunden gefunden',
-    featHealthTitle: 'Gesundheit & Impfungen',
-    featHealthDesc:
-      'Verfolge die Impfungen und Gesundheits-Meilensteine jedes Kindes, damit du immer weißt, was erledigt ist und was als Nächstes ansteht.',
-    featHealthP1: 'Impfhistorie',
-    featHealthP2: 'Pro Kind getrennt',
-    featHealthP3: 'Fälligkeiten im Blick',
-    featGiftsTitle: 'Geschenkeplaner',
-    featGiftsDesc:
-      'Sammle das ganze Jahr über Geschenkideen für Geburtstage und Feiertage, damit du nie mit leeren Händen dastehst und nie etwas doppelt kaufst.',
-    featGiftsP1: 'Ideensammlung',
-    featGiftsP2: 'Geburtstage & Feiertage',
-    featGiftsP3: 'Keine Last-Minute-Panik mehr',
     galleryKicker: 'In Aktion ansehen',
     galleryTitle: 'Eine ruhige, klare App, die deine Familie wirklich nutzt',
     gallerySubtitle: 'Aufgeräumte Screens, Echtzeit-Sync und ein Design, das dir nicht im Weg steht.',
