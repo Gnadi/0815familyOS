@@ -72,22 +72,48 @@ src/
    npm run preview
    ```
 
+7. **Tests**
+   ```bash
+   npm test         # unit tests (tests/unit)
+   npm run test:rules   # Firestore rules against the emulator (needs Java)
+   npm run test:all
+   ```
+
 ## Data Model
 
 ```
 users/{uid}           { email, displayName, familyId | null, createdAt }
-families/{id}         { name, inviteCode, createdBy, memberIds[], createdAt }
+families/{id}         { name, createdBy, memberIds[], encryptionKeyJwk,
+                        activeInvites[], lastJoinToken?, createdAt }
+invites/{token}       { familyId, familyName, createdBy, createdByName,
+                        revoked, expiresAt, createdAt }   // doc id IS the token
 events/{id}           { familyId, userId, title, description?, date, createdAt, updatedAt }
 ```
 
 ## Auth & Family Flow
 
 1. Landing page → Sign up (email/password or Google).
-2. New users land on **Family Setup**: create a family (generates a
-   6-character invite code) or join an existing one via code.
+2. New users land on **Family Setup**: create a family (which mints a first
+   invite link) or join an existing one by pasting an invite link.
 3. Once `users.familyId` is set, the user is routed into the app shell
    (Dashboard, Calendar, Tasks, Settings) with a bottom nav.
 4. Sessions persist via `browserLocalPersistence`.
+
+### Invitations
+
+Invites live in their own collection and the **document id is the token** — a
+128-bit `crypto.getRandomValues` value. The rules allow `get` on a known id but
+deny `list`, so a token can be redeemed by whoever holds the link and cannot be
+enumerated. `/families` is `get`-only for members and never listable, because
+the family document holds `encryptionKeyJwk`, the AES key for the document
+vault.
+
+Invites expire (7 days by default) and can be revoked in Settings. There is no
+use counter: enforcing "single use" would need an atomic increment in the same
+transaction as the family update, across two collections, which security rules
+cannot express.
+
+Links are `/join/:token` and are handled by `src/pages/JoinPage.jsx`.
 
 ## Shared Calendar (the working module)
 
@@ -116,7 +142,7 @@ Per the MVP spec, these are intentionally **not** implemented:
 
 - Gift Planner logic
 - Document Vault uploads
-- Notifications / email invites
+- Notifications / email delivery of invites (links work; email does not)
 - AI features
 - Payments
 
