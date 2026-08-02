@@ -1,16 +1,21 @@
 import { useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Input from '../components/common/Input';
 import Button from '../components/common/Button';
 import useAuth from '../hooks/useAuth';
 import useT from '../hooks/useT';
 import { signUpWithEmail, signInWithGoogle, toFriendlyError } from '../services/auth';
 import { exitDemo, isDemoMode } from '../lib/demoMode';
+import { safeRedirect } from '../utils/redirectTarget';
 
 export default function SignupPage() {
   const { user } = useAuth();
   const { t } = useT();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Same as LoginPage: return to the intended destination (an invite
+  // link) instead of always dropping into family setup.
+  const target = safeRedirect(location.state?.from, '/family-setup');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,7 +29,7 @@ export default function SignupPage() {
     exitDemo(window.location.pathname);
     return null;
   }
-  if (user) return <Navigate to="/family-setup" replace />;
+  if (user) return <Navigate to={target} replace />;
 
   function validate() {
     if (!displayName.trim()) return t('auth.errNameRequired');
@@ -41,7 +46,7 @@ export default function SignupPage() {
     setLoading(true);
     try {
       await signUpWithEmail({ email, password, displayName });
-      navigate('/family-setup', { replace: true });
+      navigate(target, { replace: true });
     } catch (err) {
       setError(toFriendlyError(err, t));
     } finally {
@@ -54,7 +59,7 @@ export default function SignupPage() {
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
-      navigate('/family-setup', { replace: true });
+      navigate(target, { replace: true });
     } catch (err) {
       setError(toFriendlyError(err, t));
     } finally {

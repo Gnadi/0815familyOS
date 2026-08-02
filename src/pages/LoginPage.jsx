@@ -1,16 +1,21 @@
 import { useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Input from '../components/common/Input';
 import Button from '../components/common/Button';
 import useAuth from '../hooks/useAuth';
 import useT from '../hooks/useT';
 import { signInWithEmail, signInWithGoogle, toFriendlyError } from '../services/auth';
 import { exitDemo, isDemoMode } from '../lib/demoMode';
+import { safeRedirect } from '../utils/redirectTarget';
 
 export default function LoginPage() {
   const { user } = useAuth();
   const { t } = useT();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Honour where the user was headed before the auth wall — an invite
+  // link, most importantly. ProtectedRoute has always recorded it.
+  const target = safeRedirect(location.state?.from, '/dashboard');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -23,7 +28,7 @@ export default function LoginPage() {
     exitDemo(window.location.pathname);
     return null;
   }
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to={target} replace />;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -31,7 +36,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await signInWithEmail({ email, password });
-      navigate('/dashboard', { replace: true });
+      navigate(target, { replace: true });
     } catch (err) {
       setError(toFriendlyError(err, t));
     } finally {
@@ -44,7 +49,7 @@ export default function LoginPage() {
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
-      navigate('/dashboard', { replace: true });
+      navigate(target, { replace: true });
     } catch (err) {
       setError(toFriendlyError(err, t));
     } finally {

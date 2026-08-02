@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Copy, Key, Plus } from 'lucide-react';
+import { ArrowLeft, Key, Plus } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
@@ -9,6 +9,7 @@ import useT from '../hooks/useT';
 import { createFamily, joinFamilyByToken } from '../services/families';
 import { looksLikeLegacyCode, normalizeInviteToken } from '../utils/inviteToken';
 import { joinErrorMessage } from '../utils/inviteErrors';
+import InviteShareCard from '../components/invites/InviteShareCard';
 import { signOut } from '../services/auth';
 import { ensureUserDoc } from '../services/users';
 
@@ -98,15 +99,9 @@ export default function FamilySetupPage() {
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
               {t('familySetup.inviteLink')}
             </p>
-            <p className="mt-2 break-all font-mono text-sm text-slate-900">
-              {createdInvite.url}
-            </p>
-            <button
-              onClick={() => navigator.clipboard?.writeText(createdInvite.url)}
-              className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:text-brand-700"
-            >
-              <Copy size={14} /> {t('familySetup.copyLink')}
-            </button>
+            <div className="mt-2">
+              <InviteShareCard compact />
+            </div>
             <p className="mt-3 text-xs text-slate-400">
               {t('familySetup.inviteLinkHint')}
             </p>

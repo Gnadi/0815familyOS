@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowDown, ArrowUp, Cake, Check, Copy, Download, Languages, LayoutGrid, LogOut, Moon, Palette, Plus, Smartphone, Sun, Trash2, Users } from 'lucide-react';
+import { ArrowDown, ArrowUp, Cake, Check, Download, Languages, LayoutGrid, LogOut, Moon, Palette, Plus, Smartphone, Sun, Trash2, Users } from 'lucide-react';
 import { QUICK_ACCESS_ENTRIES } from '../constants/quickAccessEntries';
 import TopBar from '../components/layout/TopBar';
 import Button from '../components/common/Button';
@@ -8,14 +8,8 @@ import useUIPreferences from '../hooks/useUIPreferences';
 import useT from '../hooks/useT';
 import { SKINS, THEMES } from '../context/UIPreferencesContext';
 import { LOCALES } from '../i18n/config';
-import {
-  addKid,
-  createFamilyInvite,
-  inviteUrl,
-  removeKid,
-  revokeFamilyInvite,
-  updateKid,
-} from '../services/families';
+import { addKid, removeKid, updateKid } from '../services/families';
+import InviteShareCard from '../components/invites/InviteShareCard';
 import { exportFamilyData } from '../utils/exportFamily';
 import CalendarImportSection from '../components/settings/CalendarImportSection';
 import CalendarFeedSection from '../components/settings/CalendarFeedSection';
@@ -37,48 +31,6 @@ export default function SettingsPage() {
   const [newKidName, setNewKidName] = useState('');
   const [exportBusy, setExportBusy] = useState(false);
   const [exportError, setExportError] = useState('');
-  const [inviteBusy, setInviteBusy] = useState(false);
-  const [inviteError, setInviteError] = useState('');
-
-  // /invites denies `list`, so a family's own tokens are tracked on the family
-  // document instead of being queried back out. Expired ones are filtered here
-  // rather than cleaned up on a schedule — there is no scheduler.
-  const activeInvite = (family?.activeInvites || [])
-    .filter((i) => i?.token && (!i.expiresAt || new Date(i.expiresAt) > new Date()))
-    .slice(-1)[0] || null;
-
-  async function handleCreateInvite() {
-    if (!family?.id) return;
-    setInviteError('');
-    setInviteBusy(true);
-    try {
-      await createFamilyInvite({
-        familyId: family.id,
-        familyName: family.name,
-        uid: user.uid,
-        displayName: userDoc?.displayName || user?.displayName || '',
-      });
-    } catch (err) {
-      setInviteError(err.message || t('settings.errInviteCreate'));
-    } finally {
-      setInviteBusy(false);
-    }
-  }
-
-  async function handleRevokeInvite(token) {
-    if (!family?.id) return;
-    if (!confirm(t('settings.revokeInviteConfirm'))) return;
-    setInviteError('');
-    setInviteBusy(true);
-    try {
-      await revokeFamilyInvite(family.id, token);
-    } catch (err) {
-      setInviteError(err.message || t('settings.errInviteRevoke'));
-    } finally {
-      setInviteBusy(false);
-    }
-  }
-
   async function handleAddKid(e) {
     e.preventDefault();
     const name = newKidName.trim();
@@ -310,41 +262,9 @@ export default function SettingsPage() {
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
                 {t('settings.inviteLink')}
               </p>
-              {inviteError && <p className="mt-2 text-sm text-red-600">{inviteError}</p>}
-              {activeInvite ? (
-                <>
-                  <p className="mt-2 break-all font-mono text-xs text-slate-900">
-                    {inviteUrl(activeInvite.token)}
-                  </p>
-                  <div className="mt-2 flex flex-wrap items-center gap-4">
-                    <button
-                      onClick={() => navigator.clipboard?.writeText(inviteUrl(activeInvite.token))}
-                      className="flex items-center gap-1 text-sm font-semibold text-brand-600"
-                    >
-                      <Copy size={14} /> {t('settings.copy')}
-                    </button>
-                    <button
-                      onClick={() => handleRevokeInvite(activeInvite.token)}
-                      disabled={inviteBusy}
-                      className="text-sm font-semibold text-slate-500 hover:text-red-600 disabled:opacity-50"
-                    >
-                      {t('settings.revokeInvite')}
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p className="mt-1 text-sm text-slate-600">{t('settings.noActiveInvite')}</p>
-                  <Button
-                    variant="secondary"
-                    onClick={handleCreateInvite}
-                    loading={inviteBusy}
-                    className="mt-3 w-full"
-                  >
-                    {t('settings.createInvite')}
-                  </Button>
-                </>
-              )}
+              <div className="mt-2">
+                <InviteShareCard compact />
+              </div>
             </div>
 
             <div className="mt-4 flex items-center gap-2 text-sm text-slate-600">
