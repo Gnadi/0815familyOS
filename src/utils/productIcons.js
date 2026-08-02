@@ -11,7 +11,9 @@ export const PRODUCT_ICONS = [
   '🍎', '🍌', '🍇', '🍓', '🍊', '🍋', '🍐', '🍑', '🍒', '🥝',
   '🍉', '🍈', '🥥', '🥑', '🍄', '🌶️', '🫛', '🥜', '🌰', '🍯',
   '☕', '🍵', '🧃', '🥤', '🍷', '🍺', '🧉', '💧', '🧊', '🍫',
-  '🍪', '🍰', '🧁', '🍩', '🍬', '🍿', '🥨', '🧂', '🌿', '🧊',
+  // 🌾 replaces a second, duplicate 🧊 — flour resolves to it below, so
+  // without it the picker could never show a flour tile as selected.
+  '🍪', '🍰', '🧁', '🍩', '🍬', '🍿', '🥨', '🧂', '🌿', '🌾',
   '🧻', '🧼', '🧴', '🪥', '🧽', '🪒', '🧺', '🔋', '💊', '🐾',
 ];
 
@@ -21,8 +23,8 @@ export const PRODUCT_ICONS = [
 const KEYWORD_ICONS = [
   [['brot', 'bread', 'toast', 'semmel', 'brötchen', 'baguette'], '🍞'],
   [['croissant', 'gipfel'], '🥐'],
-  [['käse', 'kase', 'cheese', 'philadelphia', 'gouda', 'feta'], '🧀'],
-  [['ei', 'egg'], '🥚'],
+  [['käse', 'kase', 'cheese', 'philadelphia', 'gouda', 'feta', 'parmesan', 'mozzarella'], '🧀'],
+  [['ei', 'eier', 'egg', 'eggs'], '🥚'],
   [['milch', 'milk'], '🥛'],
   [['joghurt', 'jogurt', 'yogurt', 'yoghurt', 'quark'], '🥛'],
   [['butter'], '🧈'],
@@ -67,7 +69,7 @@ const KEYWORD_ICONS = [
   [['wein', 'wine'], '🍷'],
   [['bier', 'beer'], '🍺'],
   [['wasser', 'water'], '💧'],
-  [['schoko', 'chocolate', 'kakao'], '🍫'],
+  [['schoko', 'chocolate', 'kakao', 'nutella', 'nougat'], '🍫'],
   [['keks', 'cookie', 'biscuit'], '🍪'],
   [['kuchen', 'cake', 'torte'], '🍰'],
   [['muffin', 'cupcake'], '🧁'],
@@ -88,11 +90,35 @@ const KEYWORD_ICONS = [
   [['hund', 'katze', 'tierfutter', 'dog', 'cat', 'pet'], '🐾'],
 ];
 
+// Substring matching is load-bearing for German compounds ("Bio Vollmilch" →
+// "milch" → 🥛), but it wrecks very short keywords: "ei" sits near the top of
+// the list and first match wins, so Reis, Fleisch and Weintrauben all came out
+// as 🥚, and "nut" claimed Nutella. Keywords of three characters or fewer
+// therefore have to match as whole words.
+//
+// \b is unusable here: it treats ä/ö/ü as word boundaries, so "Öl" and
+// "Müsli" would break. The boundary is spelled out as "not a letter or digit"
+// with the Unicode flag instead.
+const SHORT_KEYWORD_MAX = 3;
+
+const WORD_MATCHERS = new Map(
+  KEYWORD_ICONS.flatMap(([keywords]) =>
+    keywords
+      .filter((kw) => kw.length <= SHORT_KEYWORD_MAX)
+      .map((kw) => [kw, new RegExp(`(^|[^\\p{L}\\p{N}])${kw}([^\\p{L}\\p{N}]|$)`, 'u')]),
+  ),
+);
+
+function keywordMatches(keyword, haystack) {
+  const wordRe = WORD_MATCHERS.get(keyword);
+  return wordRe ? wordRe.test(haystack) : haystack.includes(keyword);
+}
+
 export function guessProductIcon(name) {
   const lower = (name || '').toLowerCase();
   if (!lower.trim()) return '🛒';
   for (const [keywords, icon] of KEYWORD_ICONS) {
-    if (keywords.some((kw) => lower.includes(kw))) return icon;
+    if (keywords.some((kw) => keywordMatches(kw, lower))) return icon;
   }
   return '🛒';
 }

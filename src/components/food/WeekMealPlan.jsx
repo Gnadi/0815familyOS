@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { addDays, addWeeks, format, isSameDay, isToday, startOfWeek } from 'date-fns';
-import { BookOpen, ChevronLeft, ChevronRight, ExternalLink, Plus } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, ExternalLink, Plus, ShoppingBasket } from 'lucide-react';
 import Spinner from '../common/Spinner';
 import AvatarStack from '../common/AvatarStack';
 import MealEntryModal from './MealEntryModal';
@@ -27,6 +27,7 @@ export default function WeekMealPlan({
   onAddCook,
   onRemoveCook,
   onViewRecipe,
+  onShopWeek,
 }) {
   const { t } = useT();
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -109,13 +110,29 @@ export default function WeekMealPlan({
           <p className="text-lg font-bold tracking-tight text-slate-900">
             {format(weekStart, 'MMM d')} – {format(addDays(weekStart, 6), 'MMM d')}
           </p>
-          <button
-            type="button"
-            onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
-            className="text-sm font-semibold text-brand-600 hover:underline"
-          >
-            {t('food.jumpToToday')}
-          </button>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
+              className="text-sm font-semibold text-brand-600 hover:underline"
+            >
+              {t('food.jumpToToday')}
+            </button>
+            {onShopWeek && (
+              // Week-level, not per slot: "this week" is only in scope here,
+              // and a third trailing button in every meal row would be
+              // redundant with the recipe modal's own action.
+              <button
+                type="button"
+                onClick={() => onShopWeek(weekStart)}
+                aria-label={t('food.weekShoppingTitle')}
+                title={t('food.weekShoppingTitle')}
+                className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline"
+              >
+                <ShoppingBasket size={15} />
+              </button>
+            )}
+          </div>
         </div>
         <button
           type="button"

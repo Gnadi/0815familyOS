@@ -1,4 +1,5 @@
-import { ChefHat, ExternalLink, Pencil } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ChefHat, Check, ExternalLink, Pencil, ShoppingBasket } from 'lucide-react';
 import Modal from '../common/Modal';
 import Button from '../common/Button';
 import { getRecipeCategory } from '../../constants/recipeCategories';
@@ -13,8 +14,31 @@ function recipeHref(url) {
 
 // Read-only view of a recipe — the jumping-off point for editing or starting
 // fullscreen cooking mode.
-export default function RecipeDetailModal({ open, onClose, recipe, onEdit, onStartCooking }) {
+export default function RecipeDetailModal({
+  open,
+  onClose,
+  recipe,
+  onEdit,
+  onStartCooking,
+  onAddIngredients,
+}) {
   const { t } = useT();
+  const [status, setStatus] = useState(null); // { added, skipped } | { error }
+  const [adding, setAdding] = useState(false);
+
+  // Clear the confirmation when a different recipe is opened, and let it fade
+  // on its own — there is no toast system in this app and one line above the
+  // footer is enough.
+  useEffect(() => {
+    setStatus(null);
+  }, [recipe?.id]);
+
+  useEffect(() => {
+    if (!status) return undefined;
+    const timer = setTimeout(() => setStatus(null), 4000);
+    return () => clearTimeout(timer);
+  }, [status]);
+
   if (!recipe) return null;
 
   const cat = getRecipeCategory(recipe.category);
@@ -22,19 +46,61 @@ export default function RecipeDetailModal({ open, onClose, recipe, onEdit, onSta
   const ingredients = recipe.ingredients || [];
   const steps = recipe.instructions || [];
 
+  async function handleAddIngredients() {
+    setStatus(null);
+    setAdding(true);
+    try {
+      const result = await onAddIngredients(ingredients);
+      setStatus(result);
+    } catch (err) {
+      setStatus({ error: err.message || t('food.errAddToShopping') });
+    } finally {
+      setAdding(false);
+    }
+  }
+
   const footer = (
-    <div className="flex gap-2">
-      <Button type="button" variant="secondary" onClick={onEdit} className="flex-1">
-        <Pencil size={16} /> {t('common.edit')}
-      </Button>
-      <Button
-        type="button"
-        onClick={onStartCooking}
-        disabled={steps.length === 0}
-        className="flex-1"
-      >
-        <ChefHat size={18} /> {t('food.startCooking')}
-      </Button>
+    <div className="space-y-2">
+      {status && (
+        <p
+          role="status"
+          className={`text-center text-xs font-medium ${
+            status.error ? 'text-red-600' : 'text-emerald-600'
+          }`}
+        >
+          {status.error
+            ? status.error
+            : status.added === 0 && status.skipped === 0
+              ? t('shopping.nothingToAdd')
+              : t('shopping.addedSummary', { added: status.added, skipped: status.skipped })}
+        </p>
+      )}
+      <div className="flex gap-2">
+        <Button type="button" variant="secondary" onClick={onEdit} className="flex-1">
+          <Pencil size={16} /> {t('common.edit')}
+        </Button>
+        <Button
+          type="button"
+          onClick={onStartCooking}
+          disabled={steps.length === 0}
+          className="flex-1"
+        >
+          <ChefHat size={18} /> {t('food.startCooking')}
+        </Button>
+      </div>
+      {onAddIngredients && (
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={handleAddIngredients}
+          loading={adding}
+          disabled={ingredients.length === 0}
+          className="w-full"
+        >
+          {status && !status.error ? <Check size={16} /> : <ShoppingBasket size={16} />}
+          {t('food.addToShoppingList')}
+        </Button>
+      )}
     </div>
   );
 
