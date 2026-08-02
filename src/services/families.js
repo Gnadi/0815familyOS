@@ -8,6 +8,7 @@ import {
   limit,
   onSnapshot,
   query,
+  runTransaction,
   serverTimestamp,
   updateDoc,
   where,
@@ -93,6 +94,30 @@ export async function joinFamilyByCode({ code, uid }) {
   await updateDoc(famDoc.ref, { memberIds: arrayUnion(uid) });
   await updateDoc(doc(db, 'users', uid), { familyId: famDoc.id });
   return { id: famDoc.id };
+}
+
+// Backfills `encryptionKeyJwk` on families created before the document vault
+// existed. Runs in a transaction: if two members open the app at the same
+// moment they would otherwise each generate a key and the last write would win,
+// leaving anything the loser had already encrypted permanently unreadable.
+// Whoever loses the race adopts the committed key instead.
+export async function ensureFamilyEncryptionKey(familyId) {
+  if (isDemoMode()) {
+    const existing = demoGetFamily().encryptionKeyJwk;
+    if (existing) return existing;
+    const { jwk } = await generateEncryptionKey();
+    await demoUpdateFamily({ encryptionKeyJwk: jwk });
+    return jwk;
+  }
+  const ref = doc(db, 'families', familyId);
+  return runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref);
+    const existing = snap.data()?.encryptionKeyJwk;
+    if (existing) return existing;
+    const { jwk } = await generateEncryptionKey();
+    tx.update(ref, { encryptionKeyJwk: jwk });
+    return jwk;
+  });
 }
 
 export function subscribeFamily(familyId, cb) {

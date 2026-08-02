@@ -230,6 +230,13 @@ export default function VaccinationPage() {
   const kids = family?.kids ?? [];
   const [selectedIdx, setSelectedIdx] = useState(0);
 
+  // Removing a child in Settings shrinks the list under us; without this the
+  // selected tab can point past the end and every read of `currentKid` below
+  // (including the "+" handler) would hit null.
+  useEffect(() => {
+    if (selectedIdx > 0 && selectedIdx >= kids.length) setSelectedIdx(0);
+  }, [kids.length, selectedIdx]);
+
   const { vaccinations, loading } = useVaccinations(userDoc?.familyId);
 
   const [modalOpen, setModalOpen]           = useState(false);
@@ -272,6 +279,7 @@ export default function VaccinationPage() {
     if (editingVaccine?.id) {
       await updateVaccination(editingVaccine.id, values);
     } else {
+      if (!currentKid) throw new Error(t('health.noKids'));
       await createVaccination({
         familyId: userDoc.familyId,
         userId: user.uid,

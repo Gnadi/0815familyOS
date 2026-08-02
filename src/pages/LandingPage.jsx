@@ -63,7 +63,7 @@ export default function LandingPage() {
     operatingSystem: 'Web',
     url: SITE_URL,
     description: t('landing.metaDescription'),
-    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
   };
 
   // Authenticated visitors are redirected away from the marketing page. This

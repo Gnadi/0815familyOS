@@ -287,6 +287,12 @@ export default function EventFormModal({
 
   async function handleDelete() {
     if (!onDelete) return;
+    // Every other delete in the app confirms first, and for a recurring event
+    // this wipes the whole series — so say that out loud.
+    const ok = window.confirm(
+      recurrence?.freq ? t('events.confirmDeleteSeries') : t('events.confirmDelete'),
+    );
+    if (!ok) return;
     setDeleting(true);
     try {
       await onDelete();

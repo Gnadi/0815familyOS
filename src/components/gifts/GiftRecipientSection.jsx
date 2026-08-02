@@ -1,6 +1,7 @@
 import { Pencil } from 'lucide-react';
 import GiftItem from './GiftItem';
 import useT from '../../hooks/useT';
+import { formatMoney } from '../../utils/money';
 
 const COLOR_DOT = {
   violet: 'bg-violet-500',
@@ -12,7 +13,7 @@ const COLOR_DOT = {
 };
 
 export default function GiftRecipientSection({ kid, gifts, onEdit, onEditRecipient }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const spent = gifts
     .filter((g) => g.status === 'bought' || g.status === 'gifted')
     .reduce((sum, g) => sum + g.price, 0);
@@ -36,7 +37,7 @@ export default function GiftRecipientSection({ kid, gifts, onEdit, onEditRecipie
             </button>
           )}
         </div>
-        <span className="text-sm text-slate-500">${spent.toFixed(2)} {t('gifts.spentSuffix')}</span>
+        <span className="text-sm text-slate-500">{formatMoney(spent, locale)} {t('gifts.spentSuffix')}</span>
       </div>
       {gifts.length === 0 ? (
         <p className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-400 shadow-card">

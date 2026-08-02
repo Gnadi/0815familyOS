@@ -5,7 +5,7 @@ import {
   signOut as fbSignOut,
   updateProfile,
 } from 'firebase/auth';
-import { auth, googleProvider } from '../lib/firebase';
+import { auth, googleProvider, requireAuth } from '../lib/firebase';
 import { ensureUserDoc } from './users';
 import { exitDemo, isDemoMode } from '../lib/demoMode';
 
@@ -44,7 +44,7 @@ export function toFriendlyError(err, t) {
 }
 
 export async function signUpWithEmail({ email, password, displayName }) {
-  const cred = await createUserWithEmailAndPassword(auth, email, password);
+  const cred = await createUserWithEmailAndPassword(requireAuth(), email, password);
   if (displayName) {
     await updateProfile(cred.user, { displayName });
   }
@@ -53,13 +53,13 @@ export async function signUpWithEmail({ email, password, displayName }) {
 }
 
 export async function signInWithEmail({ email, password }) {
-  const cred = await signInWithEmailAndPassword(auth, email, password);
+  const cred = await signInWithEmailAndPassword(requireAuth(), email, password);
   await ensureUserDoc(cred.user);
   return cred.user;
 }
 
 export async function signInWithGoogle() {
-  const cred = await signInWithPopup(auth, googleProvider);
+  const cred = await signInWithPopup(requireAuth(), googleProvider);
   await ensureUserDoc(cred.user);
   return cred.user;
 }
@@ -71,5 +71,6 @@ export function signOut() {
     exitDemo('/');
     return Promise.resolve();
   }
+  if (!auth) return Promise.resolve();
   return fbSignOut(auth);
 }

@@ -1,4 +1,5 @@
 import useT from '../../hooks/useT';
+import { formatMoney } from '../../utils/money';
 
 const STATUS_STYLES = {
   idea:   { labelKey: 'gifts.badgeIdea',   className: 'text-slate-400 text-xs font-medium' },
@@ -7,7 +8,7 @@ const STATUS_STYLES = {
 };
 
 export default function GiftItem({ gift, onEdit }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const s = STATUS_STYLES[gift.status] ?? STATUS_STYLES.idea;
 
   return (
@@ -19,7 +20,7 @@ export default function GiftItem({ gift, onEdit }) {
         <p className="truncate text-sm font-semibold text-slate-900">{gift.title}</p>
         <p className="text-xs text-slate-400">
           {gift.price > 0
-            ? `$${gift.price.toFixed(2)}`
+            ? formatMoney(gift.price, locale)
             : t('gifts.estPriceTBD')}
         </p>
       </div>

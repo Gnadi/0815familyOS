@@ -60,9 +60,20 @@ function untilDate(rec) {
   return new Date(y, m - 1, d, 23, 59, 59);
 }
 
+// Calendar-day number for a date, independent of DST. Used to measure the gap
+// between two dates in whole days without tripping over 23/25-hour days.
+function dayNumber(d) {
+  return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
+}
+
+// Hard caps: how many steps we're willing to walk, and how many occurrences a
+// single master may contribute to one window. Both only guard against bad data.
+const MAX_STEPS = 1000;
+const MAX_OCCURRENCES = 500;
+
 // Expand a single master event into virtual occurrences within [from, to].
 // Returns an array of "shadow" events that share the master's id but have
-// `occurrenceDate` and `isRecurringInstance` set, plus a unique virtual id.
+// `masterId` and `isRecurringInstance` set, plus a unique virtual id.
 export function expandRecurringEvent(master, from, to) {
   const rec = master.recurrence;
   if (!isValidRecurrence(rec)) return [master];
@@ -70,10 +81,30 @@ export function expandRecurringEvent(master, from, to) {
   const interval = Math.max(1, Number(rec.interval) || 1);
   const stop = untilDate(rec);
   const out = [];
-  let cursor = master.date instanceof Date ? new Date(master.date) : new Date(master.date);
+  const start = master.date instanceof Date ? new Date(master.date) : new Date(master.date);
+  if (Number.isNaN(start.getTime())) return [];
 
-  // Walk forward up to a hard cap to avoid runaway loops on bad data.
-  for (let i = 0; i < 500; i += 1) {
+  // `index` is the occurrence number counted from the master, so the virtual
+  // ids stay identical no matter which window we happen to be expanding.
+  let index = 0;
+  let cursor = new Date(start);
+
+  // Daily and weekly steps are a fixed number of calendar days, so we can jump
+  // straight to the occurrence just before the window instead of walking there
+  // one step at a time. Without this a long-running series (say a daily chore
+  // started two years ago) would exhaust the step budget before reaching
+  // `from` and silently disappear from the calendar, dashboard and .ics export.
+  const stepDays = rec.freq === 'daily' ? interval : rec.freq === 'weekly' ? interval * 7 : 0;
+  if (stepDays > 0 && cursor < from) {
+    const skip = Math.floor((dayNumber(from) - dayNumber(cursor)) / stepDays);
+    if (skip > 0) {
+      index = skip;
+      // setDate() keeps the local time-of-day across DST boundaries.
+      cursor.setDate(cursor.getDate() + skip * stepDays);
+    }
+  }
+
+  for (let step = 0; step < MAX_STEPS && out.length < MAX_OCCURRENCES; step += 1) {
     if (stop && cursor > stop) break;
     if (cursor > to) break;
     if (cursor >= from) {
@@ -81,14 +112,15 @@ export function expandRecurringEvent(master, from, to) {
         ...master,
         date: new Date(cursor),
         // Keep the master id stable for editing; but flag virtual instances.
-        id: i === 0 ? master.id : `${master.id}__r${i}`,
+        id: index === 0 ? master.id : `${master.id}__r${index}`,
         masterId: master.id,
-        isRecurringInstance: i > 0,
+        isRecurringInstance: index > 0,
       });
     }
     const next = addInterval(cursor, rec.freq, interval);
     if (!next || next.getTime() === cursor.getTime()) break;
     cursor = next;
+    index += 1;
   }
   return out;
 }
