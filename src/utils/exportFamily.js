@@ -39,7 +39,14 @@ export async function exportFamilyData({ family, user, userDoc }) {
     schemaVersion: 1,
     exportedAt: new Date().toISOString(),
     user: { uid: user?.uid, email: user?.email, displayName: userDoc?.displayName },
-    family: toPlain({ ...family, encryptionKeyJwk: undefined }),
+    // Secrets and join plumbing never leave the app: the vault key, the live
+    // invite tokens, and the token the last joiner presented.
+    family: toPlain({
+      ...family,
+      encryptionKeyJwk: undefined,
+      activeInvites: undefined,
+      lastJoinToken: undefined,
+    }),
     collections: Object.fromEntries(dumps),
   };
 
