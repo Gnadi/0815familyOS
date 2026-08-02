@@ -49,11 +49,39 @@ function createDb() {
     return getFirestore(app);
   }
 }
-export const db = createDb();
-export const auth = import.meta.env.SSR ? null : getAuth(app);
-export const googleProvider = import.meta.env.SSR ? null : new GoogleAuthProvider();
+// getAuth() throws synchronously on a missing/invalid API key. Left unguarded
+// that takes this whole module down, and with it every src/services/* module
+// that imports `db` — including the ones demo mode relies on, even though the
+// demo never talks to Firebase at all. So auth stays optional: without a valid
+// config `auth` is null, the app behaves as signed-out, and the landing page,
+// legal pages and the offline demo keep working. Callers that genuinely need
+// auth check `firebaseConfigured` / `requireAuth()`.
+function createAuth() {
+  if (import.meta.env.SSR || !firebaseConfigured) return null;
+  try {
+    return getAuth(app);
+  } catch (err) {
+    console.error('Firebase Auth could not be initialized:', err);
+    return null;
+  }
+}
 
-if (!import.meta.env.SSR) {
+export const db = createDb();
+export const auth = createAuth();
+export const googleProvider = auth ? new GoogleAuthProvider() : null;
+
+// Throws a message a human can act on, instead of letting an undefined `auth`
+// surface as a cryptic SDK error deep inside a sign-in flow.
+export function requireAuth() {
+  if (!auth) {
+    throw new Error(
+      'Firebase is not configured. Add the VITE_FIREBASE_* values from .env.example to your .env.',
+    );
+  }
+  return auth;
+}
+
+if (auth) {
   setPersistence(auth, browserLocalPersistence).catch(() => {
     // Persistence failures are non-fatal; session simply won't survive reloads.
   });

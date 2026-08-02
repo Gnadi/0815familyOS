@@ -38,17 +38,21 @@ export default function Button({
         danger: 'bg-white text-red-600 border border-red-200 hover:bg-red-50',
       };
 
+  // The spinner inherits the label colour, so it stays visible on the light
+  // secondary/danger fills instead of drawing white-on-white.
+  const spinner = (
+    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent opacity-70" />
+  );
+
   return (
     <button
+      // `disabled` comes after the spread: a caller passing `disabled={false}`
+      // must not be able to re-enable a button that is mid-request.
       className={`${base} ${sizes[size]} ${variants[variant]} ${className}`}
-      disabled={loading || rest.disabled}
       {...rest}
+      disabled={loading || rest.disabled}
     >
-      {loading ? (
-        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-      ) : (
-        children
-      )}
+      {loading ? spinner : children}
     </button>
   );
 }

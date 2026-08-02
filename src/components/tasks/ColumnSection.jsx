@@ -20,7 +20,7 @@ export default function ColumnSection({
   sectionRef,
   defaultCollapsed = false,
 }) {
-  const { t } = useT();
+  const { t, tn } = useT();
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const meta = COLUMN_META[status];
   const columnLabel = t(meta.labelKey);
@@ -56,7 +56,7 @@ export default function ColumnSection({
             <div className="mt-1 flex items-center gap-2 text-xs font-medium text-slate-500">
               <span>{t(summary.leftKey)}</span>
               <span className="h-1 w-1 rounded-full bg-slate-300" />
-              <span className="tabular-nums text-slate-700">{summary.points} {t('tasks.pts')}</span>
+              <span className="tabular-nums text-slate-700">{summary.points} {tn('tasks.pts', summary.points)}</span>
               <span className="h-1 w-1 rounded-full bg-slate-300" />
               <span className={`${summary.rightTone} font-semibold`}>{t(summary.rightKey, summary.rightParams)}</span>
             </div>

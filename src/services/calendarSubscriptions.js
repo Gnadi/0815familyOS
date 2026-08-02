@@ -103,7 +103,8 @@ export async function syncSubscription({ familyId, userId, subscription }) {
   });
 
   const seen = new Set();
-  const batch = writeBatch(db);
+  // A committed WriteBatch cannot be reused, so every flush starts a fresh one.
+  let batch = writeBatch(db);
   let writes = 0;
 
   for (const ev of remoteEvents) {
@@ -137,6 +138,7 @@ export async function syncSubscription({ familyId, userId, subscription }) {
     // Firestore caps batches at 500 ops; flush early if needed.
     if (writes >= 400) {
       await batch.commit();
+      batch = writeBatch(db);
       writes = 0;
     }
   }
@@ -146,6 +148,11 @@ export async function syncSubscription({ familyId, userId, subscription }) {
     if (!seen.has(uid)) {
       batch.delete(snap.ref);
       writes += 1;
+      if (writes >= 400) {
+        await batch.commit();
+        batch = writeBatch(db);
+        writes = 0;
+      }
     }
   }
   if (writes > 0) await batch.commit();
@@ -222,7 +229,8 @@ export async function importEventsFromParsed({
     if (uid) byUid.set(uid, d);
   });
 
-  const batch = writeBatch(db);
+  // A committed WriteBatch cannot be reused, so every flush starts a fresh one.
+  let batch = writeBatch(db);
   let writes = 0;
   let created = 0;
   let updated = 0;
@@ -256,6 +264,7 @@ export async function importEventsFromParsed({
     writes += 1;
     if (writes >= 400) {
       await batch.commit();
+      batch = writeBatch(db);
       writes = 0;
     }
   }

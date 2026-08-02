@@ -117,7 +117,7 @@ function TaskCardBody({ task, members, t, tn, dragging = false, overlay = false 
             {formatDueLabel(task, t)}
           </span>
           <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-600">
-            {task.points || 0} {t('tasks.pts')}
+            {task.points || 0} {tn('tasks.pts', task.points || 0)}
           </span>
           {describeRecurrence(task.recurrence, t, tn) && (
             <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 text-[11px] font-semibold text-indigo-700">

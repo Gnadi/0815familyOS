@@ -53,6 +53,13 @@ export function AuthProvider({ children }) {
         import('../services/users'),
       ]);
       if (cancelled) return;
+      // No usable Firebase config: stay signed-out rather than crashing. The
+      // landing/legal pages and the offline demo remain fully usable.
+      if (!auth) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
       unsub = onAuthStateChanged(auth, (u) => {
         setUser(u);
         if (!u) {
