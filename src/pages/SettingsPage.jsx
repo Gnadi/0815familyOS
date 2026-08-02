@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowDown, ArrowUp, Cake, Check, Copy, Download, Languages, LayoutGrid, LogOut, Moon, Palette, Plus, Smartphone, Sun, Trash2, Users } from 'lucide-react';
+import { ArrowDown, ArrowUp, Cake, Check, Download, Languages, LayoutGrid, LogOut, Moon, Palette, Plus, Smartphone, Sun, Trash2, Users } from 'lucide-react';
 import { QUICK_ACCESS_ENTRIES } from '../constants/quickAccessEntries';
 import TopBar from '../components/layout/TopBar';
 import Button from '../components/common/Button';
@@ -9,6 +9,7 @@ import useT from '../hooks/useT';
 import { SKINS, THEMES } from '../context/UIPreferencesContext';
 import { LOCALES } from '../i18n/config';
 import { addKid, removeKid, updateKid } from '../services/families';
+import InviteShareCard from '../components/invites/InviteShareCard';
 import { exportFamilyData } from '../utils/exportFamily';
 import CalendarImportSection from '../components/settings/CalendarImportSection';
 import CalendarFeedSection from '../components/settings/CalendarFeedSection';
@@ -30,7 +31,6 @@ export default function SettingsPage() {
   const [newKidName, setNewKidName] = useState('');
   const [exportBusy, setExportBusy] = useState(false);
   const [exportError, setExportError] = useState('');
-
   async function handleAddKid(e) {
     e.preventDefault();
     const name = newKidName.trim();
@@ -260,18 +260,10 @@ export default function SettingsPage() {
 
             <div className="mt-4 rounded-xl bg-slate-50 p-4">
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-                {t('settings.inviteCode')}
+                {t('settings.inviteLink')}
               </p>
-              <div className="mt-1 flex items-center justify-between">
-                <span className="font-mono text-lg font-bold tracking-[0.25em] text-slate-900">
-                  {family.inviteCode}
-                </span>
-                <button
-                  onClick={() => navigator.clipboard?.writeText(family.inviteCode)}
-                  className="flex items-center gap-1 text-sm font-semibold text-brand-600"
-                >
-                  <Copy size={14} /> {t('settings.copy')}
-                </button>
+              <div className="mt-2">
+                <InviteShareCard compact />
               </div>
             </div>
 

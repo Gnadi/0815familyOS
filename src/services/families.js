@@ -4,25 +4,29 @@ import {
   collection,
   doc,
   getDoc,
-  getDocs,
-  limit,
   onSnapshot,
-  query,
   runTransaction,
   serverTimestamp,
   updateDoc,
-  where,
 } from 'firebase/firestore';
 
 const KID_COLORS = ['violet', 'sky', 'pink', 'teal', 'orange', 'indigo'];
 import { db } from '../lib/firebase';
-import { generateInviteCode } from '../utils/inviteCode';
 import { DEFAULT_CATEGORY } from '../constants/eventCategories';
 import { reassignEventsCategory } from './events';
 import { seedDefaultShoppingItems } from './shopping';
+import { createInvite, inviteUrl, isExpired, readInvite, revokeInvite } from './invites';
 import { generateEncryptionKey } from '../utils/encryption';
 import { isDemoMode } from '../lib/demoMode';
 import { demoGetFamily, demoSubscribeFamily, demoUpdateFamily } from './demoStore';
+
+// Tag an error the way the pages expect (see toFriendlyError / the catch
+// blocks in FamilySetupPage and JoinPage).
+function tagged(code, message) {
+  const err = new Error(message);
+  err.code = code;
+  return err;
+}
 
 const familiesRef = collection(db, 'families');
 
@@ -49,28 +53,32 @@ function appendToFamilyArray(familyId, field, value) {
   return updateDoc(doc(db, 'families', familyId), { [field]: arrayUnion(value) });
 }
 
-async function codeIsUnique(code) {
-  const q = query(familiesRef, where('inviteCode', '==', code), limit(1));
-  const snap = await getDocs(q);
-  return snap.empty;
-}
+export async function createFamily({ name, uid, displayName, locale = 'en' }) {
+  // Creating a family writes to Firestore; the demo must never do that. It is
+  // unreachable today only because a demo user always has a familyId — the
+  // /join route removes that accidental protection, so guard explicitly.
+  if (isDemoMode()) throw tagged('demo/unavailable', 'Not available in the demo.');
 
-export async function createFamily({ name, uid, locale = 'en' }) {
-  let code = generateInviteCode();
-  for (let i = 0; i < 5; i += 1) {
-    if (await codeIsUnique(code)) break;
-    code = generateInviteCode();
-  }
+  const familyName = name.trim() || 'My Family';
   const { jwk } = await generateEncryptionKey();
   const ref = await addDoc(familiesRef, {
-    name: name.trim() || 'My Family',
-    inviteCode: code,
+    name: familyName,
     createdBy: uid,
     memberIds: [uid],
     encryptionKeyJwk: jwk,
+    activeInvites: [],
     createdAt: serverTimestamp(),
   });
   await updateDoc(doc(db, 'users', uid), { familyId: ref.id });
+
+  // Mint the first invite so the creator has something to share right away.
+  const invite = await createFamilyInvite({
+    familyId: ref.id,
+    familyName,
+    uid,
+    displayName,
+  });
+
   // Seed starter shopping items so the list isn't empty on first use.
   // Best-effort — never let this fail family creation.
   try {
@@ -78,23 +86,59 @@ export async function createFamily({ name, uid, locale = 'en' }) {
   } catch {
     /* ignore seeding failures */
   }
-  return { id: ref.id, inviteCode: code };
+  return { id: ref.id, ...invite };
 }
 
-export async function joinFamilyByCode({ code, uid }) {
-  const cleaned = code.trim().toUpperCase();
-  const q = query(familiesRef, where('inviteCode', '==', cleaned), limit(1));
-  const snap = await getDocs(q);
-  if (snap.empty) {
-    const err = new Error('No family found with that code.');
-    err.code = 'family/not-found';
-    throw err;
-  }
-  const famDoc = snap.docs[0];
-  await updateDoc(famDoc.ref, { memberIds: arrayUnion(uid) });
-  await updateDoc(doc(db, 'users', uid), { familyId: famDoc.id });
-  return { id: famDoc.id };
+// Mint an invite and record it on the family document. The record is needed
+// because `list` is denied on /invites, so there is no way to query a family's
+// own tokens back out.
+export async function createFamilyInvite({ familyId, familyName, uid, displayName, ttlDays }) {
+  const { token, url, expiresAt } = await createInvite({
+    familyId,
+    familyName,
+    uid,
+    displayName,
+    ttlDays,
+  });
+  await appendToFamilyArray(familyId, 'activeInvites', {
+    token,
+    createdAt: new Date().toISOString(),
+    expiresAt: expiresAt.toISOString(),
+  });
+  return { token, url, expiresAt };
 }
+
+export async function revokeFamilyInvite(familyId, token) {
+  await revokeInvite(token);
+  const data = await readFamilyData(familyId);
+  const list = (data.activeInvites || []).filter((i) => i && i.token !== token);
+  await writeFamily(familyId, { activeInvites: list });
+}
+
+// Join by invite token. Replaces joinFamilyByCode: resolving a 6-character
+// code needed a query over /families, and that query is exactly the hole the
+// new rules close. All outstanding codes stop working — by design, there is no
+// safe bridge (mirroring codes to invites/{CODE} would re-expose a 30-bit
+// secret through a get-by-id oracle).
+export async function joinFamilyByToken({ token, uid }) {
+  if (isDemoMode()) throw tagged('demo/unavailable', 'Not available in the demo.');
+
+  const invite = await readInvite(token);
+  if (!invite) throw tagged('invite/not-found', 'That invitation link is not valid.');
+  if (invite.revoked) throw tagged('invite/revoked', 'That invitation has been revoked.');
+  if (isExpired(invite)) throw tagged('invite/expired', 'That invitation has expired.');
+
+  await updateDoc(doc(db, 'families', invite.familyId), {
+    memberIds: arrayUnion(uid),
+    // The only channel a client has to hand the token to a security rule —
+    // rules can only inspect request.resource.data.
+    lastJoinToken: token,
+  });
+  await updateDoc(doc(db, 'users', uid), { familyId: invite.familyId });
+  return { id: invite.familyId, name: invite.familyName };
+}
+
+export { inviteUrl };
 
 // Backfills `encryptionKeyJwk` on families created before the document vault
 // existed. Runs in a transaction: if two members open the app at the same

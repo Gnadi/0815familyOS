@@ -85,7 +85,7 @@ export function buildSeed() {
 
   const family = {
     name: t('demo.familyName'),
-    inviteCode: 'DEMO42',
+    activeInvites: [],
     createdBy: DEMO_UID,
     memberIds: members.map((m) => m.uid),
     encryptionKeyJwk: DEMO_ENCRYPTION_JWK,
@@ -232,6 +232,9 @@ export function buildSeed() {
         ]),
       ]),
     ],
+    // Empty, but present: demoStore.demoAdd() requires the collection to exist
+    // in this map before anything can be written to it.
+    ['invites', new Map()],
     [
       'documents',
       new Map([

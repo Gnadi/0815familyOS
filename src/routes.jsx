@@ -29,6 +29,11 @@ export const routes = [
         path: 'family-setup',
         lazy: lazyDefault(() => import('./routes/FamilySetupRoute')),
       },
+      // Invite links. Deliberately outside the protected layout: the page has
+      // to render for signed-out visitors, and FamilyGate would redirect a
+      // user without a family before they saw the invitation. The dynamic
+      // segment keeps it out of the SSG pass, so it is served by app.html.
+      { path: 'join/:token', lazy: lazyDefault(() => import('./pages/JoinPage')) },
       {
         lazy: lazyDefault(() => import('./routes/ProtectedAppLayout')),
         children: [

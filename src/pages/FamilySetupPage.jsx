@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import { ArrowLeft, Copy, Key, Plus, User } from 'lucide-react';
+import { ArrowLeft, Key, Plus } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import Spinner from '../components/common/Spinner';
 import useAuth from '../hooks/useAuth';
 import useT from '../hooks/useT';
-import { createFamily, joinFamilyByCode } from '../services/families';
+import { createFamily, joinFamilyByToken } from '../services/families';
+import { looksLikeLegacyCode, normalizeInviteToken } from '../utils/inviteToken';
+import { joinErrorMessage } from '../utils/inviteErrors';
+import InviteShareCard from '../components/invites/InviteShareCard';
 import { signOut } from '../services/auth';
 import { ensureUserDoc } from '../services/users';
 
@@ -36,11 +39,11 @@ export default function FamilySetupPage() {
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [createdCode, setCreatedCode] = useState('');
+  const [createdInvite, setCreatedInvite] = useState(null);
 
   if (loading) return <Spinner fullscreen />;
   if (!user) return <Navigate to="/login" replace />;
-  if (userDoc?.familyId && !createdCode) return <Navigate to="/dashboard" replace />;
+  if (userDoc?.familyId && !createdInvite) return <Navigate to="/dashboard" replace />;
 
   async function handleCreate(e) {
     e.preventDefault();
@@ -49,8 +52,13 @@ export default function FamilySetupPage() {
     setBusy(true);
     try {
       await ensureUserDoc(user);
-      const { inviteCode } = await createFamily({ name: familyName, uid: user.uid, locale });
-      setCreatedCode(inviteCode);
+      const invite = await createFamily({
+        name: familyName,
+        uid: user.uid,
+        displayName: userDoc?.displayName || user.displayName || '',
+        locale,
+      });
+      setCreatedInvite(invite);
     } catch (err) {
       setError(err.message || t('familySetup.errCreateFailed'));
     } finally {
@@ -60,21 +68,25 @@ export default function FamilySetupPage() {
 
   async function handleJoin(e) {
     e.preventDefault();
-    if (joinCode.trim().length < 4) return setError(t('familySetup.errCodeShort'));
+    // The old 6-character codes stopped working when invite tokens landed;
+    // say so instead of reporting a generic "not found".
+    if (looksLikeLegacyCode(joinCode)) return setError(t('familySetup.errLegacyCode'));
+    const token = normalizeInviteToken(joinCode);
+    if (!token) return setError(t('familySetup.errTokenRequired'));
     setError('');
     setBusy(true);
     try {
       await ensureUserDoc(user);
-      await joinFamilyByCode({ code: joinCode, uid: user.uid });
+      await joinFamilyByToken({ token, uid: user.uid });
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      setError(err.message || t('familySetup.errJoinFailed'));
+      setError(joinErrorMessage(err, t));
     } finally {
       setBusy(false);
     }
   }
 
-  if (createdCode) {
+  if (createdInvite) {
     return (
       <div className="min-h-screen bg-slate-50 px-5 py-8">
         <div className="mx-auto max-w-md">
@@ -83,34 +95,16 @@ export default function FamilySetupPage() {
             {t('familySetup.readySubtitle')}
           </p>
 
-          <div className="mt-6 rounded-2xl bg-white p-6 text-center shadow-card">
+          <div className="mt-6 rounded-2xl bg-white p-5 shadow-card">
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-              {t('familySetup.inviteCode')}
+              {t('familySetup.inviteLink')}
             </p>
-            <p className="mt-2 font-mono text-3xl font-bold tracking-[0.3em] text-slate-900">
-              {createdCode}
-            </p>
-            <button
-              onClick={() => navigator.clipboard?.writeText(createdCode)}
-              className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:text-brand-700"
-            >
-              <Copy size={14} /> {t('familySetup.copyCode')}
-            </button>
-          </div>
-
-          <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-white p-5">
-            <h3 className="text-sm font-semibold text-slate-900">{t('familySetup.inviteMembers')}</h3>
-            <p className="mt-1 text-xs text-slate-500">
-              {t('familySetup.inviteMembersHint')}
-            </p>
-            <div className="mt-3 space-y-2 opacity-60">
-              <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-slate-500">
-                  <User size={16} />
-                </div>
-                <span className="text-sm text-slate-600">name@example.com</span>
-              </div>
+            <div className="mt-2">
+              <InviteShareCard compact />
             </div>
+            <p className="mt-3 text-xs text-slate-400">
+              {t('familySetup.inviteLinkHint')}
+            </p>
           </div>
 
           <Button onClick={() => navigate('/dashboard', { replace: true })} className="mt-8 w-full">
@@ -173,14 +167,14 @@ export default function FamilySetupPage() {
 
         {mode === 'join' && (
           <form onSubmit={handleJoin} className="space-y-4 rounded-2xl bg-white p-5 shadow-card">
-            <h2 className="text-lg font-semibold text-slate-900">{t('familySetup.enterInviteCode')}</h2>
+            <h2 className="text-lg font-semibold text-slate-900">{t('familySetup.enterInviteLink')}</h2>
             <Input
-              label={t('familySetup.inviteCodeLabel')}
-              placeholder="ABC123"
+              label={t('familySetup.inviteLinkLabel')}
+              placeholder="https://myfaos.app/join/…"
               value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              maxLength={8}
-              className="font-mono tracking-[0.3em] uppercase"
+              onChange={(e) => setJoinCode(e.target.value)}
+              maxLength={200}
+              className="font-mono text-sm"
               autoFocus
               required
             />
