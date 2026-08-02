@@ -3,6 +3,7 @@ import Modal from '../common/Modal';
 import Input from '../common/Input';
 import Button from '../common/Button';
 import useT from '../../hooks/useT';
+import { CURRENCY_SYMBOL } from '../../utils/money';
 
 const STATUSES = [
   { id: 'idea',   labelKey: 'gifts.statusIdea' },
@@ -117,7 +118,7 @@ export default function GiftFormModal({ open, onClose, onSubmit, onDelete, initi
             {t('gifts.price')} <span className="font-normal text-slate-400">({t('common.optional')})</span>
           </span>
           <div className="relative">
-            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{CURRENCY_SYMBOL}</span>
             <input
               type="number"
               min={0}

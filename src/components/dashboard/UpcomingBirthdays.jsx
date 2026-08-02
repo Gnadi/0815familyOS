@@ -26,11 +26,15 @@ function describe(daysUntil, t) {
 export default function UpcomingBirthdays() {
   const { family } = useAuth();
   const { t, locale } = useT();
-  const kids = family?.kids || [];
   const today = new Date();
 
-  const upcoming = kids
-    .map((k) => ({ kid: k, info: nextBirthday(k.birthday, today) }))
+  // Gift recipients (grandparents, godparents, …) carry a birthday too — it is
+  // the whole point of storing one — so they belong on this list next to the
+  // kids. Ids are prefixed per list (kid_… / recip_…), so they never collide.
+  const people = [...(family?.kids || []), ...(family?.giftRecipients || [])];
+
+  const upcoming = people
+    .map((p) => ({ kid: p, info: nextBirthday(p.birthday, today) }))
     .filter((row) => row.info && row.info.daysUntil <= 60)
     .sort((a, b) => a.info.daysUntil - b.info.daysUntil);
 

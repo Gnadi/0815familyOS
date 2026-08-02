@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Pencil, ShoppingBag, Wallet } from 'lucide-react';
 import useT from '../../hooks/useT';
+import { CURRENCY_SYMBOL, formatMoney } from '../../utils/money';
 
 export default function GiftBudgetCard({ budget, gifts, onBudgetSave }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
@@ -48,7 +49,7 @@ export default function GiftBudgetCard({ budget, gifts, onBudgetSave }) {
 
       {editing ? (
         <div className="flex items-center gap-2">
-          <span className="text-slate-500 font-medium">$</span>
+          <span className="text-slate-500 font-medium">{CURRENCY_SYMBOL}</span>
           <input
             type="number"
             min={0}
@@ -75,10 +76,10 @@ export default function GiftBudgetCard({ budget, gifts, onBudgetSave }) {
       ) : (
         <div className="flex items-baseline gap-1">
           <span className="text-3xl font-bold text-slate-900">
-            ${spent.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            {formatMoney(spent, locale)}
           </span>
           <span className="text-slate-400">
-            / ${budget > 0 ? budget.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '—'}
+            / {budget > 0 ? formatMoney(budget, locale) : '—'}
           </span>
           {budget > 0 && (
             <span className="ml-auto text-sm font-semibold text-brand-600">{pct}%</span>
@@ -104,7 +105,7 @@ export default function GiftBudgetCard({ budget, gifts, onBudgetSave }) {
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('gifts.spent')}</p>
               <p className="text-lg font-bold text-slate-900">
-                ${spent.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                {formatMoney(spent, locale)}
               </p>
             </div>
           </div>
@@ -115,7 +116,7 @@ export default function GiftBudgetCard({ budget, gifts, onBudgetSave }) {
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-amber-600">{t('gifts.remaining')}</p>
               <p className="text-lg font-bold text-amber-700">
-                ${remaining.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                {formatMoney(remaining, locale)}
               </p>
             </div>
           </div>

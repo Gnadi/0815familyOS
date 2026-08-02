@@ -131,24 +131,20 @@ export function AuthProvider({ children }) {
     }
     let cancelled = false;
     (async () => {
-      const { generateEncryptionKey, importEncryptionKey } = await import(
-        '../utils/encryption'
-      );
+      const { importEncryptionKey } = await import('../utils/encryption');
       if (cancelled) return;
-      if (family.encryptionKeyJwk) {
-        const key = await importEncryptionKey(family.encryptionKeyJwk);
-        if (!cancelled) setEncryptionKey(key);
-      } else {
-        // Existing family without a key — generate one silently.
-        const { key, jwk } = await generateEncryptionKey();
-        const [{ doc, updateDoc }, { db }] = await Promise.all([
-          import('firebase/firestore'),
-          import('../lib/firebase'),
-        ]);
+      // Older families predate the vault and have no key yet. Backfilling is a
+      // transaction in the service layer so concurrent members converge on one
+      // key instead of overwriting each other's (see ensureFamilyEncryptionKey).
+      let jwk = family.encryptionKeyJwk;
+      if (!jwk) {
+        const { ensureFamilyEncryptionKey } = await import('../services/families');
         if (cancelled) return;
-        updateDoc(doc(db, 'families', family.id), { encryptionKeyJwk: jwk });
-        setEncryptionKey(key);
+        jwk = await ensureFamilyEncryptionKey(family.id);
       }
+      if (cancelled || !jwk) return;
+      const key = await importEncryptionKey(jwk);
+      if (!cancelled) setEncryptionKey(key);
     })();
     return () => {
       cancelled = true;
