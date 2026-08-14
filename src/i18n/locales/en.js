@@ -873,6 +873,37 @@ export default {
     footerPrivacy: 'Privacy',
     footerTerms: 'Terms',
     footerTagline: 'Free & open source under the MIT license.',
+    navFaq: 'FAQ',
+    skipToContent: 'Skip to content',
+    faqTitle: 'Questions families ask first',
+    faqSubtitle:
+      'Everything below is answerable from the source code — it is public, so you can check.',
+    faqItems: [
+      {
+        q: 'Is myFAOS actually free?',
+        a: 'Yes. There is no paid tier, no trial that expires, and no card to enter. The whole app is MIT-licensed, so every feature is available to every family.',
+      },
+      {
+        q: 'Can I try it before creating an account?',
+        a: 'Yes — the demo runs the full app on seeded data held in your browser tab and never contacts our backend. Nothing you do in it is saved, and closing the tab clears it.',
+      },
+      {
+        q: 'How do the rest of my family join?',
+        a: 'You create the family once, then share a six-character invite code. They enter it when signing up and land in the same shared space — no separate admin step.',
+      },
+      {
+        q: 'Do we need to install an app?',
+        a: 'No. myFAOS runs in the browser on any device. It is also a progressive web app, so you can add it to a phone home screen and it opens like a native app.',
+      },
+      {
+        q: 'Who can see our data?',
+        a: 'Only the members of your family. There are no ads, no third-party trackers, and nothing is sold on — the app makes no money from your data because it makes no money at all.',
+      },
+      {
+        q: 'What if I want to read or change the code?',
+        a: 'Go ahead. The repository is public under the MIT license: read it, fork it, run your own copy, or open a pull request.',
+      },
+    ],
     featCalendarTitle: 'Shared Calendar',
     featCalendarDesc:
       "Every appointment, practice, and parents' evening in one place. Changes sync in real time, so the moment one parent adds an event, everyone sees it.",

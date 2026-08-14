@@ -10,6 +10,8 @@ import { SITE_URL, SITE_NAME, OG_IMAGE_PATH } from '../../config/site';
 //   description   meta description (~50-160 chars, unique per page)
 //   path          absolute path on the brand domain, e.g. '/' (for canonical/og:url)
 //   image         OG/Twitter image path (defaults to the 1200x630 PNG)
+//   imageAlt      alt text for that image, read out by screen readers on the
+//                 platforms that surface the card
 //   type          og:type (default 'website')
 //   jsonLd        optional object rendered as a JSON-LD <script>
 //   noindex       when true, emit robots noindex (e.g. for thin auth pages)
@@ -18,6 +20,7 @@ export default function Seo({
   description,
   path = '/',
   image = OG_IMAGE_PATH,
+  imageAlt = `${SITE_NAME} — one shared space for your family's calendar, tasks, meals and documents.`,
   type = 'website',
   jsonLd,
   noindex = false,
@@ -44,11 +47,17 @@ export default function Seo({
       <meta property="og:image" content={imageUrl} />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
+      <meta property="og:image:alt" content={imageAlt} />
+      {/* The pre-rendered HTML is English; the switcher swaps the copy after
+          hydration, which crawlers do not see. */}
+      <meta property="og:locale" content="en_US" />
+      <meta property="og:locale:alternate" content="de_DE" />
 
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={imageUrl} />
+      <meta name="twitter:image:alt" content={imageAlt} />
 
       {jsonLd && (
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
