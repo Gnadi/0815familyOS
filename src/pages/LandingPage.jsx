@@ -17,6 +17,7 @@ import {
   Users,
   ArrowRight,
   Check,
+  ChevronDown,
   Download,
   Play,
 } from 'lucide-react';
@@ -55,16 +56,33 @@ export default function LandingPage() {
   const { canShowInstall, openInstall } = usePwaInstallContext();
   const navigate = useNavigate();
 
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
-    name: SITE_NAME,
-    applicationCategory: 'LifestyleApplication',
-    operatingSystem: 'Web',
-    url: SITE_URL,
-    description: t('landing.metaDescription'),
-    offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
-  };
+  // t() falls back to the raw key when a translation is missing, so guard the
+  // array shape rather than letting a typo take the whole page down.
+  const faqItems = Array.isArray(t('landing.faqItems')) ? t('landing.faqItems') : [];
+
+  // Two graphs in one script: the app itself, and the FAQ below, which is
+  // eligible for the question rich result only if it is mirrored here.
+  const jsonLd = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      name: SITE_NAME,
+      applicationCategory: 'LifestyleApplication',
+      operatingSystem: 'Web',
+      url: SITE_URL,
+      description: t('landing.metaDescription'),
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqItems.map(({ q, a }) => ({
+        '@type': 'Question',
+        name: q,
+        acceptedAnswer: { '@type': 'Answer', text: a },
+      })),
+    },
+  ];
 
   // Authenticated visitors are redirected away from the marketing page. This
   // runs as a post-hydration effect (not during render) so the initial render
@@ -87,6 +105,14 @@ export default function LandingPage() {
         jsonLd={jsonLd}
       />
 
+      {/* Lets keyboard users skip the sticky nav and its in-page anchors. */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-slate-900 focus:px-5 focus:py-2.5 focus:text-sm focus:font-semibold focus:text-white"
+      >
+        {t('landing.skipToContent')}
+      </a>
+
       {/* Sticky nav */}
       <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
@@ -98,6 +124,7 @@ export default function LandingPage() {
             <a href="#features" className="hover:text-slate-900">{t('landing.navFeatures')}</a>
             <a href="#open-source" className="hover:text-slate-900">{t('landing.navOpenSource')}</a>
             <a href="#how" className="hover:text-slate-900">{t('landing.navHow')}</a>
+            <a href="#faq" className="hover:text-slate-900">{t('landing.navFaq')}</a>
           </nav>
           <div className="flex items-center gap-2">
             <LocaleSwitch />
@@ -117,6 +144,7 @@ export default function LandingPage() {
         </div>
       </header>
 
+      <main id="main">
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-brand-50 to-white" />
@@ -305,6 +333,7 @@ export default function LandingPage() {
                   width={390}
                   height={844}
                   loading="lazy"
+                  decoding="async"
                   className="w-full drop-shadow-xl transition hover:-translate-y-1"
                 />
                 <figcaption className="mt-4 text-sm font-medium text-slate-600">
@@ -391,6 +420,38 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* FAQ — mirrored as FAQPage JSON-LD above */}
+      <section id="faq" className="border-t border-slate-100 bg-slate-50">
+        <div className="mx-auto max-w-3xl px-5 py-20">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              {t('landing.faqTitle')}
+            </h2>
+            <p className="mt-4 text-base leading-relaxed text-slate-600">
+              {t('landing.faqSubtitle')}
+            </p>
+          </div>
+          <div className="mt-10 space-y-3">
+            {faqItems.map(({ q, a }) => (
+              <details
+                key={q}
+                className="group rounded-2xl border border-slate-200 bg-white px-6 py-4 shadow-card"
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-slate-900 [&::-webkit-details-marker]:hidden">
+                  {q}
+                  <ChevronDown
+                    size={20}
+                    className="flex-shrink-0 text-slate-400 transition-transform group-open:rotate-180"
+                    aria-hidden
+                  />
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed text-slate-600">{a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Final CTA */}
       <section className="px-5 pb-20">
         <div className="relative mx-auto max-w-5xl overflow-hidden rounded-[2.5rem] bg-brand-500 px-6 py-16 text-center text-white sm:px-12">
@@ -427,6 +488,8 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      </main>
 
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white">

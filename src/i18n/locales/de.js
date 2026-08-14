@@ -871,6 +871,37 @@ export default {
     footerPrivacy: 'Datenschutz',
     footerTerms: 'AGB',
     footerTagline: 'Kostenlos & Open Source unter der MIT-Lizenz.',
+    navFaq: 'FAQ',
+    skipToContent: 'Zum Inhalt springen',
+    faqTitle: 'Was Familien zuerst fragen',
+    faqSubtitle:
+      'Alles hier lässt sich im Quellcode nachlesen — er ist öffentlich, du kannst es also prüfen.',
+    faqItems: [
+      {
+        q: 'Ist myFAOS wirklich kostenlos?',
+        a: 'Ja. Es gibt keine kostenpflichtige Stufe, keine ablaufende Testphase und keine Kartendaten. Die ganze App steht unter MIT-Lizenz — jede Funktion ist für jede Familie da.',
+      },
+      {
+        q: 'Kann ich es ohne Konto ausprobieren?',
+        a: 'Ja — die Demo führt die komplette App mit Beispieldaten aus, die nur in deinem Browser-Tab liegen; unser Backend wird dabei nie kontaktiert. Nichts davon wird gespeichert, und mit dem Schließen des Tabs ist alles weg.',
+      },
+      {
+        q: 'Wie kommt der Rest der Familie dazu?',
+        a: 'Du legst die Familie einmal an und teilst dann einen sechsstelligen Einladungscode. Beim Registrieren eingegeben, landen alle im selben gemeinsamen Bereich — ohne zusätzlichen Verwaltungsschritt.',
+      },
+      {
+        q: 'Müssen wir eine App installieren?',
+        a: 'Nein. myFAOS läuft im Browser auf jedem Gerät. Es ist außerdem eine Progressive Web App: Du kannst es auf den Startbildschirm legen, dann öffnet es sich wie eine native App.',
+      },
+      {
+        q: 'Wer kann unsere Daten sehen?',
+        a: 'Nur die Mitglieder eurer Familie. Es gibt keine Werbung, keine Tracker von Dritten und keinen Weiterverkauf — die App verdient nichts an euren Daten, weil sie überhaupt nichts verdient.',
+      },
+      {
+        q: 'Und wenn ich den Code lesen oder ändern will?',
+        a: 'Nur zu. Das Repository ist öffentlich unter MIT-Lizenz: lesen, forken, selbst betreiben oder einen Pull Request aufmachen.',
+      },
+    ],
     featCalendarTitle: 'Gemeinsamer Kalender',
     featCalendarDesc:
       'Jeder Termin, jedes Training und jeder Elternabend an einem Ort. Änderungen synchronisieren in Echtzeit — sobald ein Elternteil einen Termin einträgt, sehen ihn alle.',
