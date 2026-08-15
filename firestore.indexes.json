@@ -1,0 +1,14 @@
+{
+  "indexes": [
+    {
+      "//": "syncSubscription and removeSubscription ask for one subscription's mirrored events. Without this they read every event the family has ever had and filter in JS, which on the free tier is a quota problem: the sync runs hourly per family.",
+      "collectionGroup": "events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "familyId", "order": "ASCENDING" },
+        { "fieldPath": "subscriptionId", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

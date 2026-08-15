@@ -6,8 +6,10 @@ import useT from '../../hooks/useT';
 import { parseICS } from '../../utils/icsParser';
 import {
   addSubscription,
+  claimSyncLease,
   fetchRemoteICS,
   importEventsFromParsed,
+  releaseSyncLease,
   removeSubscription,
   syncSubscription,
   updateSubscriptionMeta,
@@ -209,12 +211,26 @@ function UrlSubscriptionPane({ family, userId }) {
   async function handleSyncNow(sub) {
     if (!family?.id || !userId) return;
     setBusyId(sub.id);
+    let held = false;
     try {
+      // Respect the same lease the background sync uses, so tapping this while
+      // another device is mid-sync does not race it. Silently doing nothing
+      // would be baffling after an explicit tap, so say what happened.
+      held = await claimSyncLease(family.id, sub.id);
+      if (!held) {
+        await updateSubscriptionMeta(family.id, sub.id, {
+          lastError: t('calImport.syncAlreadyRunning'),
+        });
+        return;
+      }
       await syncSubscription({ familyId: family.id, userId, subscription: sub });
     } catch (err) {
-      await updateSubscriptionMeta(family.id, sub.id, {
-        lastError: err.message || t('calImport.syncFailed'),
-      });
+      const patch = { lastError: err.message || t('calImport.syncFailed') };
+      // Hand the lease back on failure, or a broken feed blocks every other
+      // device until it expires.
+      await (held
+        ? releaseSyncLease(family.id, sub.id, patch)
+        : updateSubscriptionMeta(family.id, sub.id, patch));
     } finally {
       setBusyId(null);
     }

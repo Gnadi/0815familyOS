@@ -7,6 +7,7 @@ import {
   getDoc,
   getDocs,
   query,
+  runTransaction,
   serverTimestamp,
   Timestamp,
   updateDoc,
@@ -67,6 +68,69 @@ export async function updateSubscriptionMeta(familyId, subId, patch) {
   await updateDoc(famRef, { calendarSubscriptions: list });
 }
 
+// How long a claimed sync is assumed to be running. Short, because the only cost
+// of it expiring early is a second device syncing too — while a long lease left
+// by a closed tab would block syncing for that whole time.
+export const SYNC_LEASE_MS = 5 * 60 * 1000;
+
+/**
+ * Claim the right to sync one subscription.
+ *
+ * Every member's browser tries to re-sync stale subscriptions when the app opens
+ * (see AppShell). Without a lease, three members opening the app in the same hour
+ * each ran a full sync of every subscription: three ICS fetches, three reads of
+ * the family's events, three write batches, racing on the same documents. On the
+ * free tier that is also a quota problem — 500 events × 3 members × 24 hourly
+ * syncs is ~36k reads a day for one family, against a 50k ceiling.
+ *
+ * Modelled on the daily-lock transaction in Kaydo's useAnniversaryReminder, but
+ * per subscription rather than per family per day: this code already wants hourly
+ * freshness, so a daily lock would be a regression.
+ *
+ * The read and the write are one transaction, which is the whole point — two
+ * devices checking an unlocked lease at the same time must not both win.
+ *
+ * @returns {Promise<boolean>} true when the caller may proceed
+ */
+export async function claimSyncLease(familyId, subId, now = Date.now()) {
+  const famRef = doc(db, 'families', familyId);
+  let won = false;
+  await runTransaction(db, async (tx) => {
+    won = false;
+    const snap = await tx.get(famRef);
+    if (!snap.exists()) return;
+
+    const list = snap.data()?.calendarSubscriptions || [];
+    const target = list.find((s) => s && s.id === subId);
+    if (!target) return;
+
+    const heldUntil = target.syncLeaseUntil ? new Date(target.syncLeaseUntil).getTime() : 0;
+    // A lease from a tab that was closed mid-sync expires on its own.
+    if (heldUntil > now) return;
+
+    tx.update(famRef, {
+      calendarSubscriptions: list.map((s) =>
+        s && s.id === subId
+          ? { ...s, syncLeaseUntil: new Date(now + SYNC_LEASE_MS).toISOString() }
+          : s,
+      ),
+    });
+    won = true;
+  });
+  return won;
+}
+
+/**
+ * Give the lease back, so another device can sync before it would have expired.
+ *
+ * Optimistic on purpose: updateSubscriptionMeta does a read-modify-write of the
+ * whole array and is racy, which is fine for release — losing this write only
+ * means waiting out the lease — but is exactly why claiming uses a transaction.
+ */
+export async function releaseSyncLease(familyId, subId, patch = {}) {
+  return updateSubscriptionMeta(familyId, subId, { ...patch, syncLeaseUntil: null });
+}
+
 export async function removeSubscription(familyId, subId) {
   const famRef = doc(db, 'families', familyId);
   const snap = await getDoc(famRef);
@@ -75,10 +139,15 @@ export async function removeSubscription(familyId, subId) {
   );
   await updateDoc(famRef, { calendarSubscriptions: list });
 
-  // Remove all events tied to this subscription.
-  const q = query(eventsRef, where('familyId', '==', familyId));
-  const all = await getDocs(q);
-  const targets = all.docs.filter((d) => d.data().subscriptionId === subId);
+  // Remove all events tied to this subscription. Asked for by subscription
+  // rather than reading every event the family has ever had and filtering here
+  // — see the composite index in firestore.indexes.json.
+  const q = query(
+    eventsRef,
+    where('familyId', '==', familyId),
+    where('subscriptionId', '==', subId),
+  );
+  const targets = (await getDocs(q)).docs;
   if (targets.length === 0) return;
   const batch = writeBatch(db);
   targets.forEach((d) => batch.delete(d.ref));
@@ -91,11 +160,14 @@ export async function syncSubscription({ familyId, userId, subscription }) {
   if (isDemoMode()) throw new Error('Calendar subscriptions are disabled in the demo.');
   const { events: remoteEvents } = await fetchRemoteICS(subscription.url);
 
-  const q = query(eventsRef, where('familyId', '==', familyId));
-  const allSnap = await getDocs(q);
-  const existing = allSnap.docs.filter(
-    (d) => d.data().subscriptionId === subscription.id,
+  // Scoped to this subscription. This is the read that runs hourly per family,
+  // so it is the one that matters for the free-tier quota.
+  const q = query(
+    eventsRef,
+    where('familyId', '==', familyId),
+    where('subscriptionId', '==', subscription.id),
   );
+  const existing = (await getDocs(q)).docs;
   const byUid = new Map();
   existing.forEach((d) => {
     const uid = d.data().externalId;
@@ -129,7 +201,13 @@ export async function syncSubscription({ familyId, userId, subscription }) {
 
     const known = byUid.get(ev.uid);
     if (known) {
-      batch.update(known.ref, payload);
+      // userId is deliberately left out of the update. It is set once, when the
+      // mirror is created, because the events create rule requires it to be the
+      // caller. Rewriting it on every sync handed ownership of every mirrored
+      // event to whichever member happened to hold the lease that hour, and
+      // nothing reads the field anyway.
+      const { userId: _ownedByCreator, ...mutable } = payload;
+      batch.update(known.ref, mutable);
     } else {
       const newRef = doc(eventsRef);
       batch.set(newRef, { ...payload, createdAt: serverTimestamp() });
@@ -157,9 +235,13 @@ export async function syncSubscription({ familyId, userId, subscription }) {
   }
   if (writes > 0) await batch.commit();
 
+  // One write, not two: the lease is released here rather than by the caller, so
+  // a successful sync does not do updateSubscriptionMeta's read-modify-write
+  // twice over and cannot race itself.
   await updateSubscriptionMeta(familyId, subscription.id, {
     lastSyncAt: new Date().toISOString(),
     lastError: null,
+    syncLeaseUntil: null,
   });
 
   return { count: remoteEvents.length };

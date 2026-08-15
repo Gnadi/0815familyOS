@@ -10,7 +10,11 @@ import { AddActionContext } from '../../context/AddActionContext';
 import { createEvent } from '../../services/events';
 import { createTask } from '../../services/tasks';
 import { createGift } from '../../services/gifts';
-import { syncSubscription, updateSubscriptionMeta } from '../../services/calendarSubscriptions';
+import {
+  claimSyncLease,
+  releaseSyncLease,
+  syncSubscription,
+} from '../../services/calendarSubscriptions';
 
 const SYNC_STALE_MS = 60 * 60 * 1000; // re-sync subscriptions older than 1 hour
 
@@ -44,6 +48,11 @@ export default function AppShell() {
   // Re-sync any stale calendar subscriptions in the background once per
   // session. Intentionally fire-and-forget; errors land in the subscription's
   // lastError field and surface in Settings.
+  //
+  // `syncedThisSession` is per tab, so it only stops *this* device syncing twice.
+  // Every member's browser runs this effect independently, which is what
+  // claimSyncLease is for: the lease is the only thing making "once an hour"
+  // true across a family rather than per device.
   const syncedThisSession = useRef(new Set());
   useEffect(() => {
     if (!family?.id || !user?.uid) return;
@@ -53,16 +62,33 @@ export default function AppShell() {
       if (!sub?.id || syncedThisSession.current.has(sub.id)) continue;
       const last = sub.lastSyncAt ? new Date(sub.lastSyncAt).getTime() : 0;
       if (now - last < SYNC_STALE_MS) continue;
+      // Marked before the await so a re-render cannot queue a second attempt at
+      // the same subscription while the claim is still in flight.
       syncedThisSession.current.add(sub.id);
-      syncSubscription({ familyId: family.id, userId: user.uid, subscription: sub }).catch(
-        (err) => {
-          updateSubscriptionMeta(family.id, sub.id, {
-            lastError: err.message || 'Background sync failed.',
-          }).catch(() => {});
-        },
-      );
+      syncStaleSubscription(family.id, user.uid, sub);
     }
   }, [family?.id, user?.uid, family?.calendarSubscriptions]);
+
+  /** Claim the lease, sync, then hand it back. Never throws. */
+  async function syncStaleSubscription(familyId, userId, sub) {
+    let held = false;
+    try {
+      held = await claimSyncLease(familyId, sub.id);
+      // Another member's device got there first. Theirs will write lastSyncAt,
+      // and this device picks the result up through the family listener.
+      if (!held) return;
+      // Releases the lease as part of its own final metadata write.
+      await syncSubscription({ familyId, userId, subscription: sub });
+    } catch (err) {
+      if (held) {
+        // Release even on failure, or a broken feed would block every other
+        // device for the length of the lease.
+        await releaseSyncLease(familyId, sub.id, {
+          lastError: err.message || 'Background sync failed.',
+        }).catch(() => {});
+      }
+    }
+  }
 
   async function handleCreateEvent(values) {
     await createEvent({ familyId: userDoc.familyId, userId: user.uid, ...values });

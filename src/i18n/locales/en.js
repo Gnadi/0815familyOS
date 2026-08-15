@@ -250,7 +250,8 @@ export default {
     importEvents: 'Import {n} events',
     howAutoSyncTitle: 'How auto-sync works',
     howAutoSync1: 'You paste a private iCal link from your existing calendar.',
-    howAutoSync2: 'myFAOS fetches it now and keeps it refreshed in the background.',
+    howAutoSync2:
+      'myFAOS fetches it now, and refreshes it whenever someone in the family opens the app (at most once an hour).',
     howAutoSync3: 'Synced events are read-only mirrors: they update or disappear when the source changes. Edit them in the original calendar, not here.',
     howAutoSync4: 'The link is stored only inside your family. Treat it like a password.',
     showGuide: 'Show step-by-step guide',
@@ -260,6 +261,7 @@ export default {
     testSubscribe: 'Test & subscribe',
     initialSyncFailed: 'Initial sync failed.',
     couldNotSubscribe: 'Could not subscribe to that calendar.',
+    syncAlreadyRunning: 'Someone else in the family is syncing this calendar right now. Try again in a moment.',
     syncFailed: 'Sync failed.',
     removeConfirm: 'Remove "{label}" and delete its synced events?',
     activeSubscriptions: 'Active subscriptions',

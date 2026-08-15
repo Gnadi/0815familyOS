@@ -248,7 +248,8 @@ export default {
     importEvents: '{n} Termine importieren',
     howAutoSyncTitle: 'So funktioniert Auto-Sync',
     howAutoSync1: 'Du fügst einen privaten iCal-Link aus deinem bestehenden Kalender ein.',
-    howAutoSync2: 'myFAOS ruft ihn jetzt ab und hält ihn im Hintergrund aktuell.',
+    howAutoSync2:
+      'myFAOS ruft ihn jetzt ab und aktualisiert ihn, sobald jemand aus der Familie die App öffnet (höchstens einmal pro Stunde).',
     howAutoSync3: 'Synchronisierte Termine sind schreibgeschützte Spiegel: Sie werden aktualisiert oder verschwinden, wenn sich die Quelle ändert. Bearbeite sie im Originalkalender, nicht hier.',
     howAutoSync4: 'Der Link wird nur in deiner Familie gespeichert. Behandle ihn wie ein Passwort.',
     showGuide: 'Schritt-für-Schritt-Anleitung anzeigen',
@@ -258,6 +259,7 @@ export default {
     testSubscribe: 'Testen & abonnieren',
     initialSyncFailed: 'Erste Synchronisierung fehlgeschlagen.',
     couldNotSubscribe: 'Dieser Kalender konnte nicht abonniert werden.',
+    syncAlreadyRunning: 'Jemand anderes aus der Familie synchronisiert diesen Kalender gerade. Versuch es in einem Moment erneut.',
     syncFailed: 'Synchronisierung fehlgeschlagen.',
     removeConfirm: '„{label}“ entfernen und die synchronisierten Termine löschen?',
     activeSubscriptions: 'Aktive Abonnements',
