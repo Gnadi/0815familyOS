@@ -222,6 +222,18 @@ export default {
     exportFailed: 'Export fehlgeschlagen.',
     signOut: 'Abmelden',
   },
+  reminders: {
+    title: 'Erinnerungen',
+    empty: 'Im Moment ist nichts offen.',
+    overdue: 'Überfällig',
+    vaccDue: '{name} · fällig am {date}',
+    vaccOverdue: '{name} · überfällig',
+    eventToday: 'Heute',
+    taskToday: 'Heute fällig',
+    birthdayBody: 'Wird {age} · {when}',
+    foreground:
+      'Erinnerungen erscheinen, solange myFAOS geöffnet ist. Bei geschlossener App wird nichts gesendet.',
+  },
   calImport: {
     title: 'Kalender-Import',
     intro: 'Hol Termine aus Google, iCloud, Outlook oder jeder iCal-Quelle in deinen Familienkalender.',

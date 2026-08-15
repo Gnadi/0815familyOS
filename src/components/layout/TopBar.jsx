@@ -3,12 +3,15 @@ import useUIPreferences from '../../hooks/useUIPreferences';
 import useT from '../../hooks/useT';
 import { useAddAction } from '../../context/AddActionContext';
 import BrandMark from '../brand/BrandMark';
+import ReminderBell from '../reminders/ReminderBell';
 
 export default function TopBar({
   title,
   showAdd = true,
   right = null,
   onBack = null,
+  // Off for the signed-out shell, which has no family to remind anyone about.
+  showReminders = true,
 }) {
   const { skin } = useUIPreferences();
   const { t } = useT();
@@ -32,6 +35,7 @@ export default function TopBar({
               <span />
             )}
             <div className="flex items-center gap-1">
+              {showReminders && <ReminderBell />}
               {right}
               {showAdd && onAdd && (
                 <button
@@ -65,6 +69,7 @@ export default function TopBar({
           <h1 className="text-lg font-bold text-slate-900">{heading}</h1>
         </div>
         <div className="flex items-center gap-2">
+          {showReminders && <ReminderBell />}
           {right}
         </div>
       </div>

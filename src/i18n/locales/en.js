@@ -224,6 +224,18 @@ export default {
     exportFailed: 'Export failed.',
     signOut: 'Sign out',
   },
+  reminders: {
+    title: 'Reminders',
+    empty: 'Nothing needs attention right now.',
+    overdue: 'Overdue',
+    vaccDue: '{name} · due {date}',
+    vaccOverdue: '{name} · overdue',
+    eventToday: 'Today',
+    taskToday: 'Due today',
+    birthdayBody: 'Turns {age} · {when}',
+    foreground:
+      'Reminders appear while myFAOS is open. Nothing is sent while the app is closed.',
+  },
   calImport: {
     title: 'Calendar Import',
     intro: 'Bring events from Google, iCloud, Outlook or any iCal source into your family calendar.',
