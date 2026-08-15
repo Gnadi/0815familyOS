@@ -1,16 +1,19 @@
 # myFAOS
 
-Mobile-first web app that helps families coordinate schedules, tasks, and
-child documentation. This repository contains the MVP build — a Shared
-Calendar backed by Firebase plus static UI stubs for the other planned
-modules (Document Vault, Gift Planner, Task Manager).
+Mobile-first web app that helps families coordinate schedules, tasks, meals,
+shopping, documents, health records and gifts. Nine modules, all of them
+backed by Firestore — there are no stub screens left. Two runtime design
+skins (Material and iOS), five colour themes, dark mode, English and
+German, an installable PWA, and a fully offline demo mode that needs no
+account.
 
 ## Tech Stack
 
 - **Frontend:** React 18 + Vite
 - **Styling:** Tailwind CSS, Inter (Google Fonts)
 - **Backend:** Firebase — Authentication (Email/Password + Google) and Firestore
-- **Image storage:** Cloudinary env vars reserved for future features
+- **File storage:** Cloudinary, for the Document Vault. Files are AES-256-GCM
+  encrypted in the browser before upload; the key lives on the family document
 - **Routing:** react-router-dom
 - **Date math:** date-fns
 - **Icons:** lucide-react
@@ -57,9 +60,15 @@ src/
    firebase deploy --only firestore:rules
    ```
 
-4. **Cloudinary (optional)**
-   `VITE_CLOUDINARY_*` env vars are reserved for future image-upload
-   features (e.g. Document Vault). They can be left empty for the MVP.
+4. **Cloudinary (needed for the Document Vault)**
+   `VITE_CLOUDINARY_CLOUD_NAME` on the client, plus `CLOUDINARY_API_KEY` and
+   `CLOUDINARY_API_SECRET` server-side for `api/cloudinary-sign.js` and
+   `api/cloudinary-destroy.js`. Deleting a vault file also needs
+   `FIREBASE_WEB_API_KEY` and `FIREBASE_PROJECT_ID`, because the destroy
+   endpoint authorises the caller before removing anything.
+
+   Leave them empty and the app runs — the vault simply saves entries without
+   their attachments and says so.
 
 5. **Run locally**
    ```bash
@@ -87,8 +96,31 @@ families/{id}         { name, createdBy, memberIds[], encryptionKeyJwk,
                         activeInvites[], lastJoinToken?, createdAt }
 invites/{token}       { familyId, familyName, createdBy, createdByName,
                         revoked, expiresAt, createdAt }   // doc id IS the token
-events/{id}           { familyId, userId, title, description?, date, createdAt, updatedAt }
+events/{id}           { familyId, userId, title, description?, date, category,
+                        kids[], responsibleParent, effortLevel, recurrence?,
+                        source?: 'import'|'subscription', externalId?,
+                        subscriptionId?, createdAt, updatedAt }
+tasks/{id}            { familyId, userId, title, status, priority, storyPoints,
+                        progress, assignees[], recurrence?, dueDate }
+gifts/{id}            { familyId, userId, recipientId, title, price, ... }
+documents/{id}        { familyId, userId, type: 'document'|'trophy', title,
+                        category, fileUrl?, filePublicId?, fileName?, awardedTo? }
+shoppingItems/{id}    { familyId, userId, title, done, quantity, icon, urgent,
+                        offer, ifConvenient }
+recipes/{id}          { familyId, userId, title, ingredients[], steps[], link? }
+mealPlanEntries/{id}  { familyId, userId, date, slot, recipeId, cook }
+vaccinations/{id}     { familyId, kidId, name, date,
+                        status: 'done'|'next_up'|'pending' }
 ```
+
+Sub-entities that live as arrays *inside* the family document rather than as
+collections of their own: `kids`, `cooks`, `giftRecipients`,
+`calendarSubscriptions`, `customCategories`, `disabledBuiltins`,
+`customDocCategories`, `customTrophyCategories`.
+
+There is no `firestore.indexes.json` beyond the one composite index the
+calendar sync needs (`events` on `familyId` + `subscriptionId`); every other
+query is single-field.
 
 ## Auth & Family Flow
 
@@ -138,13 +170,17 @@ Links are `/join/:token` and are handled by `src/pages/JoinPage.jsx`.
 
 ## Out of scope (future work)
 
-Per the MVP spec, these are intentionally **not** implemented:
-
-- Gift Planner logic
-- Document Vault uploads
-- Notifications / email delivery of invites (links work; email does not)
-- AI features
-- Payments
-
-The Dashboard's `WorkloadBalance`, `HealthAlerts`, and `QuickAccess`
-widgets are static placeholders and match the provided design.
+- **Push notifications.** Reminders appear in-app (a bell in the top bar, fed
+  by `useReminders`) and, while a tab is open, as an OS notification through
+  the service worker. Real push needs a Cloud Function to send it, which needs
+  the Blaze plan — and the only trigger available here is a client that is
+  already open, at which point push was unnecessary.
+- **Scheduled jobs.** There is no cron and no Cloud Function. Calendar
+  subscriptions re-sync when someone opens the app, at most once an hour per
+  family, coordinated by a lease on the family document. A family that nobody
+  opens for a week does not sync for a week.
+- **Email delivery of invites.** Invite links work; nothing sends them for you.
+- **A full role model.** There is an owner (`createdBy`) who alone may remove
+  members, and the vault key cannot be replaced once set. Beyond that every
+  member has equal rights over the family's data.
+- **AI features, payments.**
