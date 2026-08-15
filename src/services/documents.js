@@ -14,6 +14,7 @@ import { db } from '../lib/firebase';
 import { DEFAULT_DOC_CATEGORY, DEFAULT_TROPHY_CATEGORY } from '../constants/documentCategories';
 import { isDemoMode } from '../lib/demoMode';
 import { demoAdd, demoDelete, demoSubscribe, demoUpdate } from './demoStore';
+import { destroyUploadedFile } from './cloudinary';
 
 const docsRef = collection(db, 'documents');
 
@@ -105,9 +106,33 @@ export function updateDocument(id, fields) {
   return updateDoc(doc(db, 'documents', id), payload);
 }
 
-// Note: does not delete the file from Cloudinary — a server-side function
-// would be needed for that. The Cloudinary file remains accessible via its URL.
-export function deleteDocument(id) {
+/**
+ * Delete a vault document, and the encrypted file behind it.
+ *
+ * This used to remove only the Firestore record, leaving the file live at its
+ * Cloudinary URL forever — for a vault, "deleted" has to mean deleted.
+ *
+ * The file goes first, deliberately: api/cloudinary-destroy.js authorises the
+ * caller by reading this very document as them, so removing the record first
+ * would destroy the only proof that the file is theirs to delete.
+ *
+ * A failure to remove the file does not block removing the record. Refusing to
+ * delete anything because a third-party API is down would be worse — the record
+ * is what the family sees, and an orphan is exactly the state this code was in
+ * before. It is reported rather than swallowed.
+ */
+export async function deleteDocument(id, { filePublicId, fileName } = {}) {
   if (isDemoMode()) return demoDelete('documents', id);
-  return deleteDoc(doc(db, 'documents', id));
+
+  let fileError = null;
+  if (filePublicId) {
+    try {
+      await destroyUploadedFile({ documentId: id, publicId: filePublicId, fileName });
+    } catch (err) {
+      fileError = err;
+    }
+  }
+
+  await deleteDoc(doc(db, 'documents', id));
+  if (fileError) throw fileError;
 }

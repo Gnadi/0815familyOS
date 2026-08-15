@@ -12,7 +12,7 @@ import { tLabel } from '../../i18n/labels';
 import { DEFAULT_DOC_CATEGORY, DEFAULT_TROPHY_CATEGORY } from '../../constants/documentCategories';
 import { COLOR_PALETTE, PALETTE_COLORS } from '../../constants/eventCategories';
 import { addVaultCategory, deleteVaultCategory } from '../../services/families';
-import { uploadFile, validateFile } from '../../services/cloudinary';
+import { FILE_ACCEPT, uploadFile, validateFile } from '../../services/cloudinary';
 
 function toDateInput(d) {
   return d ? format(d, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
@@ -398,7 +398,11 @@ export default function DocumentFormModal({
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf,.docx,.xls,.xlsx"
+            // Kept in step with ALLOWED_EXTENSIONS in services/cloudinary.js.
+            // `capture` is deliberately absent: on a phone this leaves both the
+            // camera and the photo library available, and photographing a
+            // certificate is the point of accepting images at all.
+            accept={FILE_ACCEPT}
             className="hidden"
             onChange={handleFileChange}
           />

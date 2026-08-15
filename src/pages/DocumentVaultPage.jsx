@@ -91,6 +91,8 @@ export default function DocumentVaultPage() {
   const [activeTab, setActiveTab] = useState('documents');
   const [modal, setModal] = useState(null); // null | { type, initial? }
   const [searchQuery, setSearchQuery] = useState('');
+  // Only ever set when a delete removed the record but not the stored file.
+  const [deleteWarning, setDeleteWarning] = useState('');
 
   const filteredDocuments = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -129,7 +131,17 @@ export default function DocumentVaultPage() {
 
   async function handleDelete() {
     if (!modal?.initial) return;
-    await deleteDocument(modal.initial.id);
+    const { id, filePublicId, fileName } = modal.initial;
+    try {
+      await deleteDocument(id, { filePublicId, fileName });
+    } catch (err) {
+      // The record is gone either way; what failed is removing the stored file,
+      // and leaving that silent would mean claiming a deletion that did not
+      // fully happen.
+      setDeleteWarning(
+        err.code === 'file/delete-failed' ? t('vault.fileDeleteFailed') : err.message,
+      );
+    }
     setModal(null);
   }
 
@@ -137,6 +149,21 @@ export default function DocumentVaultPage() {
     <>
       <TopBar title={t('vault.title')} />
       <main className="mx-auto max-w-md space-y-5 px-5 py-6">
+        {/* The entry is gone but its file is not. Say so rather than let the
+            list imply a complete deletion. */}
+        {deleteWarning && (
+          <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
+            <span className="flex-1">{deleteWarning}</span>
+            <button
+              type="button"
+              onClick={() => setDeleteWarning('')}
+              aria-label={t('common.close')}
+              className="rounded-full p-0.5 hover:bg-amber-100"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
         <div className="relative">
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
