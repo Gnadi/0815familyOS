@@ -211,6 +211,11 @@ export default {
     copy: 'Copy',
     members_one: '{count} member',
     members_other: '{count} members',
+    owner: 'Owner',
+    removeMemberLabel: 'Remove {name}',
+    removeMemberConfirm:
+      'Remove {name} from the family?\n\nThey lose access immediately. Everything they added — events, tasks, documents — stays.',
+    removeMemberFailed: 'Could not remove that member.',
     kids: 'Kids',
     birthday: 'Birthday',
     addChildName: 'Add child name',

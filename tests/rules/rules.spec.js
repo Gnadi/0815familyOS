@@ -243,3 +243,136 @@ describe('invites', () => {
     await assertFails(deleteDoc(doc(asOutsider(), 'invites', GOOD)));
   });
 });
+
+/* The families update rule used to be unconditional for members, and the comment
+   above it in firestore.rules said what that cost: "a *member* can still
+   overwrite encryptionKeyJwk or remove other members."
+
+   Both are now closed, anchored on `createdBy` alone rather than a full role
+   model. MEMBER is the family's creator in this fixture, so these add a second,
+   non-owner member to test against. */
+describe('families: the vault key', () => {
+  const SECOND = 'second-uid';
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'families', FAMILY), {
+        memberIds: [MEMBER, SECOND],
+      });
+    });
+  });
+
+  const asSecond = () => testEnv.authenticatedContext(SECOND).firestore();
+
+  it('cannot be replaced by a member', async () => {
+    // Not a leak — it would make every encrypted document in the family
+    // permanently unreadable, which is worse.
+    await assertFails(
+      updateDoc(doc(asSecond(), 'families', FAMILY), { encryptionKeyJwk: { k: 'mine-now' } }),
+    );
+  });
+
+  it('cannot be replaced by the owner either', async () => {
+    await assertFails(
+      updateDoc(doc(asMember(), 'families', FAMILY), { encryptionKeyJwk: { k: 'mine-now' } }),
+    );
+  });
+
+  it('can still be filled in when absent, by any member', async () => {
+    // services/families.js backfills this for families predating the vault, and
+    // any member may trigger it — so the rule must allow first write.
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'families', 'fam-nokey'), {
+        name: 'No Key Yet',
+        createdBy: MEMBER,
+        memberIds: [MEMBER, SECOND],
+        activeInvites: [],
+      });
+    });
+
+    await assertSucceeds(
+      updateDoc(doc(asSecond(), 'families', 'fam-nokey'), { encryptionKeyJwk: { k: 'fresh' } }),
+    );
+  });
+
+  it('does not block unrelated edits', async () => {
+    await assertSucceeds(updateDoc(doc(asSecond(), 'families', FAMILY), { name: 'Renamed' }));
+  });
+});
+
+describe('families: removing members', () => {
+  const SECOND = 'second-uid';
+  const THIRD = 'third-uid';
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'families', FAMILY), {
+        memberIds: [MEMBER, SECOND, THIRD],
+      });
+    });
+  });
+
+  const asSecond = () => testEnv.authenticatedContext(SECOND).firestore();
+
+  it('lets the owner remove someone', async () => {
+    await assertSucceeds(
+      updateDoc(doc(asMember(), 'families', FAMILY), { memberIds: [MEMBER, THIRD] }),
+    );
+  });
+
+  it('does not let a member remove anyone', async () => {
+    await assertFails(
+      updateDoc(doc(asSecond(), 'families', FAMILY), { memberIds: [MEMBER, SECOND] }),
+    );
+  });
+
+  it('does not let a member remove the owner', async () => {
+    await assertFails(
+      updateDoc(doc(asSecond(), 'families', FAMILY), { memberIds: [SECOND, THIRD] }),
+    );
+  });
+
+  it('does not let the owner remove themselves', async () => {
+    // A family with no owner could never remove anyone again.
+    await assertFails(
+      updateDoc(doc(asMember(), 'families', FAMILY), { memberIds: [SECOND, THIRD] }),
+    );
+  });
+
+  it('does not let the owner add someone without an invite', async () => {
+    // Growth goes through the join rule, which requires a live token.
+    await assertFails(
+      updateDoc(doc(asMember(), 'families', FAMILY), {
+        memberIds: [MEMBER, SECOND, THIRD, OUTSIDER],
+      }),
+    );
+  });
+
+  it('does not let an outsider remove anyone', async () => {
+    await assertFails(
+      updateDoc(doc(asOutsider(), 'families', FAMILY), { memberIds: [MEMBER] }),
+    );
+  });
+});
+
+describe('families: ownership', () => {
+  const SECOND = 'second-uid';
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'families', FAMILY), {
+        memberIds: [MEMBER, SECOND],
+      });
+    });
+  });
+
+  it('cannot be taken by a member', async () => {
+    // Without this, everything above is one write away from being bypassed.
+    const asSecond = () => testEnv.authenticatedContext(SECOND).firestore();
+    await assertFails(updateDoc(doc(asSecond(), 'families', FAMILY), { createdBy: SECOND }));
+  });
+
+  it('cannot be handed over by the owner', async () => {
+    await assertFails(updateDoc(doc(asMember(), 'families', FAMILY), { createdBy: SECOND }));
+  });
+});

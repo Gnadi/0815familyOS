@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { ArrowDown, ArrowUp, Cake, Check, Download, Languages, LayoutGrid, LogOut, Moon, Palette, Plus, Smartphone, Sun, Trash2, Users } from 'lucide-react';
+import { ArrowDown, ArrowUp, Cake, Check, Download, Languages, LayoutGrid, LogOut, Moon, Palette, Plus, Smartphone, Sun, Trash2, UserMinus, Users } from 'lucide-react';
 import { QUICK_ACCESS_ENTRIES } from '../constants/quickAccessEntries';
 import TopBar from '../components/layout/TopBar';
 import Button from '../components/common/Button';
 import useAuth from '../hooks/useAuth';
+import useFamilyMembers from '../hooks/useFamilyMembers';
 import useUIPreferences from '../hooks/useUIPreferences';
 import useT from '../hooks/useT';
 import { SKINS, THEMES } from '../context/UIPreferencesContext';
 import { LOCALES } from '../i18n/config';
-import { addKid, removeKid, updateKid } from '../services/families';
+import { addKid, removeKid, removeMember, updateKid } from '../services/families';
 import InviteShareCard from '../components/invites/InviteShareCard';
 import { exportFamilyData } from '../utils/exportFamily';
 import CalendarImportSection from '../components/settings/CalendarImportSection';
@@ -28,9 +29,32 @@ export default function SettingsPage() {
   const { user, userDoc, family, signOut } = useAuth();
   const { theme, setTheme, mode, setMode, skin, setSkin, showLabels, setShowLabels, quickAccess, setQuickAccess } = useUIPreferences();
   const { t, tn, locale, setLocale } = useT();
+  const familyMembers = useFamilyMembers();
   const [newKidName, setNewKidName] = useState('');
   const [exportBusy, setExportBusy] = useState(false);
   const [exportError, setExportError] = useState('');
+  const [removingUid, setRemovingUid] = useState(null);
+  const [memberError, setMemberError] = useState('');
+
+  // Only the creator sees the remove controls, matching what firestore.rules
+  // will actually permit.
+  const isViewerOwner = Boolean(family?.createdBy && user?.uid === family.createdBy);
+
+  async function handleRemoveMember(member) {
+    if (!family?.id) return;
+    const ok = window.confirm(t('settings.removeMemberConfirm', { name: member.displayName }));
+    if (!ok) return;
+    setMemberError('');
+    setRemovingUid(member.uid);
+    try {
+      await removeMember(family.id, member.uid);
+    } catch (err) {
+      setMemberError(err.message || t('settings.removeMemberFailed'));
+    } finally {
+      setRemovingUid(null);
+    }
+  }
+
   async function handleAddKid(e) {
     e.preventDefault();
     const name = newKidName.trim();
@@ -271,6 +295,42 @@ export default function SettingsPage() {
               <Users size={16} className="text-slate-400" />
               <span>{tn('settings.members', family.memberIds?.length || 1)}</span>
             </div>
+
+            {/* Until now there was no way to remove anyone at all — memberIds
+                was only ever added to. firestore.rules permits it for the
+                family's creator only, so the control appears only for them. */}
+            <div className="mt-3 space-y-2">
+              {familyMembers.map((member) => {
+                const isOwner = member.uid === family.createdBy;
+                return (
+                  <div
+                    key={member.uid}
+                    className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5"
+                  >
+                    <span className="flex-1 truncate text-sm text-slate-900">
+                      {member.displayName}
+                      {isOwner && (
+                        <span className="ml-2 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600">
+                          {t('settings.owner')}
+                        </span>
+                      )}
+                    </span>
+                    {isViewerOwner && !isOwner && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMember(member)}
+                        disabled={removingUid === member.uid}
+                        aria-label={t('settings.removeMemberLabel', { name: member.displayName })}
+                        className="rounded-full p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                      >
+                        <UserMinus size={16} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {memberError && <p className="mt-2 text-xs text-red-600">{memberError}</p>}
           </section>
         )}
 

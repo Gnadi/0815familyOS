@@ -209,6 +209,11 @@ export default {
     copy: 'Kopieren',
     members_one: '{count} Mitglied',
     members_other: '{count} Mitglieder',
+    owner: 'Eigentümer',
+    removeMemberLabel: '{name} entfernen',
+    removeMemberConfirm:
+      '{name} aus der Familie entfernen?\n\nDer Zugriff endet sofort. Alles, was diese Person eingetragen hat — Termine, Aufgaben, Dokumente — bleibt erhalten.',
+    removeMemberFailed: 'Das Mitglied konnte nicht entfernt werden.',
     kids: 'Kinder',
     birthday: 'Geburtstag',
     addChildName: 'Name des Kindes',

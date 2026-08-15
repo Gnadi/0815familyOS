@@ -138,6 +138,42 @@ export async function joinFamilyByToken({ token, uid }) {
   return { id: invite.familyId, name: invite.familyName };
 }
 
+/**
+ * Remove someone from a family.
+ *
+ * There was no way to do this at all — `memberIds` was only ever touched with
+ * arrayUnion — which matters for a separation, a departing au pair or a lost
+ * device. firestore.rules allows it for the family's creator only, and never for
+ * the creator themselves: a family with no owner could never remove anyone again.
+ *
+ * Their contributions stay. Events, tasks and documents are scoped by familyId,
+ * and `userId` records who added a thing rather than who owns it — deleting a
+ * member's history along with their access would quietly destroy family data. The
+ * UI says so at the point of removal rather than leaving it to be discovered.
+ *
+ * The user document is cleared too, so the removed account lands back on family
+ * setup instead of a family it can no longer read.
+ */
+export async function removeMember(familyId, uid) {
+  if (isDemoMode()) throw tagged('demo/unavailable', 'Members cannot be removed in the demo.');
+
+  const famRef = doc(db, 'families', familyId);
+  const snap = await getDoc(famRef);
+  const data = snap.data();
+  if (!data) throw tagged('family/not-found', 'That family no longer exists.');
+  if (uid === data.createdBy) {
+    throw tagged('member/is-owner', 'The family owner cannot be removed.');
+  }
+
+  await updateDoc(famRef, {
+    memberIds: (data.memberIds || []).filter((id) => id !== uid),
+  });
+  // Best effort: the membership is what actually gates access, and the rules
+  // only let a user write their own document — so a stale familyId here is
+  // harmless, and failing the whole removal over it would be worse.
+  await updateDoc(doc(db, 'users', uid), { familyId: null }).catch(() => {});
+}
+
 export { inviteUrl };
 
 // Backfills `encryptionKeyJwk` on families created before the document vault

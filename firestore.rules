@@ -32,10 +32,38 @@ service cloud.firestore {
     // Nothing in the client lists this collection any more; joining goes
     // through /invites/{token} below.
     //
-    // Known residual weakness, deliberately out of scope: a *member* can still
-    // overwrite encryptionKeyJwk or remove other members. Closing that needs a
-    // role model the app does not have.
+    // Both halves of what used to be listed here as a residual weakness — a
+    // member overwriting encryptionKeyJwk, or removing other members — are now
+    // closed by the helpers and the member-update rule inside this block. It
+    // took no role model beyond `createdBy`, which the create rule already
+    // required.
     match /families/{familyId} {
+      // The vault key may be filled in when absent — services/families.js
+      // backfills it inside a transaction for families created before the vault
+      // existed, and any member may trigger that — but never replaced once set.
+      // Replacing it would not leak anything; it would make every encrypted
+      // document in the family permanently unreadable, which is worse.
+      //
+      // Stronger than owner-only, and it keeps the backfill working.
+      function encryptionKeyNotReplaced() {
+        return !('encryptionKeyJwk' in resource.data)
+          || request.resource.data.get('encryptionKeyJwk', null) == resource.data.encryptionKeyJwk;
+      }
+
+      function membersUnchanged() {
+        return request.resource.data.memberIds == resource.data.memberIds;
+      }
+
+      // Only the family's creator may remove people, may only remove them, and
+      // may never remove themselves — a family with no owner could never remove
+      // anyone again. Adding happens through the join rule below, on an invite.
+      function ownerRemovingMembers() {
+        return request.auth.uid == resource.data.createdBy
+          && resource.data.createdBy in request.resource.data.memberIds
+          && request.resource.data.memberIds.toSet()
+               .difference(resource.data.memberIds.toSet()).size() == 0;
+      }
+
       allow get: if request.auth != null
         && request.auth.uid in resource.data.memberIds;
       allow list: if false;
@@ -44,8 +72,21 @@ service cloud.firestore {
         && request.auth.uid in request.resource.data.memberIds
         && request.resource.data.createdBy == request.auth.uid;
 
+      // Ordinary member edits: kids, cooks, gift recipients, calendar
+      // subscriptions, vault categories and so on. Three things are carved out.
+      //
+      // This used to be unconditional, and the comment above the block recorded
+      // the consequence: "a *member* can still overwrite encryptionKeyJwk or
+      // remove other members." Both are now closed without inventing a full role
+      // model — `createdBy` was already on the document and already required at
+      // creation, so it is the only anchor needed.
       allow update: if request.auth != null
-        && request.auth.uid in resource.data.memberIds;
+        && request.auth.uid in resource.data.memberIds
+        // Ownership cannot be taken. Without this, a member could set themselves
+        // as createdBy and inherit everything below.
+        && request.resource.data.createdBy == resource.data.createdBy
+        && encryptionKeyNotReplaced()
+        && (membersUnchanged() || ownerRemovingMembers());
 
       // Join. A non-member may add EXACTLY themselves and nothing else, and
       // only while holding a live invite token that targets THIS family.
