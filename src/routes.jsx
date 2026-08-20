@@ -45,6 +45,7 @@ export const routes = [
           { path: 'gifts', lazy: lazyDefault(() => import('./pages/GiftPlannerPage')) },
           { path: 'settings', lazy: lazyDefault(() => import('./pages/SettingsPage')) },
           { path: 'health', lazy: lazyDefault(() => import('./pages/VaccinationPage')) },
+          { path: 'tracker', lazy: lazyDefault(() => import('./pages/TrackerPage')) },
           { path: 'shopping', lazy: lazyDefault(() => import('./pages/ShoppingPage')) },
         ],
       },

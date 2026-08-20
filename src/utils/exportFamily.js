@@ -3,7 +3,16 @@ import { db } from '../lib/firebase';
 import { isDemoMode } from '../lib/demoMode';
 import { demoDocs } from '../services/demoStore';
 
-const COLLECTIONS = ['events', 'tasks', 'gifts', 'documents', 'vaccinations', 'shoppingItems'];
+const COLLECTIONS = [
+  'events',
+  'tasks',
+  'gifts',
+  'documents',
+  'vaccinations',
+  'shoppingItems',
+  'trackers',
+  'trackerEntries',
+];
 
 function toPlain(value) {
   if (value === null || value === undefined) return value;

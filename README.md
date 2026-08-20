@@ -136,6 +136,50 @@ Links are `/join/:token` and are handled by `src/pages/JoinPage.jsx`.
   delete it. Persisted in Firestore via the same per-family snapshot
   pattern as events.
 
+## Child Tracker (working module)
+
+A deliberately shapeless logger at `/tracker`, for the recurring "when was the
+last time…?" questions — when Anna last had her medicine, when Steffi last
+threw up, whether Lukas has had his vitamin D today.
+
+- A **tracker** is a definition (name, emoji, colour, children). An **entry**
+  is one logged moment, with an optional number and note. They live in
+  `trackers` and `trackerEntries`, so a tracker's history can grow without
+  ever rewriting the definition.
+- Three optional switches cover the range of uses: record a number (with a
+  unit) for doses and temperatures, a times-per-day goal that puts a tick on
+  the card once reached, and a minimum gap in hours that shows when the next
+  dose is due.
+- A tracker can belong to several children at once — each child keeps their
+  own separate history under it.
+- Tapping `+` on a card logs "now" in one tap, with a six-second undo;
+  trackers that record a number open the entry sheet instead of logging blind.
+- Presets (medicine, vitamin D, threw up, temperature, nappy, drinking,
+  teeth) only pre-fill the form; every field stays editable.
+
+The Dashboard carries an **Active Trackers** widget listing every
+child/tracker pairing, ordered by what still needs doing: unmet daily goals
+first, then anything on a cooldown, then whatever was logged most recently.
+Rows log in one tap there too, and link through to the full page.
+
+Date, status and ordering logic lives in `src/utils/tracker.js` and is covered
+by `tests/unit/tracker.spec.js`.
+
+### Quick Access and newly shipped shortcuts
+
+Quick Access is stored in `localStorage`, so a shortcut added after a user last
+touched that list would never appear for them — sanitizing only ever drops
+unknown ids, it never adds new ones. That is why the Tracker shortcut was
+invisible on existing installs.
+
+A second key, `familyos:quickAccessSeen`, records the ids the user has already
+been *offered*; anything in the catalogue missing from it is appended once.
+A shortcut removed on purpose stays removed, because it is still in the seen
+list. Installs predating that key fall back to `LEGACY_QUICK_ACCESS_IDS` —
+the catalogue as it stood before the migration — so new entries are correctly
+recognised as new. The logic is pure, in `src/utils/quickAccess.js`, and
+covered by `tests/unit/quickAccess.spec.js`.
+
 ## Out of scope (future work)
 
 Per the MVP spec, these are intentionally **not** implemented:

@@ -21,6 +21,7 @@ export default function AppShell() {
   const isGiftsRoute  = location.pathname.startsWith('/gifts');
   const isVaultRoute  = location.pathname.startsWith('/vault');
   const isHealthRoute = location.pathname.startsWith('/health');
+  const isTrackerRoute = location.pathname.startsWith('/tracker');
   const isFoodRoute   = location.pathname.startsWith('/meals');
   const isShoppingRoute = location.pathname.startsWith('/shopping');
 
@@ -32,6 +33,10 @@ export default function AppShell() {
 
   // VaccinationPage registers a callback to open its own add-vaccination modal
   const [healthFabCallback, setHealthFabCallback] = useState(null);
+
+  // TrackerPage registers a callback so the shared "+" creates a new tracker
+  // instead of opening the event form.
+  const [trackerFabCallback, setTrackerFabCallback] = useState(null);
 
   // FoodPage registers a callback whose behaviour depends on its active tab
   // (add a recipe vs. plan a meal).
@@ -82,6 +87,7 @@ export default function AppShell() {
   function handleFab() {
     if (isVaultRoute)  { vaultAdd?.(); return; }
     if (isHealthRoute) { healthFabCallback?.(); return; }
+    if (isTrackerRoute) { trackerFabCallback?.(); return; }
     if (isFoodRoute)   { foodFabCallback?.(); return; }
     if (isShoppingRoute) { shoppingFabCallback?.(); return; }
     setAdding(true);
@@ -91,10 +97,10 @@ export default function AppShell() {
     <div className="min-h-screen bg-slate-50 pb-24">
       <DemoBanner />
       <AddActionContext.Provider value={handleFab}>
-        <Outlet context={{ setCreateDefaultDate, setVaultAdd, setHealthFabCallback, setFoodFabCallback, setShoppingFabCallback }} />
+        <Outlet context={{ setCreateDefaultDate, setVaultAdd, setHealthFabCallback, setTrackerFabCallback, setFoodFabCallback, setShoppingFabCallback }} />
       </AddActionContext.Provider>
       <BottomNav onAdd={handleFab} />
-      {!isVaultRoute && !isHealthRoute && !isFoodRoute && !isShoppingRoute && (
+      {!isVaultRoute && !isHealthRoute && !isTrackerRoute && !isFoodRoute && !isShoppingRoute && (
         isGiftsRoute ? (
           <GiftFormModal
             open={adding}
