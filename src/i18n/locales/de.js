@@ -119,6 +119,7 @@ export default {
     qaDocumentVault: 'Dokumententresor',
     qaGiftPlanner: 'Geschenkeplaner',
     qaHealthLedger: 'Gesundheitsakte',
+    activeTrackers: 'Aktive Tracker',
     qaTracker: 'Tracker',
     qaShoppingList: 'Einkaufsliste',
     qaCalendar: 'Kalender',
@@ -1016,6 +1017,12 @@ export default {
     featVaultP1: 'Kinderdokumente',
     featVaultP2: 'Arzt- & Schulunterlagen',
     featVaultP3: 'In Sekunden gefunden',
+    featTrackerTitle: 'Kinder-Tracker',
+    featTrackerDesc:
+      'Alles pro Kind mit einem Tipp festhalten — Medizin, Vitamine, Übelkeit — und nie wieder raten, wann es zuletzt war.',
+    featTrackerP1: 'Ein Tipp genügt',
+    featTrackerP2: 'Beantwortet „Wann war es zuletzt?“',
+    featTrackerP3: 'Mindestabstände und Tagesziele',
     featHealthTitle: 'Gesundheit & Impfungen',
     featHealthDesc:
       'Verfolge die Impfungen und Gesundheits-Meilensteine jedes Kindes, damit du immer weißt, was erledigt ist und was als Nächstes ansteht.',

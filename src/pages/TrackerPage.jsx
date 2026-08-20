@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { Activity, Undo2 } from 'lucide-react';
+import { Activity } from 'lucide-react';
 import TopBar from '../components/layout/TopBar';
 import EmptyState from '../components/common/EmptyState';
 import Button from '../components/common/Button';
@@ -8,6 +8,7 @@ import TrackerCard from '../components/tracker/TrackerCard';
 import TrackerFormModal from '../components/tracker/TrackerFormModal';
 import TrackerDetailModal from '../components/tracker/TrackerDetailModal';
 import LogEntryModal from '../components/tracker/LogEntryModal';
+import TrackerUndoBar from '../components/tracker/TrackerUndoBar';
 import useAuth from '../hooks/useAuth';
 import useT from '../hooks/useT';
 import useTrackers from '../hooks/useTrackers';
@@ -229,25 +230,7 @@ export default function TrackerPage() {
         )}
       </main>
 
-      {/* Undo bar. A mis-tap on a one-tap logger is the likeliest mistake in
-          this screen, and it sits above the bottom nav so it never covers it. */}
-      {undo && (
-        <div className="fixed inset-x-0 bottom-24 z-40 flex justify-center px-5">
-          <div className="flex w-full max-w-md items-center gap-3 rounded-2xl bg-slate-900 px-4 py-3 text-white shadow-lg">
-            <span className="min-w-0 flex-1 truncate text-sm">
-              {t('tracker.logged', { name: undo.name })}
-            </span>
-            <button
-              type="button"
-              onClick={handleUndo}
-              className="flex flex-shrink-0 items-center gap-1.5 text-sm font-semibold text-brand-300"
-            >
-              <Undo2 size={15} />
-              {t('tracker.undo')}
-            </button>
-          </div>
-        </div>
-      )}
+      {undo && <TrackerUndoBar name={undo.name} onUndo={handleUndo} />}
 
       <TrackerFormModal
         open={formOpen}

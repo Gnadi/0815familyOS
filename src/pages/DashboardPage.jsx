@@ -3,6 +3,7 @@ import DailyPreview from '../components/dashboard/DailyPreview';
 import WeeklyPreview from '../components/dashboard/WeeklyPreview';
 import WorkloadBalance from '../components/dashboard/WorkloadBalance';
 import HealthAlerts from '../components/dashboard/HealthAlerts';
+import ActiveTrackers from '../components/dashboard/ActiveTrackers';
 import QuickAccess from '../components/dashboard/QuickAccess';
 import UpcomingBirthdays from '../components/dashboard/UpcomingBirthdays';
 import useAuth from '../hooks/useAuth';
@@ -29,6 +30,7 @@ export default function DashboardPage() {
           </div>
         )}
         <DailyPreview />
+        <ActiveTrackers />
         <QuickAccess />
         <WeeklyPreview />
         <UpcomingBirthdays />

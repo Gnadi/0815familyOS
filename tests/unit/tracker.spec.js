@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  activeTrackerRows,
   cooldownUntil,
   countOnDay,
   entriesForTracker,
@@ -240,6 +241,60 @@ describe('groupEntriesByDay', () => {
   it('keeps undated entries in their own bucket', () => {
     const groups = groupEntriesByDay([entry({ id: 'a', at: NOW }), entry({ id: 'x', at: null })]);
     expect(groups[groups.length - 1]).toMatchObject({ key: 'unknown', day: null });
+  });
+});
+
+describe('activeTrackerRows', () => {
+  const kids = [
+    { id: 'kid_a', name: 'Anna' },
+    { id: 'kid_b', name: 'Lukas' },
+  ];
+
+  it('gives a shared tracker one row per child', () => {
+    const shared = tracker({ id: 'shared', kidIds: ['kid_a', 'kid_b'] });
+    const rows = activeTrackerRows([shared], [], kids, NOW);
+    expect(rows.map((r) => r.kid.id)).toEqual(['kid_a', 'kid_b']);
+    expect(rows.map((r) => r.key)).toEqual(['shared:kid_a', 'shared:kid_b']);
+  });
+
+  it('skips children the tracker does not belong to', () => {
+    const rows = activeTrackerRows([tracker({ kidIds: ['kid_b'] })], [], kids, NOW);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].kid.id).toBe('kid_b');
+  });
+
+  it('puts an unmet daily goal above a running cooldown above the rest', () => {
+    const owed = tracker({ id: 'owed', dailyGoal: 1 });
+    const cooling = tracker({ id: 'cooling', minIntervalHours: 6 });
+    const plain = tracker({ id: 'plain' });
+    const entries = [
+      entry({ id: 'c', trackerId: 'cooling', at: ago(2 * HOUR) }),
+      entry({ id: 'p', trackerId: 'plain', at: ago(HOUR) }),
+    ];
+    const rows = activeTrackerRows([plain, cooling, owed], entries, [kids[0]], NOW);
+    expect(rows.map((r) => r.tracker.id)).toEqual(['owed', 'cooling', 'plain']);
+  });
+
+  it('drops a met goal out of the top slot', () => {
+    const met = tracker({ id: 'met', dailyGoal: 1 });
+    const owed = tracker({ id: 'owed', dailyGoal: 1 });
+    const entries = [entry({ id: 'm', trackerId: 'met', at: ago(HOUR) })];
+    const rows = activeTrackerRows([met, owed], entries, [kids[0]], NOW);
+    expect(rows.map((r) => r.tracker.id)).toEqual(['owed', 'met']);
+  });
+
+  it('orders equals by most recently logged, never-logged last', () => {
+    const entries = [
+      entry({ id: 'old', trackerId: 'a', at: ago(5 * HOUR) }),
+      entry({ id: 'new', trackerId: 'b', at: ago(HOUR) }),
+    ];
+    const rows = activeTrackerRows(
+      [tracker({ id: 'a' }), tracker({ id: 'b' }), tracker({ id: 'never' })],
+      entries,
+      [kids[0]],
+      NOW,
+    );
+    expect(rows.map((r) => r.tracker.id)).toEqual(['b', 'a', 'never']);
   });
 });
 

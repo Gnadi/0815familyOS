@@ -117,3 +117,35 @@ export function groupEntriesByDay(entries) {
   }
   return groups;
 }
+
+// Flattens the family's trackers into one (child, tracker, status) list for
+// the Dashboard, which has no child tabs and has to speak for everyone at once.
+//
+// The ordering is what makes the widget useful in a glance: things still owed
+// today come first, then anything on a cooldown, then whatever was touched
+// most recently. A tracker shared by siblings contributes one row per child,
+// because "Lukas still needs his vitamin D" is a different fact from "Anna
+// already had hers".
+export function activeTrackerRows(trackers, entries, kids, now = new Date()) {
+  const rows = [];
+  for (const kid of kids) {
+    for (const tracker of trackers) {
+      if (!tracker.kidIds.includes(kid.id)) continue;
+      rows.push({ key: `${tracker.id}:${kid.id}`, kid, tracker, status: trackerStatus(tracker, entries, kid.id, now) });
+    }
+  }
+
+  const rank = ({ status }) => {
+    if (status.hasGoal && !status.goalMet) return 0;
+    if (status.cooldownActive) return 1;
+    return 2;
+  };
+
+  return rows.sort((a, b) => {
+    const byRank = rank(a) - rank(b);
+    if (byRank !== 0) return byRank;
+    // Within a rank, most recently logged first; never-logged trackers sort
+    // last rather than jumping the queue with a timestamp of 0.
+    return (b.status.lastAt?.getTime() ?? -Infinity) - (a.status.lastAt?.getTime() ?? -Infinity);
+  });
+}

@@ -16,5 +16,20 @@ export const QUICK_ACCESS_ENTRIES = [
 
 export const QUICK_ACCESS_IDS = QUICK_ACCESS_ENTRIES.map((e) => e.id);
 
-// The four shortcuts Quick Access shipped with before it became configurable.
-export const DEFAULT_QUICK_ACCESS = ['vault', 'gifts', 'health', 'shopping'];
+// What a fresh install shows.
+export const DEFAULT_QUICK_ACCESS = ['tracker', 'vault', 'gifts', 'health', 'shopping'];
+
+// The catalogue as it stood before `familyos:quickAccessSeen` existed. An
+// install predating that key has no record of what it was offered, so this
+// stands in as its baseline and everything added since (starting with
+// 'tracker') migrates in once. Never edit this list — append new shortcuts to
+// QUICK_ACCESS_ENTRIES instead, and the seen key handles them from here on.
+export const LEGACY_QUICK_ACCESS_IDS = [
+  'vault',
+  'gifts',
+  'health',
+  'shopping',
+  'calendar',
+  'tasks',
+  'meals',
+];

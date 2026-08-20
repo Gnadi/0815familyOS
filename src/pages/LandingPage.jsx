@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
+  Activity,
   Calendar,
   FileText,
   Gift,
@@ -37,6 +38,7 @@ const GITHUB_URL = 'https://github.com/gnadi/0815familyOS';
 const features = [
   { Icon: Calendar, key: 'Calendar' },
   { Icon: ListChecks, key: 'Tasks' },
+  { Icon: Activity, key: 'Tracker' },
   { Icon: UtensilsCrossed, key: 'Meals' },
   { Icon: ShoppingBasket, key: 'Shopping' },
   { Icon: FileText, key: 'Vault' },

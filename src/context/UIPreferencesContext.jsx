@@ -1,5 +1,10 @@
 import { createContext, useEffect, useMemo, useState } from 'react';
-import { DEFAULT_QUICK_ACCESS, QUICK_ACCESS_IDS } from '../constants/quickAccessEntries';
+import {
+  DEFAULT_QUICK_ACCESS,
+  LEGACY_QUICK_ACCESS_IDS,
+  QUICK_ACCESS_IDS,
+} from '../constants/quickAccessEntries';
+import { resolveQuickAccess, sanitizeQuickAccess as sanitize } from '../utils/quickAccess';
 
 export const THEMES = [
   { id: 'blue',    label: 'Blue',    swatch: '#3B82F6' },
@@ -23,6 +28,9 @@ const MODE_KEY = 'familyos:mode';
 const SKIN_KEY = 'familyos:skin';
 const LABELS_KEY = 'familyos:showLabels';
 const QUICK_ACCESS_KEY = 'familyos:quickAccess';
+// The shortcut ids this install has already offered the user; see
+// src/utils/quickAccess.js for why a second key is needed.
+const QUICK_ACCESS_SEEN_KEY = 'familyos:quickAccessSeen';
 
 export const UIPreferencesContext = createContext({
   theme: 'blue',
@@ -37,11 +45,14 @@ export const UIPreferencesContext = createContext({
   setQuickAccess: () => {},
 });
 
-// Drops unknown ids and duplicates while preserving the stored order, so
-// stale localStorage entries can't render broken shortcuts.
-function sanitizeQuickAccess(list) {
-  if (!Array.isArray(list)) return null;
-  return [...new Set(list)].filter((id) => QUICK_ACCESS_IDS.includes(id));
+const sanitizeQuickAccess = (list) => sanitize(list, QUICK_ACCESS_IDS);
+
+function parse(key) {
+  try {
+    return JSON.parse(window.localStorage.getItem(key));
+  } catch {
+    return null;
+  }
 }
 
 function readTheme() {
@@ -70,12 +81,13 @@ function readShowLabels() {
 
 function readQuickAccess() {
   if (typeof window === 'undefined') return DEFAULT_QUICK_ACCESS;
-  try {
-    const parsed = sanitizeQuickAccess(JSON.parse(window.localStorage.getItem(QUICK_ACCESS_KEY)));
-    return parsed ?? DEFAULT_QUICK_ACCESS;
-  } catch {
-    return DEFAULT_QUICK_ACCESS;
-  }
+  return resolveQuickAccess({
+    stored: parse(QUICK_ACCESS_KEY),
+    seen: parse(QUICK_ACCESS_SEEN_KEY),
+    allIds: QUICK_ACCESS_IDS,
+    defaults: DEFAULT_QUICK_ACCESS,
+    legacyIds: LEGACY_QUICK_ACCESS_IDS,
+  });
 }
 
 export function UIPreferencesProvider({ children }) {
@@ -106,6 +118,9 @@ export function UIPreferencesProvider({ children }) {
 
   useEffect(() => {
     window.localStorage.setItem(QUICK_ACCESS_KEY, JSON.stringify(quickAccess));
+    // Recording the whole catalogue — not just the visible shortcuts — is what
+    // stops a removed shortcut from being re-offered on every load.
+    window.localStorage.setItem(QUICK_ACCESS_SEEN_KEY, JSON.stringify(QUICK_ACCESS_IDS));
   }, [quickAccess]);
 
   function setTheme(next) {

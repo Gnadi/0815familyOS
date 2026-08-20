@@ -157,8 +157,28 @@ threw up, whether Lukas has had his vitamin D today.
 - Presets (medicine, vitamin D, threw up, temperature, nappy, drinking,
   teeth) only pre-fill the form; every field stays editable.
 
-Date and status logic lives in `src/utils/tracker.js` and is covered by
-`tests/unit/tracker.spec.js`.
+The Dashboard carries an **Active Trackers** widget listing every
+child/tracker pairing, ordered by what still needs doing: unmet daily goals
+first, then anything on a cooldown, then whatever was logged most recently.
+Rows log in one tap there too, and link through to the full page.
+
+Date, status and ordering logic lives in `src/utils/tracker.js` and is covered
+by `tests/unit/tracker.spec.js`.
+
+### Quick Access and newly shipped shortcuts
+
+Quick Access is stored in `localStorage`, so a shortcut added after a user last
+touched that list would never appear for them — sanitizing only ever drops
+unknown ids, it never adds new ones. That is why the Tracker shortcut was
+invisible on existing installs.
+
+A second key, `familyos:quickAccessSeen`, records the ids the user has already
+been *offered*; anything in the catalogue missing from it is appended once.
+A shortcut removed on purpose stays removed, because it is still in the seen
+list. Installs predating that key fall back to `LEGACY_QUICK_ACCESS_IDS` —
+the catalogue as it stood before the migration — so new entries are correctly
+recognised as new. The logic is pure, in `src/utils/quickAccess.js`, and
+covered by `tests/unit/quickAccess.spec.js`.
 
 ## Out of scope (future work)
 

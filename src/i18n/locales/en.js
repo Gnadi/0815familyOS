@@ -121,6 +121,7 @@ export default {
     qaDocumentVault: 'Document Vault',
     qaGiftPlanner: 'Gift Planner',
     qaHealthLedger: 'Health Ledger',
+    activeTrackers: 'Active Trackers',
     qaTracker: 'Tracker',
     qaShoppingList: 'Shopping List',
     qaCalendar: 'Calendar',
@@ -1018,6 +1019,12 @@ export default {
     featVaultP1: 'Child documents',
     featVaultP2: 'Medical & school records',
     featVaultP3: 'Find it in seconds',
+    featTrackerTitle: 'Child Tracker',
+    featTrackerDesc:
+      'Log anything per child in one tap — medicine, vitamins, sickness — and stop guessing when it last happened.',
+    featTrackerP1: 'One tap to log',
+    featTrackerP2: 'Answers "when was the last time?"',
+    featTrackerP3: 'Dose gaps and daily goals',
     featHealthTitle: 'Health & Vaccinations',
     featHealthDesc:
       "Track each child's vaccinations and health milestones so you always know what's done and what's coming up next.",
