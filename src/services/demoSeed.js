@@ -1,6 +1,7 @@
 // Builds the initial in-memory state for demo mode (see demoStore.js): one
 // family with two kids and a realistic week of events, tasks, meals, gifts,
-// shopping items, recipes, a vaccination, and two vault entries.
+// shopping items, recipes, a vaccination, three trackers with their logged
+// entries, and two vault entries.
 //
 // Localization happens outside React (this runs from plain service modules),
 // so the locale is resolved the same way I18nProvider does on mount and the
@@ -172,6 +173,33 @@ export function buildSeed() {
     ...meta(),
   });
 
+  let trackerOrder = 0;
+  const tracker = (name, emoji, color, kidIds, extras = {}) => ({
+    familyId: DEMO_FAMILY_ID,
+    userId: DEMO_UID,
+    name,
+    emoji,
+    color,
+    kidIds,
+    unit: extras.unit || '',
+    trackValue: Boolean(extras.trackValue),
+    dailyGoal: extras.dailyGoal ?? null,
+    minIntervalHours: extras.minIntervalHours ?? null,
+    order: trackerOrder++,
+    ...meta(),
+  });
+
+  const trackerEntry = (trackerId, kidId, when, extras = {}) => ({
+    familyId: DEMO_FAMILY_ID,
+    userId: DEMO_UID,
+    trackerId,
+    kidId,
+    at: when,
+    value: extras.value ?? null,
+    note: extras.note || '',
+    createdAt: stamp(),
+  });
+
   const collections = new Map([
     [
       'events',
@@ -230,6 +258,24 @@ export function buildSeed() {
           `demo_shop_seed_${i}`,
           shoppingItem(item[locale] || item.en, item.icon, { done: true }),
         ]),
+      ]),
+    ],
+    [
+      'trackers',
+      new Map([
+        ['demo_tracker_vitamin', tracker(t('demo.trackerVitamin'), '\u2600\ufe0f', 'amber', ['kid_emma', 'kid_ben'], { dailyGoal: 1 })],
+        ['demo_tracker_medicine', tracker(t('demo.trackerMedicine'), '\ud83d\udc8a', 'rose', ['kid_ben'], { unit: 'ml', trackValue: true, minIntervalHours: 6 })],
+        ['demo_tracker_sick', tracker(t('demo.trackerSick'), '\ud83e\udd22', 'emerald', ['kid_ben'])],
+      ]),
+    ],
+    [
+      'trackerEntries',
+      new Map([
+        ['demo_tr_vit_1', trackerEntry('demo_tracker_vitamin', 'kid_emma', at(0, 8))],
+        ['demo_tr_vit_2', trackerEntry('demo_tracker_vitamin', 'kid_ben', at(-1, 8, 15))],
+        ['demo_tr_med_1', trackerEntry('demo_tracker_medicine', 'kid_ben', at(0, 7, 30), { value: 5 })],
+        ['demo_tr_med_2', trackerEntry('demo_tracker_medicine', 'kid_ben', at(-1, 19), { value: 5 })],
+        ['demo_tr_sick_1', trackerEntry('demo_tracker_sick', 'kid_ben', at(-1, 21, 40), { note: t('demo.trackerSickNote') })],
       ]),
     ],
     // Empty, but present: demoStore.demoAdd() requires the collection to exist
