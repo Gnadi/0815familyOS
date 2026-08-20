@@ -8,6 +8,7 @@ import {
 import { auth, googleProvider, requireAuth } from '../lib/firebase';
 import { ensureUserDoc } from './users';
 import { exitDemo, isDemoMode } from '../lib/demoMode';
+import { clearAuthHint } from '../lib/authHint';
 
 // Firebase auth error codes mapped to i18n keys (authErrors.*). Callers pass a
 // `t` function so messages render in the active language; without one we fall
@@ -71,6 +72,10 @@ export function signOut() {
     exitDemo('/');
     return Promise.resolve();
   }
+  // Drop the "signed in" breadcrumb synchronously: the auth listener clears it
+  // too, but a redirect to "/" can win that race and would bounce the user
+  // straight back into the app.
+  clearAuthHint();
   if (!auth) return Promise.resolve();
   return fbSignOut(auth);
 }

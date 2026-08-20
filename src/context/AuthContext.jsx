@@ -1,5 +1,6 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import { isDemoMode } from '../lib/demoMode';
+import { clearAuthHint, setAuthHint } from '../lib/authHint';
 
 export const AuthContext = createContext({
   user: null,
@@ -63,6 +64,10 @@ export function AuthProvider({ children }) {
       unsub = onAuthStateChanged(auth, (u) => {
         setUser(u);
         if (!u) {
+          // Signed out (or the persisted session expired): drop the breadcrumb
+          // so the next visit to "/" shows the landing page again instead of
+          // bouncing through a protected route.
+          clearAuthHint();
           setUserDoc(null);
           setFamily(null);
           setEncryptionKey(null);
@@ -97,6 +102,11 @@ export function AuthProvider({ children }) {
       if (cancelled) return;
       unsub = subscribeUserDoc(user.uid, (d) => {
         setUserDoc(d);
+        // Remember where this browser belongs, so index.html can skip the
+        // landing page on the next visit. Written here (not on sign-in) so it
+        // also tracks a user who leaves /family-setup by joining a family.
+        // Demo sessions deliberately never write it.
+        if (d) setAuthHint(d.familyId ? '/dashboard' : '/family-setup');
         setLoading(false);
       });
     })();
