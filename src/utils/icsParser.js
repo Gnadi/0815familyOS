@@ -91,20 +91,33 @@ export function parseICS(text) {
   let calendarName = null;
   const events = [];
   let current = null;
+  // Components nested inside a VEVENT (VALARM, and in tolerant feeds VTIMEZONE
+  // sub-components). Their properties must not leak into the event: a VALARM
+  // carries its own DESCRIPTION -- and sometimes SUMMARY -- which used to
+  // overwrite the event's title and description with the reminder text.
+  let nested = 0;
 
   for (const rawLine of lines) {
     const line = rawLine.trim();
     if (!line) continue;
     if (line === 'BEGIN:VEVENT') {
       current = {};
+      nested = 0;
       continue;
     }
-    if (line === 'END:VEVENT') {
-      if (current && current.SUMMARY && current.DTSTART) {
+    if (current && nested === 0 && line === 'END:VEVENT') {
+      // STATUS:CANCELLED marks an event the organiser withdrew; iCloud keeps
+      // shipping it in the feed, but it must not show up in the calendar.
+      const cancelled = current.STATUS?.value?.toUpperCase() === 'CANCELLED';
+      if (!cancelled && current.SUMMARY && current.DTSTART) {
         const startDate = parseICalDate(current.DTSTART.value, current.DTSTART.params);
         if (startDate) {
           events.push({
             uid: current.UID?.value || null,
+            // Set on VEVENTs that override a single occurrence of a recurring
+            // series. They share the series UID, so callers need this to tell
+            // an override apart from the master.
+            recurrenceId: current['RECURRENCE-ID']?.value || null,
             title: unescapeText(current.SUMMARY.value),
             description: current.DESCRIPTION ? unescapeText(current.DESCRIPTION.value) : '',
             date: startDate,
@@ -114,6 +127,14 @@ export function parseICS(text) {
         }
       }
       current = null;
+      continue;
+    }
+    if (current && line.startsWith('BEGIN:')) {
+      nested += 1;
+      continue;
+    }
+    if (current && nested > 0) {
+      if (line.startsWith('END:')) nested -= 1;
       continue;
     }
     const prop = parseProperty(line);

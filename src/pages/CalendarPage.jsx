@@ -21,7 +21,7 @@ const MEMBER_PALETTE = ['red', 'blue', 'emerald', 'amber', 'violet', 'pink', 'cy
 export default function CalendarPage() {
   const { user, userDoc, family } = useAuth();
   const { t } = useT();
-  const { events, loading } = useEvents(userDoc?.familyId);
+  const { events, loading, error } = useEvents(userDoc?.familyId);
   const members = useFamilyMembers();
   const { setCreateDefaultDate } = useOutletContext() || {};
   const [view, setView] = useState('week');
@@ -176,6 +176,10 @@ export default function CalendarPage() {
         <FilterChips chips={chips} selected={activeFilters} onToggle={handleToggle} />
         {loading ? (
           <p className="py-10 text-center text-sm text-slate-400">{t('calendar.loadingEvents')}</p>
+        ) : error ? (
+          <p className="rounded-xl bg-red-50 px-3 py-4 text-center text-sm text-red-700">
+            {t('calendar.loadFailed')}
+          </p>
         ) : view === 'week' ? (
           <WeekView
             anchor={anchor}
