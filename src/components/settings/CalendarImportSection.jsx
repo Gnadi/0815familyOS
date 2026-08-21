@@ -200,7 +200,11 @@ function UrlSubscriptionPane({ family, userId }) {
       setLabel('');
       setUrl('');
     } catch (err) {
-      setError(err.message || t('calImport.couldNotSubscribe'));
+      setError(
+        err.code === 'duplicate-subscription'
+          ? t('calImport.alreadySubscribed')
+          : err.message || t('calImport.couldNotSubscribe'),
+      );
     } finally {
       setBusy(false);
     }

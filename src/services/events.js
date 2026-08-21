@@ -58,12 +58,22 @@ function mapEventDocs(docs) {
     .sort((a, b) => (a.date?.getTime?.() || 0) - (b.date?.getTime?.() || 0));
 }
 
-export function subscribeEvents(familyId, cb) {
+// `onError` is optional but important: without it a failing listener (offline,
+// a rules rejection, a missing index) simply never calls back, and every screen
+// waiting on the first snapshot stays on its loading state forever.
+export function subscribeEvents(familyId, cb, onError) {
   if (isDemoMode()) return demoSubscribe('events', (docs) => cb(mapEventDocs(docs)));
   const q = query(eventsRef, where('familyId', '==', familyId), orderBy('date', 'asc'));
-  return onSnapshot(q, (snap) => {
-    cb(snap.docs.map(mapEventDoc));
-  });
+  return onSnapshot(
+    q,
+    (snap) => {
+      cb(snap.docs.map(mapEventDoc));
+    },
+    (err) => {
+      console.error('Events listener failed:', err);
+      onError?.(err);
+    },
+  );
 }
 
 // One-shot fetch for flows that don't need a live listener (e.g. the

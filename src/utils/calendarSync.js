@@ -1,0 +1,128 @@
+// Helpers for syncing an external calendar subscription into our events
+// collection. Deliberately free of Firebase imports so they stay unit-testable
+// and can be reused from both the sync and the one-time file import.
+
+// FNV-1a, 32 bit. Run twice with different offset bases so two independent
+// 32-bit values can be concatenated into a 64-bit key -- enough to keep derived
+// document ids collision-free for any realistic calendar.
+function fnv1a(str, seed) {
+  let h = seed >>> 0;
+  for (let i = 0; i < str.length; i += 1) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h >>> 0;
+}
+
+function hex8(n) {
+  return n.toString(16).padStart(8, '0');
+}
+
+// Stable 64-bit hex digest of an arbitrary string.
+export function stableHash(str) {
+  const s = String(str);
+  return `${hex8(fnv1a(s, 0x811c9dc5))}${hex8(fnv1a(s, 0x9e3779b1))}`;
+}
+
+// Firestore document ids may not contain "/", may not be "." or "..", and may
+// not match __.*__. Keeping only [A-Za-z0-9_-] satisfies all of that.
+function slug(value, max) {
+  return String(value || '')
+    .replace(/[^A-Za-z0-9_-]/g, '_')
+    .slice(0, max);
+}
+
+// Deterministic document id for one event of one subscription.
+//
+// This is the core of the de-duplication: two syncs racing each other (the
+// initial sync from Settings and the background sync in AppShell, or two open
+// browser tabs) write to the *same* document instead of each creating one, so
+// duplicates can no longer be created in the first place.
+export function subscriptionEventId(subscriptionId, uid) {
+  const key = `${subscriptionId} ${uid}`;
+  return `ics_${slug(subscriptionId, 32)}_${slug(uid, 48)}_${stableHash(key)}`;
+}
+
+// Some feeds ship VEVENTs without a UID. Deriving a stable one from the event's
+// own content keeps those importable *and* idempotent -- without it they were
+// skipped by the subscription sync entirely.
+export function fallbackUid(ev) {
+  const stamp = ev?.date instanceof Date && !Number.isNaN(ev.date.getTime())
+    ? ev.date.toISOString()
+    : '';
+  return `nouid-${stableHash(`${ev?.title || ''} ${stamp}`)}`;
+}
+
+// Give every feed event a UID, so nothing is silently dropped downstream.
+export function withStableUids(events) {
+  return (events || []).map((ev) => (ev && ev.uid ? ev : { ...ev, uid: fallbackUid(ev) }));
+}
+
+// Collapse a feed to one event per UID.
+//
+// iOS/iCloud feeds repeat the UID of a recurring series for every modified
+// occurrence (a VEVENT carrying RECURRENCE-ID). Those are edits of a single
+// occurrence, not separate entries -- without this every override became its
+// own calendar event on top of the series master.
+export function dedupeFeedEvents(events) {
+  const byUid = new Map();
+  for (const ev of events || []) {
+    if (!ev || !ev.uid) continue;
+    const prev = byUid.get(ev.uid);
+    if (!prev) {
+      byUid.set(ev.uid, ev);
+      continue;
+    }
+    // The VEVENT without RECURRENCE-ID is the series master; prefer it.
+    if (prev.recurrenceId && !ev.recurrenceId) byUid.set(ev.uid, ev);
+  }
+  return [...byUid.values()];
+}
+
+// Feed events we are willing to store: they need a date, and anything older
+// than `cutoff` is dropped unless it is a recurring master (whose future
+// occurrences are still relevant). Long-running feeds otherwise pile up years
+// of dead history, which is what made the calendar slow to load.
+export function selectSyncableEvents(events, cutoff) {
+  return (events || []).filter((ev) => {
+    if (!(ev?.date instanceof Date) || Number.isNaN(ev.date.getTime())) return false;
+    if (cutoff && ev.date < cutoff && !ev.recurrence) return false;
+    return true;
+  });
+}
+
+// Compare two feed URLs for "is this the same calendar?".
+//
+// webcal:// and https:// address the same iCloud/Google feed, and a trailing
+// slash or a differently-cased host does not make it a different calendar.
+// Subscribing to one feed twice would give every event two independent owners
+// and show the whole calendar twice with nothing looking broken.
+export function normalizeFeedUrl(url) {
+  const raw = String(url || '')
+    .trim()
+    .replace(/^webcal:\/\//i, 'https://')
+    .replace(/^http:\/\//i, 'https://');
+  try {
+    const parsed = new URL(raw);
+    const path = parsed.pathname.replace(/\/+$/, '');
+    return `${parsed.protocol}//${parsed.host}${path}${parsed.search}`;
+  } catch {
+    return raw.replace(/\/+$/, '');
+  }
+}
+
+// Pick the document a feed event should be written to, and list the leftovers
+// that have to go.
+//
+// `owned` are documents already tagged with this subscription, `adoptable` are
+// documents with the same UID that came from a one-time .ics file import of the
+// same calendar. Adopting those means subscribing to a calendar you previously
+// imported by file updates the existing entries instead of doubling them.
+export function pickCanonicalDoc(canonicalId, owned = [], adoptable = []) {
+  const candidates = [...owned, ...adoptable];
+  if (candidates.length === 0) return { keep: null, drop: [] };
+  const exact = owned.find((d) => d.id === canonicalId)
+    || adoptable.find((d) => d.id === canonicalId);
+  const keep = exact || candidates[0];
+  return { keep, drop: candidates.filter((d) => d !== keep) };
+}
