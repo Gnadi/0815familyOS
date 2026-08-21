@@ -5,6 +5,23 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#4F46E5" />
+
+    <!-- Instant re-entry for signed-in visitors: runs before the landing
+         markup is parsed, so a returning user lands in the app instead of
+         watching the marketing page while Firebase restores their session.
+         Acts only on "/", only on a hint this browser wrote for itself, so
+         crawlers and logged-out visitors are unaffected. See lib/authHint.js. -->
+    <script>
+      (function () {
+        try {
+          if (location.pathname !== '/') return;
+          var to = localStorage.getItem('faos:signed-in');
+          if (to === '/dashboard' || to === '/family-setup') location.replace(to);
+        } catch (e) {
+          /* no storage (private mode): fall through to the landing page */
+        }
+      })();
+    </script>
     <!-- title + description + Open Graph/Twitter/canonical are injected per route
          by the <Seo> component (vite-react-ssg <Head>). Keeping them out of this
          template avoids duplicate tags in the pre-rendered HTML. -->

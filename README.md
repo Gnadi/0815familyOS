@@ -98,6 +98,12 @@ events/{id}           { familyId, userId, title, description?, date, createdAt, 
 3. Once `users.familyId` is set, the user is routed into the app shell
    (Dashboard, Calendar, Tasks, Settings) with a bottom nav.
 4. Sessions persist via `browserLocalPersistence`.
+5. Returning visitors skip the landing page: once the app knows where a user
+   belongs it stores a route hint in `localStorage` (`src/lib/authHint.js`),
+   and a tiny inline script in `index.html` redirects `/` to `/dashboard` (or
+   `/family-setup`) before the marketing markup is parsed. The hint holds no
+   credentials — it only saves the wait for Firebase Auth to restore the
+   session asynchronously; a stale one lands on `/login` and is cleared.
 
 ### Invitations
 
