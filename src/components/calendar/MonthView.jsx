@@ -1,6 +1,7 @@
+import { useMemo } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, isSameDay, isSameMonth } from 'date-fns';
-import { addMonths, getMonthGrid, subMonths, eventsOnDay } from '../../utils/date';
+import { addMonths, dayKey, getMonthGrid, groupEventsByDay, NO_EVENTS, subMonths } from '../../utils/date';
 import useCategories from '../../hooks/useCategories';
 import useT from '../../hooks/useT';
 import EventCard from './EventCard';
@@ -10,7 +11,10 @@ export default function MonthView({ anchor, selected, onAnchorChange, onSelect, 
   const { get: getCat } = useCategories();
   const { t } = useT();
   const grid = getMonthGrid(anchor);
-  const dayEvents = eventsOnDay(events, selected);
+  // One pass over the events instead of one full scan per grid cell (42 of
+  // them), on every render.
+  const byDay = useMemo(() => groupEventsByDay(events), [events]);
+  const dayEvents = byDay.get(dayKey(selected)) || NO_EVENTS;
 
   return (
     <div>
@@ -45,7 +49,7 @@ export default function MonthView({ anchor, selected, onAnchorChange, onSelect, 
           {grid.map((d) => {
             const active = isSameDay(d, selected);
             const inMonth = isSameMonth(d, anchor);
-            const dayEvs = events.filter((e) => isSameDay(e.date, d));
+            const dayEvs = byDay.get(dayKey(d)) || NO_EVENTS;
             const categories = [...new Set(dayEvs.map((e) => e.category))].slice(0, 3);
             return (
               <button

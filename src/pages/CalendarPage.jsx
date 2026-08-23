@@ -21,7 +21,7 @@ const MEMBER_PALETTE = ['red', 'blue', 'emerald', 'amber', 'violet', 'pink', 'cy
 export default function CalendarPage() {
   const { user, userDoc, family } = useAuth();
   const { t } = useT();
-  const { events, loading } = useEvents(userDoc?.familyId);
+  const { events, loading, error } = useEvents(userDoc?.familyId);
   const members = useFamilyMembers();
   const { setCreateDefaultDate } = useOutletContext() || {};
   const [view, setView] = useState('week');
@@ -47,22 +47,37 @@ export default function CalendarPage() {
     })),
   ], [members, family?.kids, t]);
 
-  const expandedEvents = useMemo(() => {
-    const from = new Date(anchor.getFullYear(), anchor.getMonth() - 6, 1);
-    const to = new Date(anchor.getFullYear(), anchor.getMonth() + 6, 31, 23, 59, 59);
-    return expandEventsInRange(events, from, to);
-  }, [events, anchor]);
+  // Predicate for the active filter chips, shared by the views and the export.
+  const matchesFilters = useMemo(() => {
+    if (activeFilters.size === 0) return null;
+    const memberNames = chips
+      .filter((c) => c.id.startsWith('member:') && activeFilters.has(c.id))
+      .map((c) => c.displayName);
+    const kidIds = chips
+      .filter((c) => c.id.startsWith('kid:') && activeFilters.has(c.id))
+      .map((c) => c.kidId);
+    return (ev) =>
+      memberNames.includes(ev.responsibleParent)
+      || (ev.kids || []).some((id) => kidIds.includes(id));
+  }, [activeFilters, chips]);
 
-  const filteredEvents = useMemo(() => {
-    if (activeFilters.size === 0) return expandedEvents;
-    const memberChips = chips.filter((c) => c.id.startsWith('member:') && activeFilters.has(c.id));
-    const kidChips = chips.filter((c) => c.id.startsWith('kid:') && activeFilters.has(c.id));
-    return expandedEvents.filter((ev) => {
-      if (memberChips.some((c) => ev.responsibleParent === c.displayName)) return true;
-      if (kidChips.some((c) => (ev.kids || []).includes(c.kidId))) return true;
-      return false;
-    });
-  }, [expandedEvents, activeFilters, chips]);
+  // Expand recurrences only around the month in view, and key the memo on that
+  // month rather than on `anchor` itself: stepping through weeks no longer
+  // re-expands every series, and the window is a fraction of the twelve months
+  // this used to build up front on every navigation.
+  const monthIndex = anchor.getFullYear() * 12 + anchor.getMonth();
+  const expandedEvents = useMemo(() => {
+    const year = Math.floor(monthIndex / 12);
+    const month = monthIndex % 12;
+    const from = new Date(year, month - 1, 1);
+    const to = new Date(year, month + 2, 0, 23, 59, 59);
+    return expandEventsInRange(events, from, to);
+  }, [events, monthIndex]);
+
+  const filteredEvents = useMemo(
+    () => (matchesFilters ? expandedEvents.filter(matchesFilters) : expandedEvents),
+    [expandedEvents, matchesFilters],
+  );
 
   function handleToggle(id) {
     if (id === 'all') {
@@ -112,11 +127,17 @@ export default function CalendarPage() {
     setEditing(null);
   }
 
+  // The export reaches further than the calendar shows, so it expands its own
+  // range on demand rather than forcing the views to keep a year of
+  // occurrences in memory just in case someone clicks Export.
   function handleExport() {
-    if (!filteredEvents.length) return;
+    if (!events.length) return;
     const today = new Date();
-    const horizon = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30);
-    const future = filteredEvents.filter((ev) => ev.date && ev.date >= horizon);
+    const from = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30);
+    const to = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate(), 23, 59, 59);
+    let future = expandEventsInRange(events, from, to);
+    if (matchesFilters) future = future.filter(matchesFilters);
+    if (!future.length) return;
     downloadICS(future, `family-calendar-${today.toISOString().slice(0, 10)}.ics`, {
       calendarName: family?.name ? `${family.name} (myFAOS)` : 'myFAOS',
     });
@@ -176,6 +197,10 @@ export default function CalendarPage() {
         <FilterChips chips={chips} selected={activeFilters} onToggle={handleToggle} />
         {loading ? (
           <p className="py-10 text-center text-sm text-slate-400">{t('calendar.loadingEvents')}</p>
+        ) : error ? (
+          <p className="rounded-xl bg-red-50 px-3 py-4 text-center text-sm text-red-700">
+            {t('calendar.loadFailed')}
+          </p>
         ) : view === 'week' ? (
           <WeekView
             anchor={anchor}

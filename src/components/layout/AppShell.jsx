@@ -13,6 +13,7 @@ import { createGift } from '../../services/gifts';
 import { syncSubscription, updateSubscriptionMeta } from '../../services/calendarSubscriptions';
 
 const SYNC_STALE_MS = 60 * 60 * 1000; // re-sync subscriptions older than 1 hour
+const SYNC_START_DELAY_MS = 4000; // let the app finish loading before syncing
 
 export default function AppShell() {
   const { user, userDoc, family } = useAuth();
@@ -49,24 +50,37 @@ export default function AppShell() {
   // Re-sync any stale calendar subscriptions in the background once per
   // session. Intentionally fire-and-forget; errors land in the subscription's
   // lastError field and surface in Settings.
+  //
+  // Held back by SYNC_START_DELAY_MS so the fetch, the full-collection read and
+  // the batch writes a sync performs do not compete with the first render for
+  // the connection -- starting it immediately on mount is what left the
+  // calendar sitting on "loading events" after a reload.
   const syncedThisSession = useRef(new Set());
   useEffect(() => {
-    if (!family?.id || !user?.uid) return;
+    if (!family?.id || !user?.uid) return undefined;
     const subs = family.calendarSubscriptions || [];
     const now = Date.now();
-    for (const sub of subs) {
-      if (!sub?.id || syncedThisSession.current.has(sub.id)) continue;
+    const due = subs.filter((sub) => {
+      if (!sub?.id || syncedThisSession.current.has(sub.id)) return false;
       const last = sub.lastSyncAt ? new Date(sub.lastSyncAt).getTime() : 0;
-      if (now - last < SYNC_STALE_MS) continue;
-      syncedThisSession.current.add(sub.id);
-      syncSubscription({ familyId: family.id, userId: user.uid, subscription: sub }).catch(
-        (err) => {
-          updateSubscriptionMeta(family.id, sub.id, {
+      return now - last >= SYNC_STALE_MS;
+    });
+    if (due.length === 0) return undefined;
+
+    const familyId = family.id;
+    const userId = user.uid;
+    const timer = setTimeout(() => {
+      for (const sub of due) {
+        if (syncedThisSession.current.has(sub.id)) continue;
+        syncedThisSession.current.add(sub.id);
+        syncSubscription({ familyId, userId, subscription: sub }).catch((err) => {
+          updateSubscriptionMeta(familyId, sub.id, {
             lastError: err.message || 'Background sync failed.',
           }).catch(() => {});
-        },
-      );
-    }
+        });
+      }
+    }, SYNC_START_DELAY_MS);
+    return () => clearTimeout(timer);
   }, [family?.id, user?.uid, family?.calendarSubscriptions]);
 
   async function handleCreateEvent(values) {

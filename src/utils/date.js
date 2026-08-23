@@ -32,9 +32,34 @@ export function getMonthGrid(anchor) {
   return days;
 }
 
-export function eventsOnDay(events, day) {
-  return events.filter((e) => isSameDay(e.date, day));
+// Local calendar-day identity of a date, cheap enough to call per event.
+export function dayKey(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 }
+
+// Bucket events by calendar day, sorted by time within each day.
+//
+// The month grid asked `events.filter(isSameDay)` once per cell: 42 full passes
+// over an expanded event list that can hold tens of thousands of recurring
+// occurrences, on every single render. One pass builds the whole lookup.
+export function groupEventsByDay(events) {
+  const byDay = new Map();
+  for (const ev of events || []) {
+    const key = dayKey(ev?.date);
+    if (!key) continue;
+    const bucket = byDay.get(key);
+    if (bucket) bucket.push(ev);
+    else byDay.set(key, [ev]);
+  }
+  for (const bucket of byDay.values()) {
+    bucket.sort((a, b) => a.date - b.date);
+  }
+  return byDay;
+}
+
+// Shared empty result so a day with no events keeps a stable array identity.
+export const NO_EVENTS = Object.freeze([]);
 
 export function upcomingEvents(events, from = startOfDay(new Date()), max = 3) {
   return events.filter((e) => e.date >= from).slice(0, max);

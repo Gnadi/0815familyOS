@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Calendar, CheckSquare, Plus, Sun } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
-import { eventsOnDay } from '../../utils/date';
+import { dayKey } from '../../utils/date';
 import useAuth from '../../hooks/useAuth';
 import useEvents from '../../hooks/useEvents';
 import useTasks from '../../hooks/useTasks';
@@ -28,10 +28,19 @@ export default function DailyPreview() {
   const todayLabel = format(today, 'EEE, MMM d');
   const familyKids = family?.kids || [];
 
-  const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const dayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
-  const expandedToday = expandEventsInRange(events, dayStart, dayEnd);
-  const todayEvents = eventsOnDay(expandedToday, today).sort((a, b) => a.date - b.date);
+  // Keyed on the calendar day rather than recomputed on every render: expanding
+  // recurrences is the expensive part and its result only changes when the
+  // events change or the day rolls over. The expansion is already bounded to
+  // today, so no extra same-day filter is needed.
+  const todayStamp = dayKey(today);
+  const todayEvents = useMemo(() => {
+    const [y, m, d] = todayStamp.split('-').map(Number);
+    return expandEventsInRange(
+      events,
+      new Date(y, m, d),
+      new Date(y, m, d, 23, 59, 59),
+    ).sort((a, b) => a.date - b.date);
+  }, [events, todayStamp]);
   const todayTasks = tasks
     .filter((task) => task.dueDate && isSameDay(task.dueDate, today) && task.status !== 'completed')
     .sort((a, b) => (PRIORITY_WEIGHT[a.priority] ?? 2) - (PRIORITY_WEIGHT[b.priority] ?? 2));

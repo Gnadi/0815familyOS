@@ -1,23 +1,88 @@
 import { useEffect, useState } from 'react';
 import { subscribeEvents } from '../services/events';
 
+// One Firestore listener per family, shared by every component that asks for
+// the events.
+//
+// Each call to this hook used to open its own onSnapshot on the whole events
+// collection. The dashboard alone mounts three of them (DailyPreview,
+// WeeklyPreview, WorkloadBalance), so the entire collection was downloaded,
+// mapped into JS objects and re-rendered three times over for exactly the same
+// data -- and a fourth time when the calendar opened.
+const feeds = new Map();
+
+// Route changes unmount the old screen before mounting the new one, so the
+// subscriber count dips to zero in between. Lingering briefly keeps the
+// listener (and its data) alive across that gap instead of tearing it down and
+// immediately re-fetching everything.
+const LINGER_MS = 15000;
+
+const EMPTY = { events: [], loading: false, error: null };
+const PENDING = { events: [], loading: true, error: null };
+
+function getFeed(familyId) {
+  const existing = feeds.get(familyId);
+  if (existing) {
+    clearTimeout(existing.teardown);
+    existing.teardown = null;
+    return existing;
+  }
+
+  const feed = {
+    familyId,
+    state: PENDING,
+    subscribers: new Set(),
+    unsub: null,
+    teardown: null,
+  };
+  const emit = (next) => {
+    feed.state = next;
+    feed.subscribers.forEach((notify) => notify(next));
+  };
+  feeds.set(familyId, feed);
+  feed.unsub = subscribeEvents(
+    familyId,
+    (list) => emit({ events: list, loading: false, error: null }),
+    // A failed listener has to end the loading state too, otherwise every
+    // screen waiting on the first snapshot stays on its spinner indefinitely.
+    (err) => emit({ events: feed.state.events, loading: false, error: err }),
+  );
+  return feed;
+}
+
+function releaseFeed(feed) {
+  if (feed.subscribers.size > 0 || feed.teardown) return;
+  feed.teardown = setTimeout(() => {
+    if (feed.subscribers.size > 0) {
+      feed.teardown = null;
+      return;
+    }
+    feed.unsub?.();
+    feeds.delete(feed.familyId);
+  }, LINGER_MS);
+}
+
 export default function useEvents(familyId) {
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [state, setState] = useState(() => {
+    if (!familyId) return EMPTY;
+    return feeds.get(familyId)?.state || PENDING;
+  });
 
   useEffect(() => {
     if (!familyId) {
-      setEvents([]);
-      setLoading(false);
+      setState(EMPTY);
       return undefined;
     }
-    setLoading(true);
-    const unsub = subscribeEvents(familyId, (list) => {
-      setEvents(list);
-      setLoading(false);
-    });
-    return unsub;
+    const feed = getFeed(familyId);
+    feed.subscribers.add(setState);
+    // Adopt whatever the shared feed already holds, so a component mounting
+    // later renders immediately instead of showing a spinner again.
+    setState(feed.state);
+    return () => {
+      feed.subscribers.delete(setState);
+      releaseFeed(feed);
+    };
   }, [familyId]);
 
-  return { events, loading };
+  return state;
 }
