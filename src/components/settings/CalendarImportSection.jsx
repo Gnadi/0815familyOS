@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { CalendarPlus, FileUp, Link as LinkIcon, RefreshCw, Trash2, UploadCloud } from 'lucide-react';
 import Button from '../common/Button';
 import useAuth from '../../hooks/useAuth';
+import { peekEvents } from '../../hooks/useEvents';
 import useT from '../../hooks/useT';
 import { parseICS } from '../../utils/icsParser';
 import {
@@ -190,7 +191,12 @@ function UrlSubscriptionPane({ family, userId }) {
       const sub = await addSubscription(family.id, { label, url });
       // Run an initial sync so the user immediately sees their events.
       try {
-        await syncSubscription({ familyId: family.id, userId, subscription: sub });
+        await syncSubscription({
+          familyId: family.id,
+          userId,
+          subscription: sub,
+          existingEvents: peekEvents(family.id),
+        });
       } catch (syncErr) {
         await updateSubscriptionMeta(family.id, sub.id, {
           lastError: syncErr.message || t('calImport.initialSyncFailed'),
@@ -214,7 +220,12 @@ function UrlSubscriptionPane({ family, userId }) {
     if (!family?.id || !userId) return;
     setBusyId(sub.id);
     try {
-      await syncSubscription({ familyId: family.id, userId, subscription: sub });
+      await syncSubscription({
+        familyId: family.id,
+        userId,
+        subscription: sub,
+        existingEvents: peekEvents(family.id),
+      });
     } catch (err) {
       await updateSubscriptionMeta(family.id, sub.id, {
         lastError: err.message || t('calImport.syncFailed'),

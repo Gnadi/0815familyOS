@@ -6,6 +6,7 @@ import EventFormModal from '../calendar/EventFormModal';
 import TaskFormModal from '../tasks/TaskFormModal';
 import GiftFormModal from '../gifts/GiftFormModal';
 import useAuth from '../../hooks/useAuth';
+import { peekEvents } from '../../hooks/useEvents';
 import { AddActionContext } from '../../context/AddActionContext';
 import { createEvent } from '../../services/events';
 import { createTask } from '../../services/tasks';
@@ -16,7 +17,9 @@ import {
   updateSubscriptionMeta,
 } from '../../services/calendarSubscriptions';
 
-const SYNC_STALE_MS = 60 * 60 * 1000; // re-sync subscriptions older than 1 hour
+// A family calendar changes a few times a week. Re-checking every few hours
+// is plenty, and an unchanged feed now costs nothing anyway.
+const SYNC_STALE_MS = 3 * 60 * 60 * 1000;
 const SYNC_START_DELAY_MS = 4000; // let the app finish loading before syncing
 
 export default function AppShell() {
@@ -79,14 +82,21 @@ export default function AppShell() {
     if (due.length === 0 && !needsSweep) return undefined;
 
     const timer = setTimeout(() => {
+      // Whatever the live listener already holds. Handing it over keeps the
+      // sync from re-reading the entire events collection out of Firestore.
+      const existingEvents = peekEvents(familyId);
+      // A sync sweeps orphans itself, so only pay for a standalone pass when
+      // no sync is going to run.
       if (needsSweep) {
         sweptThisSession.current = familyId;
-        cleanupOrphanedSubscriptionEvents(familyId).catch(() => {});
+        if (due.length === 0) {
+          cleanupOrphanedSubscriptionEvents(familyId, { existingEvents }).catch(() => {});
+        }
       }
       for (const sub of due) {
         if (syncedThisSession.current.has(sub.id)) continue;
         syncedThisSession.current.add(sub.id);
-        syncSubscription({ familyId, userId, subscription: sub }).catch((err) => {
+        syncSubscription({ familyId, userId, subscription: sub, existingEvents }).catch((err) => {
           updateSubscriptionMeta(familyId, sub.id, {
             lastError: err.message || 'Background sync failed.',
           }).catch(() => {});

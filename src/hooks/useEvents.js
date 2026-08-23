@@ -62,6 +62,20 @@ function releaseFeed(feed) {
   }, LINGER_MS);
 }
 
+// Read what the shared listener currently holds, without subscribing.
+//
+// The live listener has already paid the Firestore reads for every event of the
+// family. Background jobs (the subscription sync, the orphan sweep) would
+// otherwise re-read the whole collection with getDocs and pay for all of it a
+// second time, several times a day. Returns null when nothing is listening, so
+// callers can fall back to a real query.
+export function peekEvents(familyId) {
+  if (!familyId) return null;
+  const feed = feeds.get(familyId);
+  if (!feed || feed.state.loading || feed.state.error) return null;
+  return feed.state.events;
+}
+
 export default function useEvents(familyId) {
   const [state, setState] = useState(() => {
     if (!familyId) return EMPTY;

@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   classifyExistingEvents,
   dedupeFeedEvents,
+  feedFingerprint,
   isOrphanedSubscriptionEvent,
+  needsUpdate,
   fallbackUid,
   normalizeFeedUrl,
   pickCanonicalDoc,
@@ -148,6 +150,124 @@ describe('pickCanonicalDoc', () => {
     const { keep, drop } = pickCanonicalDoc(canonical, [owned], [imported]);
     expect(keep).toBe(owned);
     expect(drop).toEqual([imported]);
+  });
+});
+
+describe('feedFingerprint', () => {
+  const ev = (over = {}) => ({
+    uid: 'u1',
+    title: 'Turnen',
+    description: '',
+    date: new Date(2026, 2, 3, 16, 0, 0),
+    recurrence: null,
+    ...over,
+  });
+
+  it('is stable across re-fetches of the same content', () => {
+    expect(feedFingerprint([ev()])).toBe(feedFingerprint([ev()]));
+  });
+
+  it('ignores the order the provider happens to emit events in', () => {
+    const a = ev({ uid: 'a' });
+    const b = ev({ uid: 'b' });
+    expect(feedFingerprint([a, b])).toBe(feedFingerprint([b, a]));
+  });
+
+  it('changes when a title, time, description or recurrence changes', () => {
+    const base = feedFingerprint([ev()]);
+    expect(feedFingerprint([ev({ title: 'Turnen verlegt' })])).not.toBe(base);
+    expect(feedFingerprint([ev({ date: new Date(2026, 2, 3, 17, 0, 0) })])).not.toBe(base);
+    expect(feedFingerprint([ev({ description: 'Halle 2' })])).not.toBe(base);
+    expect(feedFingerprint([ev({ recurrence: { freq: 'weekly', interval: 1 } })])).not.toBe(base);
+  });
+
+  it('changes when an event is added or removed', () => {
+    const base = feedFingerprint([ev()]);
+    expect(feedFingerprint([ev(), ev({ uid: 'u2' })])).not.toBe(base);
+    expect(feedFingerprint([])).not.toBe(base);
+  });
+
+  it('handles an empty feed without throwing', () => {
+    expect(feedFingerprint([])).toBe(feedFingerprint([]));
+    expect(typeof feedFingerprint(null)).toBe('string');
+  });
+});
+
+describe('needsUpdate', () => {
+  const uid = 'u1';
+  const subId = 'sub_a';
+  const date = new Date(2026, 2, 3, 16, 0, 0);
+  const feedEvent = { uid, title: 'Turnen', description: 'Halle 1', date, recurrence: null };
+  const stored = {
+    title: 'Turnen',
+    description: 'Halle 1',
+    date,
+    recurrence: null,
+    source: 'subscription',
+    subscriptionId: subId,
+    externalId: uid,
+  };
+
+  it('reports no work for an unchanged event', () => {
+    expect(needsUpdate(stored, feedEvent, subId)).toBe(false);
+  });
+
+  it('accepts a Firestore Timestamp for the stored date', () => {
+    const asTimestamp = { ...stored, date: { toDate: () => new Date(date.getTime()) } };
+    expect(needsUpdate(asTimestamp, feedEvent, subId)).toBe(false);
+  });
+
+  it('reports work for a new event', () => {
+    expect(needsUpdate(null, feedEvent, subId)).toBe(true);
+  });
+
+  it('spots a changed title, description or time', () => {
+    expect(needsUpdate({ ...stored, title: 'Alt' }, feedEvent, subId)).toBe(true);
+    expect(needsUpdate({ ...stored, description: 'Alt' }, feedEvent, subId)).toBe(true);
+    expect(needsUpdate({ ...stored, date: new Date(2026, 2, 3, 17) }, feedEvent, subId)).toBe(true);
+  });
+
+  it('spots a changed recurrence in either direction', () => {
+    const weekly = { freq: 'weekly', interval: 1, until: null };
+    expect(needsUpdate({ ...stored, recurrence: weekly }, feedEvent, subId)).toBe(true);
+    expect(needsUpdate(stored, { ...feedEvent, recurrence: weekly }, subId)).toBe(true);
+    expect(needsUpdate(
+      { ...stored, recurrence: weekly },
+      { ...feedEvent, recurrence: { freq: 'weekly', interval: 1 } },
+      subId,
+    )).toBe(false);
+  });
+
+  it('spots a changed recurrence interval or end date', () => {
+    const weekly = { freq: 'weekly', interval: 1, until: null };
+    expect(needsUpdate(
+      { ...stored, recurrence: weekly },
+      { ...feedEvent, recurrence: { freq: 'weekly', interval: 2 } },
+      subId,
+    )).toBe(true);
+    expect(needsUpdate(
+      { ...stored, recurrence: weekly },
+      { ...feedEvent, recurrence: { freq: 'weekly', interval: 1, until: '2026-12-31' } },
+      subId,
+    )).toBe(true);
+  });
+
+  it('rewrites a document being adopted, even if its content matches', () => {
+    // A file import or an event stranded by a dead subscription: the content is
+    // right but the ownership fields have to be claimed.
+    expect(needsUpdate({ ...stored, source: 'import', subscriptionId: undefined }, feedEvent, subId))
+      .toBe(true);
+    expect(needsUpdate({ ...stored, subscriptionId: 'sub_dead' }, feedEvent, subId)).toBe(true);
+  });
+
+  it('treats a missing description as equal to an empty one', () => {
+    const noDesc = { ...stored, description: undefined };
+    expect(needsUpdate(noDesc, { ...feedEvent, description: '' }, subId)).toBe(false);
+  });
+
+  it('matches the Untitled fallback the sync writes for a nameless event', () => {
+    const untitled = { ...stored, title: 'Untitled' };
+    expect(needsUpdate(untitled, { ...feedEvent, title: '' }, subId)).toBe(false);
   });
 });
 

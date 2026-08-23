@@ -111,6 +111,63 @@ export function normalizeFeedUrl(url) {
   }
 }
 
+// Fingerprint of what a feed actually *says*, ignoring how it says it.
+//
+// Providers regenerate the .ics on every request -- iCloud rewrites DTSTAMP and
+// re-orders entries -- so hashing the raw body would report a change every time
+// and defeat the whole point. Hashing the parsed, sorted events means a sync
+// can tell "nothing to do" without reading a single document.
+export function feedFingerprint(events) {
+  const lines = (events || []).map((ev) => [
+    ev.uid || '',
+    ev.title || '',
+    ev.description || '',
+    ev.date instanceof Date && !Number.isNaN(ev.date.getTime()) ? ev.date.getTime() : '',
+    ev.recurrence
+      ? `${ev.recurrence.freq}:${ev.recurrence.interval || 1}:${ev.recurrence.until || ''}`
+      : '',
+  ].join('\u0001'));
+  lines.sort();
+  return stableHash(lines.join('\u0002'));
+}
+
+// Milliseconds since the epoch for whatever shape a stored date arrives in: a
+// Firestore Timestamp from a raw document, or a JS Date from a mapped one.
+function timeOf(value) {
+  if (value instanceof Date) return value.getTime();
+  if (value && typeof value.toDate === 'function') return value.toDate().getTime();
+  if (typeof value === 'number') return value;
+  return NaN;
+}
+
+function sameRecurrence(a, b) {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  return a.freq === b.freq
+    && (Number(a.interval) || 1) === (Number(b.interval) || 1)
+    && (a.until || null) === (b.until || null);
+}
+
+// Does this feed event differ from what is already stored?
+//
+// The sync used to rewrite every event of the feed on every run, whether or not
+// anything had changed -- a thousand-event calendar burned a thousand Firestore
+// writes per sync. Feeds change by a handful of events at a time, so comparing
+// first turns a routine re-sync into (almost) no writes at all.
+export function needsUpdate(stored, ev, subscriptionId) {
+  if (!stored) return true;
+  if ((stored.title || '') !== (ev.title || 'Untitled')) return true;
+  if ((stored.description || '') !== (ev.description || '')) return true;
+  if (timeOf(stored.date) !== timeOf(ev.date)) return true;
+  if (!sameRecurrence(stored.recurrence, ev.recurrence)) return true;
+  // Ownership fields, which also flip when an imported or stranded document is
+  // adopted by this subscription.
+  if (stored.source !== 'subscription') return true;
+  if (stored.subscriptionId !== subscriptionId) return true;
+  if (stored.externalId !== ev.uid) return true;
+  return false;
+}
+
 // An event left behind by a subscription that no longer exists.
 //
 // Removing a subscription deleted the family-document entry before deleting the

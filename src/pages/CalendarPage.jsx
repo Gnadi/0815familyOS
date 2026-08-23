@@ -151,7 +151,14 @@ export default function CalendarPage() {
     try {
       await Promise.allSettled(
         subs.map((sub) =>
-          syncSubscription({ familyId: family.id, userId: user.uid, subscription: sub }),
+          syncSubscription({
+            familyId: family.id,
+            userId: user.uid,
+            subscription: sub,
+            // Already loaded by this page's listener; no need to pay for the
+            // whole collection a second time.
+            existingEvents: events,
+          }),
         ),
       );
     } finally {
