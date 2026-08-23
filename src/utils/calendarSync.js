@@ -111,6 +111,58 @@ export function normalizeFeedUrl(url) {
   }
 }
 
+// An event left behind by a subscription that no longer exists.
+//
+// Removing a subscription deleted the family-document entry before deleting the
+// events, so any failure in between (the delete used to exceed Firestore's
+// 500-operation batch cap on a large calendar) stranded the whole feed: nothing
+// owned those events any more, no later sync recognised them, and re-adding the
+// calendar simply created a second full copy next to them.
+export function isOrphanedSubscriptionEvent(data, liveSubscriptionIds) {
+  if (!data || data.source !== 'subscription') return false;
+  if (!data.subscriptionId) return true;
+  return !liveSubscriptionIds.has(data.subscriptionId);
+}
+
+// Sort the family's existing event documents into the three groups a sync
+// cares about. `entries` are `{ id, ref, data }` wrappers so this stays
+// independent of the Firestore SDK.
+//
+//   owned     - already tagged with the subscription being synced, keyed by UID
+//               (a list per UID: anything past the first is a duplicate)
+//   adoptable - same UID, but from a file import or a dead subscription; taken
+//               over instead of creating a second copy
+//   orphans   - every event of a dead subscription, whether or not the feed
+//               still lists it; the ones the feed does not claim get deleted
+export function classifyExistingEvents({ entries, subscriptionId, liveSubscriptionIds }) {
+  const owned = new Map();
+  const adoptable = new Map();
+  const orphans = [];
+  const push = (map, uid, entry) => {
+    const list = map.get(uid);
+    if (list) list.push(entry);
+    else map.set(uid, [entry]);
+  };
+
+  for (const entry of entries || []) {
+    const data = entry?.data || {};
+    const uid = data.externalId;
+    if (data.subscriptionId === subscriptionId) {
+      if (uid) push(owned, uid, entry);
+      continue;
+    }
+    if (isOrphanedSubscriptionEvent(data, liveSubscriptionIds)) {
+      orphans.push(entry);
+      if (uid) push(adoptable, uid, entry);
+      continue;
+    }
+    if (!data.subscriptionId && data.source === 'import' && uid) {
+      push(adoptable, uid, entry);
+    }
+  }
+  return { owned, adoptable, orphans };
+}
+
 // Pick the document a feed event should be written to, and list the leftovers
 // that have to go.
 //

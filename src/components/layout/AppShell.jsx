@@ -10,7 +10,11 @@ import { AddActionContext } from '../../context/AddActionContext';
 import { createEvent } from '../../services/events';
 import { createTask } from '../../services/tasks';
 import { createGift } from '../../services/gifts';
-import { syncSubscription, updateSubscriptionMeta } from '../../services/calendarSubscriptions';
+import {
+  cleanupOrphanedSubscriptionEvents,
+  syncSubscription,
+  updateSubscriptionMeta,
+} from '../../services/calendarSubscriptions';
 
 const SYNC_STALE_MS = 60 * 60 * 1000; // re-sync subscriptions older than 1 hour
 const SYNC_START_DELAY_MS = 4000; // let the app finish loading before syncing
@@ -56,6 +60,7 @@ export default function AppShell() {
   // the connection -- starting it immediately on mount is what left the
   // calendar sitting on "loading events" after a reload.
   const syncedThisSession = useRef(new Set());
+  const sweptThisSession = useRef(null);
   useEffect(() => {
     if (!family?.id || !user?.uid) return undefined;
     const subs = family.calendarSubscriptions || [];
@@ -65,11 +70,19 @@ export default function AppShell() {
       const last = sub.lastSyncAt ? new Date(sub.lastSyncAt).getTime() : 0;
       return now - last >= SYNC_STALE_MS;
     });
-    if (due.length === 0) return undefined;
-
     const familyId = family.id;
     const userId = user.uid;
+    // Events stranded by a removal that failed part-way have no owner left, so
+    // no sync would ever reach them -- least of all for a family that removed
+    // its last subscription. Sweep once per session regardless.
+    const needsSweep = sweptThisSession.current !== familyId;
+    if (due.length === 0 && !needsSweep) return undefined;
+
     const timer = setTimeout(() => {
+      if (needsSweep) {
+        sweptThisSession.current = familyId;
+        cleanupOrphanedSubscriptionEvents(familyId).catch(() => {});
+      }
       for (const sub of due) {
         if (syncedThisSession.current.has(sub.id)) continue;
         syncedThisSession.current.add(sub.id);

@@ -260,6 +260,7 @@ export default {
     testSubscribe: 'Testen & abonnieren',
     initialSyncFailed: 'Erste Synchronisierung fehlgeschlagen.',
     alreadySubscribed: 'Dieser Kalender ist bereits abonniert. Nutze "Jetzt synchronisieren", um ihn zu aktualisieren.',
+    removeFailed: 'Der Kalender konnte nicht entfernt werden. Bitte erneut versuchen.',
     couldNotSubscribe: 'Dieser Kalender konnte nicht abonniert werden.',
     syncFailed: 'Synchronisierung fehlgeschlagen.',
     removeConfirm: '„{label}“ entfernen und die synchronisierten Termine löschen?',

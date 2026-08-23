@@ -5,6 +5,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocFromServer,
   getDocs,
   query,
   serverTimestamp,
@@ -16,7 +17,9 @@ import {
 import { db } from '../lib/firebase';
 import { parseICS } from '../utils/icsParser';
 import {
+  classifyExistingEvents,
   dedupeFeedEvents,
+  isOrphanedSubscriptionEvent,
   normalizeFeedUrl,
   pickCanonicalDoc,
   selectSyncableEvents,
@@ -98,22 +101,82 @@ export async function updateSubscriptionMeta(familyId, subId, patch) {
   await updateDoc(famRef, { calendarSubscriptions: list });
 }
 
+// Delete document references in batches Firestore will actually accept.
+//
+// A WriteBatch is capped at 500 operations. Deleting a whole subscription in
+// one batch therefore threw on any calendar with more than 500 events -- and
+// since the subscription had already been removed from the family document by
+// then, the events were stranded with no owner.
+async function deleteRefsInChunks(refs) {
+  for (let i = 0; i < refs.length; i += BATCH_LIMIT) {
+    const batch = writeBatch(db);
+    for (const ref of refs.slice(i, i + BATCH_LIMIT)) batch.delete(ref);
+    // eslint-disable-next-line no-await-in-loop -- batches must commit in order
+    await batch.commit();
+  }
+}
+
+function liveSubscriptionIdsOf(familySnap) {
+  return new Set(
+    (familySnap.data()?.calendarSubscriptions || [])
+      .map((s) => s?.id)
+      .filter(Boolean),
+  );
+}
+
+// Read the family document straight from the server, never from the offline
+// cache. Deciding that a subscription is dead is a decision to delete events,
+// and a stale cached copy would not yet know about a subscription another
+// family member just added. Returns null when the server cannot be reached --
+// callers must then leave the orphan handling alone.
+async function readLiveFamily(familyId) {
+  try {
+    const snap = await getDocFromServer(doc(db, 'families', familyId));
+    return snap.exists() ? snap : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function removeSubscription(familyId, subId) {
   const famRef = doc(db, 'families', familyId);
+
+  // Events first. The other order is unrecoverable: if the delete fails, the
+  // subscription is already gone from the family document, so nothing owns
+  // those events and no later sync can ever clean them up. This way a failure
+  // leaves the subscription in place and the user can simply retry.
+  const q = query(eventsRef, where('familyId', '==', familyId));
+  const all = await getDocs(q);
+  const targets = all.docs.filter((d) => d.data().subscriptionId === subId);
+  await deleteRefsInChunks(targets.map((d) => d.ref));
+
   const snap = await getDoc(famRef);
   const list = (snap.data()?.calendarSubscriptions || []).filter(
     (s) => s && s.id !== subId,
   );
   await updateDoc(famRef, { calendarSubscriptions: list });
 
-  // Remove all events tied to this subscription.
-  const q = query(eventsRef, where('familyId', '==', familyId));
-  const all = await getDocs(q);
-  const targets = all.docs.filter((d) => d.data().subscriptionId === subId);
-  if (targets.length === 0) return;
-  const batch = writeBatch(db);
-  targets.forEach((d) => batch.delete(d.ref));
-  await batch.commit();
+  return { removed: targets.length };
+}
+
+// Delete events left behind by subscriptions that no longer exist.
+//
+// Needed as a standalone pass because a family that removed its last
+// subscription never runs a sync again, so nothing else would ever reach those
+// events.
+export async function cleanupOrphanedSubscriptionEvents(familyId) {
+  if (isDemoMode()) return { removed: 0 };
+  // Without a confirmed server-side view of the subscription list we cannot
+  // tell which subscriptions are live, and guessing would wipe real events.
+  const famSnap = await readLiveFamily(familyId);
+  if (!famSnap) return { removed: 0 };
+  const live = liveSubscriptionIdsOf(famSnap);
+
+  const allSnap = await getDocs(query(eventsRef, where('familyId', '==', familyId)));
+  const orphans = allSnap.docs.filter((d) => isOrphanedSubscriptionEvent(d.data(), live));
+  if (orphans.length === 0) return { removed: 0 };
+  await deleteRefsInChunks(orphans.map((d) => d.ref));
+  return { removed: orphans.length };
 }
 
 // In-flight syncs, keyed by family + subscription.
@@ -154,30 +217,35 @@ async function runSync({ familyId, userId, subscription }) {
     cutoff,
   );
 
+  // Which subscriptions still exist. Anything tagged with a subscription id
+  // outside this set was stranded by a failed removal and is fair game to
+  // adopt or delete. The subscription being synced is always live, even if the
+  // family document has not caught up yet.
+  const famSnap = await readLiveFamily(familyId);
+  const liveSubscriptionIds = liveSubscriptionIdsOf(famSnap || { data: () => null });
+  liveSubscriptionIds.add(subscription.id);
+  // Without a confirmed family document we cannot tell live from dead, and
+  // guessing would delete real events. Skip the orphan handling this run.
+  const canSweepOrphans = Boolean(famSnap);
+
   const q = query(eventsRef, where('familyId', '==', familyId));
   const allSnap = await getDocs(q);
+  const entries = allSnap.docs.map((d) => ({ id: d.id, ref: d.ref, data: d.data() }));
 
   // Index every candidate document *per UID* rather than keeping only the last
   // one seen. Anything beyond the first copy is a duplicate from an earlier
   // racing sync and gets deleted below, so an already-doubled calendar heals
   // itself on the next sync.
-  const ownedByUid = new Map();
-  const importedByUid = new Map();
-  for (const d of allSnap.docs) {
-    const data = d.data();
-    const uid = data.externalId;
-    if (!uid) continue;
-    if (data.subscriptionId === subscription.id) {
-      if (!ownedByUid.has(uid)) ownedByUid.set(uid, []);
-      ownedByUid.get(uid).push(d);
-    } else if (!data.subscriptionId && data.source === 'import') {
-      // Same event previously pulled in via the one-time .ics file import.
-      if (!importedByUid.has(uid)) importedByUid.set(uid, []);
-      importedByUid.get(uid).push(d);
-    }
-  }
+  const { owned: ownedByUid, adoptable: adoptableByUid, orphans } = classifyExistingEvents({
+    entries,
+    subscriptionId: subscription.id,
+    liveSubscriptionIds,
+  });
 
   const seen = new Set();
+  // Entries the feed loop already resolved (kept or deleted), so the orphan
+  // sweep below does not touch them a second time.
+  const handled = new Set();
   // A committed WriteBatch cannot be reused, so every flush starts a fresh one.
   let batch = writeBatch(db);
   let writes = 0;
@@ -212,8 +280,10 @@ async function runSync({ familyId, userId, subscription }) {
     const { keep, drop } = pickCanonicalDoc(
       canonicalId,
       ownedByUid.get(ev.uid) || [],
-      importedByUid.get(ev.uid) || [],
+      canSweepOrphans ? adoptableByUid.get(ev.uid) || [] : [],
     );
+    if (keep) handled.add(keep);
+    for (const dupe of drop) handled.add(dupe);
 
     if (keep) {
       batch.update(keep.ref, remoteFields);
@@ -244,6 +314,16 @@ async function runSync({ familyId, userId, subscription }) {
     if (seen.has(uid)) continue;
     for (const stale of docs) {
       batch.delete(stale.ref);
+      await flushIfFull();
+    }
+  }
+
+  // Sweep up whatever a failed removal stranded: events of subscriptions that
+  // no longer exist and that this feed did not claim above.
+  if (canSweepOrphans) {
+    for (const orphan of orphans) {
+      if (handled.has(orphan)) continue;
+      batch.delete(orphan.ref);
       await flushIfFull();
     }
   }

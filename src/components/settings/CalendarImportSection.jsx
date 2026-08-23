@@ -228,8 +228,14 @@ function UrlSubscriptionPane({ family, userId }) {
     if (!family?.id) return;
     if (!confirm(t('calImport.removeConfirm', { label: sub.label }))) return;
     setBusyId(sub.id);
+    setError('');
     try {
       await removeSubscription(family.id, sub.id);
+    } catch (err) {
+      // Silently swallowing this is how the calendar ended up with events
+      // nobody owned: the removal looked like it worked while the events
+      // stayed behind.
+      setError(err.message || t('calImport.removeFailed'));
     } finally {
       setBusyId(null);
     }

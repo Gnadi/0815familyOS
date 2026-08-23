@@ -262,6 +262,7 @@ export default {
     testSubscribe: 'Test & subscribe',
     initialSyncFailed: 'Initial sync failed.',
     alreadySubscribed: 'This calendar is already subscribed. Use "Sync now" to refresh it.',
+    removeFailed: 'The calendar could not be removed. Please try again.',
     couldNotSubscribe: 'Could not subscribe to that calendar.',
     syncFailed: 'Sync failed.',
     removeConfirm: 'Remove "{label}" and delete its synced events?',

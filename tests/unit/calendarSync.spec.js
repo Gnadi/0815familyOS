@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  classifyExistingEvents,
   dedupeFeedEvents,
+  isOrphanedSubscriptionEvent,
   fallbackUid,
   normalizeFeedUrl,
   pickCanonicalDoc,
@@ -146,6 +148,108 @@ describe('pickCanonicalDoc', () => {
     const { keep, drop } = pickCanonicalDoc(canonical, [owned], [imported]);
     expect(keep).toBe(owned);
     expect(drop).toEqual([imported]);
+  });
+});
+
+describe('isOrphanedSubscriptionEvent', () => {
+  const live = new Set(['sub_live']);
+
+  it('flags an event of a subscription that no longer exists', () => {
+    expect(isOrphanedSubscriptionEvent(
+      { source: 'subscription', subscriptionId: 'sub_gone' }, live,
+    )).toBe(true);
+  });
+
+  it('flags a subscription event that lost its subscription id', () => {
+    expect(isOrphanedSubscriptionEvent({ source: 'subscription' }, live)).toBe(true);
+  });
+
+  it('leaves events of a live subscription alone', () => {
+    expect(isOrphanedSubscriptionEvent(
+      { source: 'subscription', subscriptionId: 'sub_live' }, live,
+    )).toBe(false);
+  });
+
+  it('never touches hand-created or file-imported events', () => {
+    expect(isOrphanedSubscriptionEvent({ source: 'import', externalId: 'x' }, live)).toBe(false);
+    expect(isOrphanedSubscriptionEvent({ title: 'Zahnarzt' }, live)).toBe(false);
+    expect(isOrphanedSubscriptionEvent(null, live)).toBe(false);
+  });
+});
+
+describe('classifyExistingEvents', () => {
+  const liveSubscriptionIds = new Set(['sub_a', 'sub_b']);
+  const entry = (id, data) => ({ id, data });
+
+  const classify = (entries) => classifyExistingEvents({
+    entries,
+    subscriptionId: 'sub_a',
+    liveSubscriptionIds,
+  });
+
+  it('groups the subscription\'s own events by UID', () => {
+    const a1 = entry('1', { source: 'subscription', subscriptionId: 'sub_a', externalId: 'u1' });
+    const a2 = entry('2', { source: 'subscription', subscriptionId: 'sub_a', externalId: 'u1' });
+    const { owned } = classify([a1, a2]);
+    expect(owned.get('u1')).toEqual([a1, a2]);
+  });
+
+  it('never claims events belonging to another live subscription', () => {
+    const other = entry('1', { source: 'subscription', subscriptionId: 'sub_b', externalId: 'u1' });
+    const { owned, adoptable, orphans } = classify([other]);
+    expect(owned.size).toBe(0);
+    expect(adoptable.size).toBe(0);
+    expect(orphans).toEqual([]);
+  });
+
+  it('treats events of a dead subscription as both adoptable and orphaned', () => {
+    const stranded = entry('1', {
+      source: 'subscription', subscriptionId: 'sub_dead', externalId: 'u1',
+    });
+    const { adoptable, orphans } = classify([stranded]);
+    expect(adoptable.get('u1')).toEqual([stranded]);
+    expect(orphans).toEqual([stranded]);
+  });
+
+  it('orphans a stranded event even when it has no UID to adopt it by', () => {
+    const stranded = entry('1', { source: 'subscription', subscriptionId: 'sub_dead' });
+    const { adoptable, orphans } = classify([stranded]);
+    expect(adoptable.size).toBe(0);
+    expect(orphans).toEqual([stranded]);
+  });
+
+  it('offers file imports for adoption without orphaning them', () => {
+    const imported = entry('1', { source: 'import', externalId: 'u1' });
+    const { adoptable, orphans } = classify([imported]);
+    expect(adoptable.get('u1')).toEqual([imported]);
+    expect(orphans).toEqual([]);
+  });
+
+  it('ignores events the user created by hand', () => {
+    const manual = entry('1', { title: 'Zahnarzt' });
+    const { owned, adoptable, orphans } = classify([manual]);
+    expect(owned.size).toBe(0);
+    expect(adoptable.size).toBe(0);
+    expect(orphans).toEqual([]);
+  });
+
+  it('resolves a re-added calendar to one document per event, not two', () => {
+    // What the user hit: removal stranded the old feed, re-subscribing built a
+    // second copy. The stranded one is adopted, so nothing is duplicated.
+    const stranded = entry('old', {
+      source: 'subscription', subscriptionId: 'sub_dead', externalId: 'u1',
+    });
+    const { owned, adoptable, orphans } = classify([stranded]);
+    const { keep, drop } = pickCanonicalDoc(
+      'ics_sub_a_u1_hash',
+      owned.get('u1') || [],
+      adoptable.get('u1') || [],
+    );
+    expect(keep).toBe(stranded);
+    expect(drop).toEqual([]);
+    // Adopted, so the sweep must not delete it afterwards.
+    expect(orphans).toEqual([stranded]);
+    expect(orphans.filter((o) => o !== keep)).toEqual([]);
   });
 });
 
