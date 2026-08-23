@@ -1,6 +1,7 @@
+import { useMemo } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { addWeeks, format, isSameDay, subWeeks } from 'date-fns';
-import { getWeekDays, eventsOnDay } from '../../utils/date';
+import { dayKey, getWeekDays, groupEventsByDay, NO_EVENTS } from '../../utils/date';
 import useCategories from '../../hooks/useCategories';
 import useT from '../../hooks/useT';
 import EventCard from './EventCard';
@@ -10,7 +11,9 @@ export default function WeekView({ anchor, selected, onAnchorChange, onSelect, e
   const { get: getCat } = useCategories();
   const { t } = useT();
   const days = getWeekDays(anchor);
-  const dayEvents = eventsOnDay(events, selected);
+  // One pass over the events instead of one full scan per day cell.
+  const byDay = useMemo(() => groupEventsByDay(events), [events]);
+  const dayEvents = byDay.get(dayKey(selected)) || NO_EVENTS;
   const monthLabel = format(anchor, 'MMMM yyyy');
 
   return (
@@ -43,7 +46,7 @@ export default function WeekView({ anchor, selected, onAnchorChange, onSelect, e
       <div className="mt-1 grid grid-cols-7 gap-1">
         {days.map((d) => {
           const active = isSameDay(d, selected);
-          const dayEvs = events.filter((e) => isSameDay(e.date, d));
+          const dayEvs = byDay.get(dayKey(d)) || NO_EVENTS;
           const categories = [...new Set(dayEvs.map((e) => e.category))].slice(0, 3);
           return (
             <button

@@ -1,7 +1,8 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
 import { format } from 'date-fns';
-import { formatRelativeDay, upcomingEvents } from '../../utils/date';
+import { dayKey, formatRelativeDay, upcomingEvents } from '../../utils/date';
 import useEvents from '../../hooks/useEvents';
 import useAuth from '../../hooks/useAuth';
 import useCategories from '../../hooks/useCategories';
@@ -14,10 +15,16 @@ export default function WeeklyPreview() {
   const { get: getCat } = useCategories();
   const { t } = useT();
   const { events, loading } = useEvents(userDoc?.familyId);
-  const today = new Date();
-  const horizon = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 30, 23, 59, 59);
-  const expanded = expandEventsInRange(events, today, horizon).sort((a, b) => a.date - b.date);
-  const next = upcomingEvents(expanded, new Date(), 3);
+  // Only the next three entries are shown, but the expansion behind them ran on
+  // every render. Keyed on the day so it survives unrelated re-renders.
+  const todayStamp = dayKey(new Date());
+  const next = useMemo(() => {
+    const [y, m, d] = todayStamp.split('-').map(Number);
+    const from = new Date(y, m, d);
+    const horizon = new Date(y, m, d + 30, 23, 59, 59);
+    const expanded = expandEventsInRange(events, from, horizon).sort((a, b) => a.date - b.date);
+    return upcomingEvents(expanded, from, 3);
+  }, [events, todayStamp]);
 
   return (
     <section>
