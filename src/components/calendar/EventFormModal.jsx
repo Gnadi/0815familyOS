@@ -305,6 +305,9 @@ export default function EventFormModal({
   const allKidsSelected =
     familyKids.length >= 2 && familyKids.every((k) => kids.includes(k.id));
 
+  // A subscribed calendar is computed from its .ics feed, so the feed owns the
+  // title, time, notes and recurrence: there is no document to write them to.
+  // Everything the family adds on top is still editable and stored separately.
   const isSubscribed = Boolean(initial?.source === 'subscription');
 
   return (
@@ -321,7 +324,8 @@ export default function EventFormModal({
           onChange={(e) => setTitle(e.target.value)}
           placeholder={t('events.titlePlaceholder')}
           required
-          autoFocus
+          autoFocus={!isSubscribed}
+          disabled={isSubscribed}
         />
         <div className="grid grid-cols-2 gap-3">
           <Input
@@ -330,6 +334,7 @@ export default function EventFormModal({
             value={date}
             onChange={(e) => setDate(e.target.value)}
             required
+            disabled={isSubscribed}
           />
           <Input
             label={t('events.timeLabel')}
@@ -337,6 +342,7 @@ export default function EventFormModal({
             value={time}
             onChange={(e) => setTime(e.target.value)}
             required
+            disabled={isSubscribed}
           />
         </div>
 
@@ -517,7 +523,9 @@ export default function EventFormModal({
               </div>
             </div>
 
-            <RecurrenceField value={recurrence} onChange={setRecurrence} />
+            {!isSubscribed && (
+              <RecurrenceField value={recurrence} onChange={setRecurrence} />
+            )}
           </>
         )}
 
@@ -538,13 +546,14 @@ export default function EventFormModal({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+            disabled={isSubscribed}
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100 disabled:bg-slate-50 disabled:text-slate-500"
             placeholder={t('events.notesPlaceholder')}
           />
         </label>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <div className="flex gap-2 pt-2">
-          {isEdit && onDelete && (
+          {isEdit && onDelete && !isSubscribed && (
             <Button
               type="button"
               variant="danger"

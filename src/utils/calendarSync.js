@@ -1,6 +1,6 @@
-// Helpers for syncing an external calendar subscription into our events
-// collection. Deliberately free of Firebase imports so they stay unit-testable
-// and can be reused from both the sync and the one-time file import.
+// Helpers for subscribed calendars. Deliberately free of Firebase imports so
+// they stay unit-testable, and shared between the feeds computed on the fly and
+// the one-time .ics file import.
 
 // FNV-1a, 32 bit. Run twice with different offset bases so two independent
 // 32-bit values can be concatenated into a 64-bit key -- enough to keep derived
@@ -30,17 +30,6 @@ function slug(value, max) {
   return String(value || '')
     .replace(/[^A-Za-z0-9_-]/g, '_')
     .slice(0, max);
-}
-
-// Deterministic document id for one event of one subscription.
-//
-// This is the core of the de-duplication: two syncs racing each other (the
-// initial sync from Settings and the background sync in AppShell, or two open
-// browser tabs) write to the *same* document instead of each creating one, so
-// duplicates can no longer be created in the first place.
-export function subscriptionEventId(subscriptionId, uid) {
-  const key = `${subscriptionId} ${uid}`;
-  return `ics_${slug(subscriptionId, 32)}_${slug(uid, 48)}_${stableHash(key)}`;
 }
 
 // Some feeds ship VEVENTs without a UID. Deriving a stable one from the event's
@@ -111,18 +100,77 @@ export function normalizeFeedUrl(url) {
   }
 }
 
-// Pick the document a feed event should be written to, and list the leftovers
-// that have to go.
+// Identity of a feed event that is never stored in Firestore.
 //
-// `owned` are documents already tagged with this subscription, `adoptable` are
-// documents with the same UID that came from a one-time .ics file import of the
-// same calendar. Adopting those means subscribing to a calendar you previously
-// imported by file updates the existing entries instead of doubling them.
-export function pickCanonicalDoc(canonicalId, owned = [], adoptable = []) {
-  const candidates = [...owned, ...adoptable];
-  if (candidates.length === 0) return { keep: null, drop: [] };
-  const exact = owned.find((d) => d.id === canonicalId)
-    || adoptable.find((d) => d.id === canonicalId);
-  const keep = exact || candidates[0];
-  return { keep, drop: candidates.filter((d) => d !== keep) };
+// Subscribed calendars are computed on the fly from the .ics feed rather than
+// mirrored into the database, so these ids exist only in memory. The "feed:"
+// prefix keeps them apart from real document ids at a glance.
+export function virtualEventId(subscriptionId, uid) {
+  return `feed:${subscriptionId}:${stableHash(uid)}`;
+}
+
+export function isFeedEvent(ev) {
+  return typeof ev?.id === 'string' && ev.id.startsWith('feed:');
+}
+
+// Document id for the annotation overlay of one feed event.
+//
+// A feed owns the title, time and description; the family owns who is
+// responsible, which kids are involved, the effort and the category. Those
+// annotations are the only thing worth persisting, and only for the handful of
+// events anyone actually annotates.
+export function annotationDocId(subscriptionId, externalId) {
+  return `ann_${slug(subscriptionId, 32)}_${stableHash(`${subscriptionId} ${externalId}`)}`;
+}
+
+const ANNOTATION_FIELDS = ['category', 'kids', 'responsibleParent', 'effortLevel'];
+
+// Is there anything in this annotation worth keeping?
+export function hasAnnotation(values) {
+  if (!values) return false;
+  if (values.kids?.length) return true;
+  if (values.responsibleParent) return true;
+  if (values.effortLevel) return true;
+  if (values.category && values.category !== 'general') return true;
+  return false;
+}
+
+// Overlay stored annotations onto the events computed from the feeds.
+export function applyAnnotations(feedEvents, annotations) {
+  if (!annotations?.size) return feedEvents;
+  return feedEvents.map((ev) => {
+    const overlay = annotations.get(`${ev.subscriptionId}\u0000${ev.externalId}`);
+    if (!overlay) return ev;
+    const merged = { ...ev };
+    for (const field of ANNOTATION_FIELDS) {
+      if (overlay[field] !== undefined && overlay[field] !== null) merged[field] = overlay[field];
+    }
+    return merged;
+  });
+}
+
+// Index annotation documents by the feed event they belong to.
+export function indexAnnotations(docs) {
+  const byKey = new Map();
+  for (const d of docs || []) {
+    if (d?.source !== 'annotation' || !d.subscriptionId || !d.externalId) continue;
+    byKey.set(`${d.subscriptionId}\u0000${d.externalId}`, d);
+  }
+  return byKey;
+}
+
+// An event left behind by a subscription that no longer exists.
+//
+// Removing a subscription deleted the family-document entry before deleting the
+// events, so any failure in between (the delete used to exceed Firestore's
+// 500-operation batch cap on a large calendar) stranded the whole feed: nothing
+// owned those events any more, no later sync recognised them, and re-adding the
+// calendar simply created a second full copy next to them.
+export function isOrphanedSubscriptionEvent(data, liveSubscriptionIds) {
+  // 'subscription' is the retired mirrored copy of a feed event; 'annotation'
+  // is the overlay that replaced it. Both belong to a subscription and both are
+  // meaningless once it is gone.
+  if (!data || (data.source !== 'subscription' && data.source !== 'annotation')) return false;
+  if (!data.subscriptionId) return true;
+  return !liveSubscriptionIds.has(data.subscriptionId);
 }

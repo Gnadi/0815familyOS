@@ -5,6 +5,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocFromServer,
   getDocs,
   query,
   serverTimestamp,
@@ -14,45 +15,26 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { parseICS } from '../utils/icsParser';
 import {
+  annotationDocId,
   dedupeFeedEvents,
+  hasAnnotation,
+  isOrphanedSubscriptionEvent,
   normalizeFeedUrl,
-  pickCanonicalDoc,
   selectSyncableEvents,
-  subscriptionEventId,
   withStableUids,
 } from '../utils/calendarSync';
+import { clearFeedCache } from './calendarFeeds';
 import { isDemoMode } from '../lib/demoMode';
 import { demoAdd, demoDocs, demoUpdate } from './demoStore';
 
 const eventsRef = collection(db, 'events');
-
-// How far back a subscription mirrors its feed. Past one-off events beyond this
-// are not imported, and existing ones are cleaned up on the next sync -- a feed
-// with years of history otherwise grows the events collection without bound and
-// makes every calendar load slower.
-const SYNC_PAST_WINDOW_DAYS = 365;
 
 // Firestore caps a WriteBatch at 500 operations.
 const BATCH_LIMIT = 400;
 
 function genId() {
   return `sub_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
-}
-
-export async function fetchRemoteICS(url) {
-  const res = await fetch('/api/ics-fetch', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url }),
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => null);
-    throw new Error(data?.error || `Fetch failed (${res.status}).`);
-  }
-  const data = await res.json();
-  return parseICS(data.ics || '');
 }
 
 export async function addSubscription(familyId, { label, url }) {
@@ -98,87 +80,130 @@ export async function updateSubscriptionMeta(familyId, subId, patch) {
   await updateDoc(famRef, { calendarSubscriptions: list });
 }
 
-export async function removeSubscription(familyId, subId) {
+// Delete document references in batches Firestore will actually accept.
+//
+// A WriteBatch is capped at 500 operations. Deleting a whole subscription in
+// one batch therefore threw on any calendar with more than 500 events -- and
+// since the subscription had already been removed from the family document by
+// then, the events were stranded with no owner.
+async function deleteRefsInChunks(refs) {
+  for (let i = 0; i < refs.length; i += BATCH_LIMIT) {
+    const batch = writeBatch(db);
+    for (const ref of refs.slice(i, i + BATCH_LIMIT)) batch.delete(ref);
+    // eslint-disable-next-line no-await-in-loop -- batches must commit in order
+    await batch.commit();
+  }
+}
+
+function liveSubscriptionIdsOf(familySnap) {
+  return new Set(
+    (familySnap.data()?.calendarSubscriptions || [])
+      .map((s) => s?.id)
+      .filter(Boolean),
+  );
+}
+
+// Read the family document straight from the server, never from the offline
+// cache. Deciding that a subscription is dead is a decision to delete events,
+// and a stale cached copy would not yet know about a subscription another
+// family member just added. Returns null when the server cannot be reached --
+// callers must then leave the orphan handling alone.
+async function readLiveFamily(familyId) {
+  try {
+    const snap = await getDocFromServer(doc(db, 'families', familyId));
+    return snap.exists() ? snap : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function removeSubscription(familyId, subId, { existingEvents } = {}) {
   const famRef = doc(db, 'families', familyId);
+
+  // Nothing of the calendar itself is stored, so removing it is just dropping
+  // the family-document entry plus whatever annotations were attached to it.
+  // Annotations first: if that fails the subscription stays, and the user can
+  // retry rather than being left with overlays nothing owns.
+  const entries = await loadEventEntries(familyId, existingEvents);
+  const targets = entries.filter(
+    (e) => e.data?.source === 'annotation' && e.data.subscriptionId === subId,
+  );
+  await deleteRefsInChunks(targets.map((e) => e.ref));
+
   const snap = await getDoc(famRef);
   const list = (snap.data()?.calendarSubscriptions || []).filter(
     (s) => s && s.id !== subId,
   );
   await updateDoc(famRef, { calendarSubscriptions: list });
 
-  // Remove all events tied to this subscription.
-  const q = query(eventsRef, where('familyId', '==', familyId));
-  const all = await getDocs(q);
-  const targets = all.docs.filter((d) => d.data().subscriptionId === subId);
-  if (targets.length === 0) return;
-  const batch = writeBatch(db);
-  targets.forEach((d) => batch.delete(d.ref));
-  await batch.commit();
+  clearFeedCache(subId);
+  return { removed: targets.length };
 }
 
-// In-flight syncs, keyed by family + subscription.
+// Delete annotations left behind by subscriptions that no longer exist.
+export async function cleanupOrphanedSubscriptionEvents(familyId, { existingEvents } = {}) {
+  if (isDemoMode()) return { removed: 0 };
+
+  if (Array.isArray(existingEvents)
+    && !existingEvents.some((ev) => ev?.source === 'annotation' || ev?.source === 'subscription')) {
+    return { removed: 0 };
+  }
+
+  // Without a confirmed server-side view of the subscription list we cannot
+  // tell which subscriptions are live, and guessing would wipe real data.
+  const famSnap = await readLiveFamily(familyId);
+  if (!famSnap) return { removed: 0 };
+  const live = liveSubscriptionIdsOf(famSnap);
+
+  const entries = await loadEventEntries(familyId, existingEvents);
+  const orphans = entries.filter((e) => isOrphanedSubscriptionEvent(e.data, live));
+  if (orphans.length === 0) return { removed: 0 };
+  await deleteRefsInChunks(orphans.map((e) => e.ref));
+  return { removed: orphans.length };
+}
+
+// The family's events, preferably from the live listener the app is already
+// running. That listener has paid the Firestore reads once; re-querying the
+// whole collection pays for all of them again. Falls back to a real query when
+// nothing is listening.
+async function loadEventEntries(familyId, existingEvents) {
+  if (Array.isArray(existingEvents)) {
+    return existingEvents.map((ev) => ({
+      id: ev.id,
+      ref: doc(db, 'events', ev.id),
+      data: ev,
+    }));
+  }
+  const allSnap = await getDocs(query(eventsRef, where('familyId', '==', familyId)));
+  return allSnap.docs.map((d) => ({ id: d.id, ref: d.ref, data: d.data() }));
+}
+
+// Retire the mirrored copies of subscribed calendars.
 //
-// Adding a subscription used to run two syncs at once: the explicit initial one
-// from Settings, and the background one AppShell starts the moment the new
-// subscription lands in the family document. Both read the events collection
-// before either had written anything, so both concluded "nothing here yet" and
-// created a full copy of the feed -- every event twice. Concurrent callers now
-// share a single run.
-const inFlightSyncs = new Map();
+// Subscriptions used to be synced into the events collection: one document per
+// feed event, rewritten on every sync. They are now computed from the .ics feed
+// on the fly, so those documents are dead weight -- and they were the thing
+// that could duplicate, strand and blow the free tier.
+//
+// Anything the family had annotated (kids, responsible parent, effort, a
+// category) is kept: it is rewritten as a small overlay document, which is the
+// only part a feed cannot reproduce. Everything else is deleted.
+export async function migrateMirroredSubscriptionEvents(familyId, { userId, existingEvents } = {}) {
+  if (isDemoMode() || !userId) return { migrated: 0, removed: 0 };
 
-// Sync a subscription: fetch the remote ICS, diff against existing synced
-// events for this subscription, upsert by UID, delete stale ones.
-export function syncSubscription({ familyId, userId, subscription }) {
-  if (isDemoMode()) {
-    return Promise.reject(new Error('Calendar subscriptions are disabled in the demo.'));
-  }
-  const key = `${familyId}:${subscription?.id}`;
-  const running = inFlightSyncs.get(key);
-  if (running) return running;
-
-  const run = runSync({ familyId, userId, subscription }).finally(() => {
-    if (inFlightSyncs.get(key) === run) inFlightSyncs.delete(key);
-  });
-  inFlightSyncs.set(key, run);
-  return run;
-}
-
-async function runSync({ familyId, userId, subscription }) {
-  const { events: remoteEvents } = await fetchRemoteICS(subscription.url);
-
-  const cutoff = new Date();
-  cutoff.setHours(0, 0, 0, 0);
-  cutoff.setDate(cutoff.getDate() - SYNC_PAST_WINDOW_DAYS);
-  const feed = selectSyncableEvents(
-    dedupeFeedEvents(withStableUids(remoteEvents)),
-    cutoff,
-  );
-
-  const q = query(eventsRef, where('familyId', '==', familyId));
-  const allSnap = await getDocs(q);
-
-  // Index every candidate document *per UID* rather than keeping only the last
-  // one seen. Anything beyond the first copy is a duplicate from an earlier
-  // racing sync and gets deleted below, so an already-doubled calendar heals
-  // itself on the next sync.
-  const ownedByUid = new Map();
-  const importedByUid = new Map();
-  for (const d of allSnap.docs) {
-    const data = d.data();
-    const uid = data.externalId;
-    if (!uid) continue;
-    if (data.subscriptionId === subscription.id) {
-      if (!ownedByUid.has(uid)) ownedByUid.set(uid, []);
-      ownedByUid.get(uid).push(d);
-    } else if (!data.subscriptionId && data.source === 'import') {
-      // Same event previously pulled in via the one-time .ics file import.
-      if (!importedByUid.has(uid)) importedByUid.set(uid, []);
-      importedByUid.get(uid).push(d);
-    }
+  // Cheap exit: when the app already holds the events, finding nothing to do
+  // costs nothing. That is the outcome on every session after the first.
+  if (Array.isArray(existingEvents)
+    && !existingEvents.some((ev) => ev?.source === 'subscription')) {
+    return { migrated: 0, removed: 0 };
   }
 
-  const seen = new Set();
-  // A committed WriteBatch cannot be reused, so every flush starts a fresh one.
+  const entries = await loadEventEntries(familyId, existingEvents);
+  const mirrored = entries.filter((e) => e.data?.source === 'subscription');
+  if (mirrored.length === 0) return { migrated: 0, removed: 0 };
+
+  const annotated = mirrored.filter((e) => e.data.externalId && hasAnnotation(e.data));
+
   let batch = writeBatch(db);
   let writes = 0;
   const flushIfFull = async () => {
@@ -190,71 +215,31 @@ async function runSync({ familyId, userId, subscription }) {
     }
   };
 
-  for (const ev of feed) {
-    seen.add(ev.uid);
-    // Fields the feed owns. Everything else on the document (category, kids,
-    // responsibleParent, effortLevel) is set once at creation and then left
-    // alone, so local edits survive a re-sync.
-    const remoteFields = {
+  for (const entry of annotated) {
+    const { data } = entry;
+    const id = annotationDocId(data.subscriptionId || '', data.externalId);
+    batch.set(doc(db, 'events', id), {
       familyId,
+      // The events rules require a create to name the caller, so the
+      // annotation is authored by whoever runs the migration -- not by
+      // whoever the retired mirror happened to be attributed to.
       userId,
-      title: ev.title || 'Untitled',
-      description: ev.description || '',
-      date: Timestamp.fromDate(ev.date),
-      recurrence: ev.recurrence || null,
-      source: 'subscription',
-      subscriptionId: subscription.id,
-      externalId: ev.uid,
+      source: 'annotation',
+      subscriptionId: data.subscriptionId || '',
+      externalId: data.externalId,
+      date: data.date,
+      category: data.category || 'general',
+      kids: data.kids || [],
+      responsibleParent: data.responsibleParent || '',
+      effortLevel: data.effortLevel || '',
       updatedAt: serverTimestamp(),
-    };
-
-    const canonicalId = subscriptionEventId(subscription.id, ev.uid);
-    const { keep, drop } = pickCanonicalDoc(
-      canonicalId,
-      ownedByUid.get(ev.uid) || [],
-      importedByUid.get(ev.uid) || [],
-    );
-
-    if (keep) {
-      batch.update(keep.ref, remoteFields);
-    } else {
-      // Deterministic id: a concurrent sync writing the same event targets this
-      // exact document, so the write is an overwrite instead of a second copy.
-      batch.set(doc(db, 'events', canonicalId), {
-        ...remoteFields,
-        category: 'general',
-        kids: [],
-        responsibleParent: '',
-        effortLevel: '',
-        createdAt: serverTimestamp(),
-      });
-    }
+    });
     await flushIfFull();
-
-    for (const dupe of drop) {
-      batch.delete(dupe.ref);
-      await flushIfFull();
-    }
-  }
-
-  // Delete events that disappeared from the remote feed (or fell out of the
-  // sync window). Only documents owned by this subscription -- file imports are
-  // the user's own copy and are left untouched unless the feed claims them.
-  for (const [uid, docs] of ownedByUid.entries()) {
-    if (seen.has(uid)) continue;
-    for (const stale of docs) {
-      batch.delete(stale.ref);
-      await flushIfFull();
-    }
   }
   if (writes > 0) await batch.commit();
 
-  await updateSubscriptionMeta(familyId, subscription.id, {
-    lastSyncAt: new Date().toISOString(),
-    lastError: null,
-  });
-
-  return { count: feed.length };
+  await deleteRefsInChunks(mirrored.map((e) => e.ref));
+  return { migrated: annotated.length, removed: mirrored.length };
 }
 
 // Bulk-import events from a parsed ICS (one-time file import). Tags events

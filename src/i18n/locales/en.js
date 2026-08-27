@@ -262,6 +262,7 @@ export default {
     testSubscribe: 'Test & subscribe',
     initialSyncFailed: 'Initial sync failed.',
     alreadySubscribed: 'This calendar is already subscribed. Use "Sync now" to refresh it.',
+    removeFailed: 'The calendar could not be removed. Please try again.',
     couldNotSubscribe: 'Could not subscribe to that calendar.',
     syncFailed: 'Sync failed.',
     removeConfirm: 'Remove "{label}" and delete its synced events?',
@@ -665,7 +666,7 @@ export default {
     modalEdit: 'Edit Event',
     modalNew: 'New Event',
     subscribedWarning:
-      'This event is synced from an external calendar. Any edits here will be overwritten the next time it syncs — change it in the original calendar instead.',
+      'This event comes from a subscribed calendar. Its title, time and notes are set by that calendar; you can still add kids, who is responsible, the effort and a category.',
     titleLabel: 'Title',
     titlePlaceholder: 'Soccer Practice',
     dateLabel: 'Date',

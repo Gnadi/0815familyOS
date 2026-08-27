@@ -3,6 +3,11 @@
 // don't send permissive CORS headers, so this small server endpoint passes
 // the body through. Parsing happens client-side.
 //
+// Conditional requests: the caller may pass the `etag` / `lastModified` it saw
+// last. They are forwarded as If-None-Match / If-Modified-Since, and a 304 comes
+// back as { notModified: true } with no body. Calendar feeds change rarely, so
+// this is what keeps a re-sync from costing anything at all.
+//
 // Safety:
 // - Only http, https and webcal schemes accepted (webcal → https).
 // - Hostnames matching private/loopback patterns rejected to prevent SSRF.
@@ -31,6 +36,24 @@ function sanitiseUrl(raw) {
   return parsed.toString();
 }
 
+// Validators are echoed back to an upstream server, so accept only plausible
+// header values and cap their length.
+function headerValue(raw) {
+  if (typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed.length > 200) return null;
+  // No CR/LF (header injection) and nothing outside printable ASCII.
+  if (!/^[\x20-\x7E]+$/.test(trimmed)) return null;
+  return trimmed;
+}
+
+function validatorsOf(response) {
+  return {
+    etag: response.headers.get('etag') || null,
+    lastModified: response.headers.get('last-modified') || null,
+  };
+}
+
 export default async function handler(req, res) {
   const raw = req.method === 'POST' ? req.body?.url : req.query?.url;
   const url = sanitiseUrl(raw);
@@ -38,20 +61,32 @@ export default async function handler(req, res) {
     res.status(400).json({ error: 'Invalid or unsupported URL.' });
     return;
   }
+  const etag = req.method === 'POST' ? headerValue(req.body?.etag) : null;
+  const lastModified = req.method === 'POST' ? headerValue(req.body?.lastModified) : null;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
+    const headers = {
+      'User-Agent': 'myFAOS/1.0 (calendar subscription sync)',
+      Accept: 'text/calendar, text/plain, */*',
+    };
+    if (etag) headers['If-None-Match'] = etag;
+    if (lastModified) headers['If-Modified-Since'] = lastModified;
+
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'User-Agent': 'myFAOS/1.0 (calendar subscription sync)',
-        Accept: 'text/calendar, text/plain, */*',
-      },
+      headers,
       redirect: 'follow',
       signal: controller.signal,
     });
+    // Unchanged since the caller last looked: no body, nothing to re-parse and
+    // nothing to write.
+    if (response.status === 304) {
+      res.status(200).json({ notModified: true, etag, lastModified });
+      return;
+    }
     if (!response.ok) {
       res.status(502).json({
         error: `Upstream returned ${response.status} ${response.statusText}`,
@@ -65,7 +100,7 @@ export default async function handler(req, res) {
         res.status(413).json({ error: 'Calendar feed too large.' });
         return;
       }
-      res.status(200).json({ ics: text });
+      res.status(200).json({ ics: text, ...validatorsOf(response) });
       return;
     }
     const chunks = [];
@@ -81,7 +116,7 @@ export default async function handler(req, res) {
       chunks.push(value);
     }
     const merged = Buffer.concat(chunks.map((c) => Buffer.from(c)));
-    res.status(200).json({ ics: merged.toString('utf-8') });
+    res.status(200).json({ ics: merged.toString('utf-8'), ...validatorsOf(response) });
   } catch (err) {
     if (err.name === 'AbortError') {
       res.status(504).json({ error: 'Upstream timed out.' });

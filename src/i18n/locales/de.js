@@ -260,6 +260,7 @@ export default {
     testSubscribe: 'Testen & abonnieren',
     initialSyncFailed: 'Erste Synchronisierung fehlgeschlagen.',
     alreadySubscribed: 'Dieser Kalender ist bereits abonniert. Nutze "Jetzt synchronisieren", um ihn zu aktualisieren.',
+    removeFailed: 'Der Kalender konnte nicht entfernt werden. Bitte erneut versuchen.',
     couldNotSubscribe: 'Dieser Kalender konnte nicht abonniert werden.',
     syncFailed: 'Synchronisierung fehlgeschlagen.',
     removeConfirm: '„{label}“ entfernen und die synchronisierten Termine löschen?',
@@ -663,7 +664,7 @@ export default {
     modalEdit: 'Termin bearbeiten',
     modalNew: 'Neuer Termin',
     subscribedWarning:
-      'Dieser Termin wird aus einem externen Kalender synchronisiert. Änderungen hier werden bei der nächsten Synchronisierung überschrieben — ändere ihn stattdessen im Originalkalender.',
+      'Dieser Termin stammt aus einem abonnierten Kalender. Titel, Zeit und Notizen werden vom Kalender vorgegeben; Kinder, Verantwortliche, Aufwand und Kategorie kannst du hier ergänzen.',
     titleLabel: 'Titel',
     titlePlaceholder: 'Fußballtraining',
     dateLabel: 'Datum',

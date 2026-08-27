@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  setDoc,
   getDocs,
   onSnapshot,
   orderBy,
@@ -15,6 +16,13 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { DEFAULT_CATEGORY } from '../constants/eventCategories';
+import {
+  annotationDocId,
+  applyAnnotations,
+  hasAnnotation,
+  indexAnnotations,
+} from '../utils/calendarSync';
+import { loadAllFeeds } from './calendarFeeds';
 import { isDemoMode } from '../lib/demoMode';
 import { demoAdd, demoDelete, demoDocs, demoSubscribe, demoUpdate } from './demoStore';
 
@@ -76,13 +84,21 @@ export function subscribeEvents(familyId, cb, onError) {
   );
 }
 
-// One-shot fetch for flows that don't need a live listener (e.g. the
-// Settings .ics export).
-export async function fetchEventsOnce(familyId) {
-  if (isDemoMode()) return mapEventDocs(demoDocs('events'));
-  const q = query(eventsRef, where('familyId', '==', familyId), orderBy('date', 'asc'));
-  const snap = await getDocs(q);
-  return snap.docs.map(mapEventDoc);
+// The whole family calendar in one shot: stored events plus the subscribed
+// calendars computed from their feeds, annotations applied. Used by the .ics
+// export, which has to reproduce exactly what the app shows.
+export async function fetchCalendarOnce(familyId, subscriptions) {
+  const all = isDemoMode()
+    ? mapEventDocs(demoDocs('events'))
+    : (await getDocs(
+        query(eventsRef, where('familyId', '==', familyId), orderBy('date', 'asc')),
+      )).docs.map(mapEventDoc);
+
+  const own = all.filter((ev) => ev.source !== 'annotation');
+  if (!subscriptions?.length) return own;
+
+  const { events } = await loadAllFeeds(subscriptions);
+  return [...own, ...applyAnnotations(events, indexAnnotations(all))];
 }
 
 export function createEvent({ familyId, userId, title, description, date, category, kids, responsibleParent, effortLevel, recurrence }) {
@@ -118,6 +134,43 @@ export function updateEvent(id, { title, description, date, category, kids, resp
   };
   if (isDemoMode()) return demoUpdate('events', id, payload);
   return updateDoc(doc(db, 'events', id), payload);
+}
+
+// Save the family's annotations for one feed event.
+//
+// A subscribed calendar is computed from its .ics feed and never stored, so the
+// feed owns the title, time and description. What the family adds on top --
+// who is responsible, which kids are involved, the effort, the category -- has
+// nowhere else to live, so it goes into a small overlay document keyed to the
+// feed event. Only annotated events get one; the rest cost nothing.
+export function saveFeedAnnotation({ familyId, userId, event, values }) {
+  const id = annotationDocId(event.subscriptionId, event.externalId);
+  // Nothing worth keeping any more: drop the overlay rather than storing an
+  // empty one.
+  if (!hasAnnotation(values)) return clearFeedAnnotation(id);
+
+  const payload = {
+    familyId,
+    userId,
+    source: 'annotation',
+    subscriptionId: event.subscriptionId,
+    externalId: event.externalId,
+    // Denormalised so the document satisfies the events listener's date
+    // ordering; it is never rendered as an event of its own.
+    date: dateVal(event.date),
+    category: normalizeCategory(values.category),
+    kids: values.kids || [],
+    responsibleParent: values.responsibleParent || '',
+    effortLevel: values.effortLevel || '',
+    updatedAt: nowVal(),
+  };
+  if (isDemoMode()) return demoUpdate('events', id, payload);
+  return setDoc(doc(db, 'events', id), payload, { merge: true });
+}
+
+export function clearFeedAnnotation(id) {
+  if (isDemoMode()) return demoDelete('events', id);
+  return deleteDoc(doc(db, 'events', id));
 }
 
 export function deleteEvent(id) {
