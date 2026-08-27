@@ -9,6 +9,7 @@ import { auth, googleProvider, requireAuth } from '../lib/firebase';
 import { ensureUserDoc } from './users';
 import { exitDemo, isDemoMode } from '../lib/demoMode';
 import { clearAuthHint } from '../lib/authHint';
+import { normalizeDisplayName } from '../utils/displayName';
 
 // Firebase auth error codes mapped to i18n keys (authErrors.*). Callers pass a
 // `t` function so messages render in the active language; without one we fall
@@ -46,10 +47,13 @@ export function toFriendlyError(err, t) {
 
 export async function signUpWithEmail({ email, password, displayName }) {
   const cred = await createUserWithEmailAndPassword(requireAuth(), email, password);
-  if (displayName) {
-    await updateProfile(cred.user, { displayName });
+  // Same normalization the rename in settings applies, so a name written at
+  // signup and one written later are stored in the same shape.
+  const name = normalizeDisplayName(displayName);
+  if (name) {
+    await updateProfile(cred.user, { displayName: name });
   }
-  await ensureUserDoc(cred.user, { displayName });
+  await ensureUserDoc(cred.user, { displayName: name });
   return cred.user;
 }
 

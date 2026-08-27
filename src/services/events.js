@@ -28,6 +28,9 @@ import { demoAdd, demoDelete, demoDocs, demoSubscribe, demoUpdate } from './demo
 
 const eventsRef = collection(db, 'events');
 
+// Firestore caps a write batch at 500 operations.
+const BATCH_LIMIT = 450;
+
 // In demo mode payloads carry plain JS Dates (the demo store never sees
 // Firestore sentinels); otherwise the usual Timestamp/serverTimestamp values.
 const nowVal = () => (isDemoMode() ? new Date() : serverTimestamp());
@@ -202,5 +205,40 @@ export async function reassignEventsCategory(
     batch.update(d.ref, { category: toCategoryId, updatedAt: serverTimestamp() })
   );
   await batch.commit();
+  return targets.length;
+}
+
+// Carry a member rename across their existing events.
+//
+// An event points at the responsible parent by display name, not by uid (see
+// EventFormModal), so without this a rename silently drops every existing
+// assignment out of the calendar's member filter and the workload balance.
+// Feed annotations live in this same collection and hold the same field, so
+// the single familyId query covers them too.
+//
+// Writes are chunked because Firestore caps a batch at 500 operations, and a
+// family that has been using the calendar for a while can easily pass that.
+export async function renameResponsibleParent(familyId, fromName, toName) {
+  const from = (fromName || '').trim();
+  const to = (toName || '').trim();
+  if (!familyId || !from || !to || from === to) return 0;
+
+  if (isDemoMode()) {
+    const targets = demoDocs('events').filter((d) => d.data().responsibleParent === from);
+    for (const d of targets) {
+      await demoUpdate('events', d.id, { responsibleParent: to, updatedAt: new Date() });
+    }
+    return targets.length;
+  }
+
+  const snap = await getDocs(query(eventsRef, where('familyId', '==', familyId)));
+  const targets = snap.docs.filter((d) => d.data().responsibleParent === from);
+  for (let i = 0; i < targets.length; i += BATCH_LIMIT) {
+    const batch = writeBatch(db);
+    targets.slice(i, i + BATCH_LIMIT).forEach((d) =>
+      batch.update(d.ref, { responsibleParent: to, updatedAt: serverTimestamp() }),
+    );
+    await batch.commit();
+  }
   return targets.length;
 }
