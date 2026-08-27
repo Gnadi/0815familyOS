@@ -125,6 +125,14 @@ export function demoSubscribeUserDoc(cb) {
 export function demoUpdateUserDoc(patch) {
   const s = ensure();
   s.userDoc = { ...s.userDoc, ...patch };
+  // The member list is seeded next to the user document rather than derived
+  // from it, so a rename has to reach it too — otherwise the demo user keeps
+  // showing up under the old name in every member picker.
+  if (patch.displayName) {
+    s.members = s.members.map((m) =>
+      m.uid === DEMO_UID ? { ...m, displayName: patch.displayName } : m,
+    );
+  }
   channel('userDoc').forEach((cb) => cb(demoUserDoc()));
   return Promise.resolve();
 }

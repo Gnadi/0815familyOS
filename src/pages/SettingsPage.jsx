@@ -1,14 +1,18 @@
 import { useState } from 'react';
-import { ArrowDown, ArrowUp, Cake, Check, Download, Languages, LayoutGrid, LogOut, Moon, Palette, Plus, Smartphone, Sun, Trash2, Users } from 'lucide-react';
+import { ArrowDown, ArrowUp, Cake, Check, Download, Languages, LayoutGrid, LogOut, Moon, Palette, Pencil, Plus, Smartphone, Sun, Trash2, Users } from 'lucide-react';
 import { QUICK_ACCESS_ENTRIES } from '../constants/quickAccessEntries';
 import TopBar from '../components/layout/TopBar';
 import Button from '../components/common/Button';
+import Input from '../components/common/Input';
 import useAuth from '../hooks/useAuth';
 import useUIPreferences from '../hooks/useUIPreferences';
 import useT from '../hooks/useT';
 import { SKINS, THEMES } from '../context/UIPreferencesContext';
 import { LOCALES } from '../i18n/config';
 import { addKid, removeKid, updateKid } from '../services/families';
+import { updateDisplayName } from '../services/users';
+import { renameResponsibleParent } from '../services/events';
+import { DISPLAY_NAME_MAX, normalizeDisplayName } from '../utils/displayName';
 import InviteShareCard from '../components/invites/InviteShareCard';
 import { exportFamilyData } from '../utils/exportFamily';
 import CalendarImportSection from '../components/settings/CalendarImportSection';
@@ -29,8 +33,49 @@ export default function SettingsPage() {
   const { theme, setTheme, mode, setMode, skin, setSkin, showLabels, setShowLabels, quickAccess, setQuickAccess } = useUIPreferences();
   const { t, tn, locale, setLocale } = useT();
   const [newKidName, setNewKidName] = useState('');
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [nameBusy, setNameBusy] = useState(false);
   const [exportBusy, setExportBusy] = useState(false);
   const [exportError, setExportError] = useState('');
+  const currentName = userDoc?.displayName || user?.displayName || '';
+
+  function startEditingName() {
+    setNameDraft(currentName);
+    setNameError('');
+    setEditingName(true);
+  }
+
+  async function handleSaveName(e) {
+    e.preventDefault();
+    const next = normalizeDisplayName(nameDraft);
+    if (!next) {
+      setNameError(t('settings.errNameRequired'));
+      return;
+    }
+    if (next === currentName) {
+      setEditingName(false);
+      return;
+    }
+    setNameError('');
+    setNameBusy(true);
+    try {
+      const saved = await updateDisplayName(user.uid, next);
+      // Events store the responsible parent by name, so the rename has to
+      // travel with it. Best effort: the name itself is already saved, and a
+      // failure here must not read to the user as "the rename did not work".
+      if (family?.id) {
+        await renameResponsibleParent(family.id, currentName, saved).catch(console.error);
+      }
+      setEditingName(false);
+    } catch (err) {
+      setNameError(err.message || t('settings.nameSaveFailed'));
+    } finally {
+      setNameBusy(false);
+    }
+  }
+
   async function handleAddKid(e) {
     e.preventDefault();
     const name = newKidName.trim();
@@ -243,12 +288,50 @@ export default function SettingsPage() {
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
             {t('settings.account')}
           </h2>
-          <div className="mt-3 space-y-1">
-            <p className="text-base font-semibold text-slate-900">
-              {userDoc?.displayName || user?.displayName}
-            </p>
-            <p className="text-sm text-slate-500">{user?.email}</p>
-          </div>
+          {editingName ? (
+            <form onSubmit={handleSaveName} className="mt-3 space-y-3">
+              <Input
+                label={t('settings.yourName')}
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                maxLength={DISPLAY_NAME_MAX}
+                autoFocus
+                error={nameError}
+              />
+              <div className="flex gap-2">
+                <Button type="submit" size="sm" loading={nameBusy} disabled={!nameDraft.trim()}>
+                  {t('common.save')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={nameBusy}
+                  onClick={() => {
+                    setEditingName(false);
+                    setNameError('');
+                  }}
+                >
+                  {t('common.cancel')}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <div className="mt-3 flex items-center gap-3">
+              <div className="min-w-0 flex-1 space-y-1">
+                <p className="truncate text-base font-semibold text-slate-900">{currentName}</p>
+                <p className="truncate text-sm text-slate-500">{user?.email}</p>
+              </div>
+              <button
+                type="button"
+                onClick={startEditingName}
+                className="flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-brand-600 hover:bg-brand-50"
+              >
+                <Pencil size={15} />
+                {t('settings.changeName')}
+              </button>
+            </div>
+          )}
         </section>
 
         {family && (
