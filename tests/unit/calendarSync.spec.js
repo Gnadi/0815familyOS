@@ -1,47 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import {
-  classifyExistingEvents,
+  annotationDocId,
+  applyAnnotations,
   dedupeFeedEvents,
-  feedFingerprint,
-  isOrphanedSubscriptionEvent,
-  needsUpdate,
   fallbackUid,
+  hasAnnotation,
+  indexAnnotations,
+  isFeedEvent,
+  isOrphanedSubscriptionEvent,
   normalizeFeedUrl,
-  pickCanonicalDoc,
   selectSyncableEvents,
-  subscriptionEventId,
+  virtualEventId,
   withStableUids,
 } from '../../src/utils/calendarSync';
 import { parseICS } from '../../src/utils/icsParser';
-
-describe('subscriptionEventId', () => {
-  it('is stable for the same subscription and UID', () => {
-    const a = subscriptionEventId('sub_1', 'ABC-123@icloud.com');
-    const b = subscriptionEventId('sub_1', 'ABC-123@icloud.com');
-    expect(a).toBe(b);
-  });
-
-  it('differs per subscription and per UID', () => {
-    const base = subscriptionEventId('sub_1', 'uid-a');
-    expect(subscriptionEventId('sub_2', 'uid-a')).not.toBe(base);
-    expect(subscriptionEventId('sub_1', 'uid-b')).not.toBe(base);
-  });
-
-  it('produces a legal Firestore document id', () => {
-    const id = subscriptionEventId('sub_1', 'weird/uid:with spaces@and.dots');
-    expect(id).toMatch(/^[A-Za-z0-9_-]+$/);
-    expect(id).not.toMatch(/^__.*__$/);
-    expect(id.length).toBeLessThan(1500);
-  });
-
-  it('stays collision-free across a realistic calendar', () => {
-    const ids = new Set();
-    for (let i = 0; i < 5000; i += 1) {
-      ids.add(subscriptionEventId('sub_1', `event-${i}@icloud.com`));
-    }
-    expect(ids.size).toBe(5000);
-  });
-});
 
 describe('withStableUids', () => {
   it('derives a UID for events that ship without one', () => {
@@ -115,159 +87,137 @@ describe('selectSyncableEvents', () => {
   });
 });
 
-describe('pickCanonicalDoc', () => {
-  const canonical = 'ics_sub_uid_deadbeef';
-
-  it('returns nothing to keep when the event is new', () => {
-    expect(pickCanonicalDoc(canonical, [], [])).toEqual({ keep: null, drop: [] });
+describe('virtualEventId', () => {
+  it('is stable for the same subscription and UID', () => {
+    expect(virtualEventId('sub_1', 'u1')).toBe(virtualEventId('sub_1', 'u1'));
   });
 
-  it('keeps the deterministic document and drops racing duplicates', () => {
-    const random = { id: 'random1' };
-    const exact = { id: canonical };
-    const { keep, drop } = pickCanonicalDoc(canonical, [random, exact]);
-    expect(keep).toBe(exact);
-    expect(drop).toEqual([random]);
+  it('differs per subscription and per UID', () => {
+    const base = virtualEventId('sub_1', 'u1');
+    expect(virtualEventId('sub_2', 'u1')).not.toBe(base);
+    expect(virtualEventId('sub_1', 'u2')).not.toBe(base);
   });
 
-  it('collapses several legacy duplicates onto one document', () => {
-    const docs = [{ id: 'r1' }, { id: 'r2' }, { id: 'r3' }];
-    const { keep, drop } = pickCanonicalDoc(canonical, docs);
-    expect(keep).toBe(docs[0]);
-    expect(drop).toEqual([docs[1], docs[2]]);
+  it('is recognisable as a feed event, unlike a stored document id', () => {
+    expect(isFeedEvent({ id: virtualEventId('sub_1', 'u1') })).toBe(true);
+    expect(isFeedEvent({ id: 'aB3xYz9QwErTyUiOpAsD' })).toBe(false);
+    expect(isFeedEvent({})).toBe(false);
+    expect(isFeedEvent(null)).toBe(false);
   });
 
-  it('adopts a file-imported copy instead of creating a second one', () => {
-    const imported = { id: 'imported1' };
-    const { keep, drop } = pickCanonicalDoc(canonical, [], [imported]);
-    expect(keep).toBe(imported);
-    expect(drop).toEqual([]);
-  });
-
-  it('prefers a document already owned by the subscription over an import', () => {
-    const owned = { id: 'owned1' };
-    const imported = { id: 'imported1' };
-    const { keep, drop } = pickCanonicalDoc(canonical, [owned], [imported]);
-    expect(keep).toBe(owned);
-    expect(drop).toEqual([imported]);
+  it('stays collision-free across a realistic calendar', () => {
+    const ids = new Set();
+    for (let i = 0; i < 5000; i += 1) ids.add(virtualEventId('sub_1', `event-${i}@icloud.com`));
+    expect(ids.size).toBe(5000);
   });
 });
 
-describe('feedFingerprint', () => {
-  const ev = (over = {}) => ({
-    uid: 'u1',
+describe('annotationDocId', () => {
+  it('is stable, so saving an annotation twice updates one document', () => {
+    expect(annotationDocId('sub_1', 'u1')).toBe(annotationDocId('sub_1', 'u1'));
+  });
+
+  it('differs per subscription and per event', () => {
+    const base = annotationDocId('sub_1', 'u1');
+    expect(annotationDocId('sub_2', 'u1')).not.toBe(base);
+    expect(annotationDocId('sub_1', 'u2')).not.toBe(base);
+  });
+
+  it('produces a legal Firestore document id from an awkward UID', () => {
+    const id = annotationDocId('sub_1', 'weird/uid:with spaces@and.dots');
+    expect(id).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(id).not.toMatch(/^__.*__$/);
+  });
+});
+
+describe('hasAnnotation', () => {
+  it('is false for an event carrying nothing the family added', () => {
+    expect(hasAnnotation({ kids: [], responsibleParent: '', effortLevel: '', category: 'general' }))
+      .toBe(false);
+    expect(hasAnnotation({})).toBe(false);
+    expect(hasAnnotation(null)).toBe(false);
+  });
+
+  it('is true as soon as any family field is set', () => {
+    expect(hasAnnotation({ kids: ['k1'] })).toBe(true);
+    expect(hasAnnotation({ responsibleParent: 'Anna' })).toBe(true);
+    expect(hasAnnotation({ effortLevel: 'high' })).toBe(true);
+    expect(hasAnnotation({ category: 'sport' })).toBe(true);
+  });
+
+  it('does not count the default category as an annotation', () => {
+    expect(hasAnnotation({ category: 'general' })).toBe(false);
+  });
+});
+
+describe('applyAnnotations', () => {
+  const feedEvent = {
+    id: 'feed:sub_a:abc',
     title: 'Turnen',
-    description: '',
-    date: new Date(2026, 2, 3, 16, 0, 0),
-    recurrence: null,
+    date: new Date(2026, 2, 3, 16),
+    category: 'general',
+    kids: [],
+    responsibleParent: '',
+    effortLevel: '',
+    source: 'subscription',
+    subscriptionId: 'sub_a',
+    externalId: 'u1',
+  };
+
+  const annotationDoc = (over = {}) => ({
+    source: 'annotation',
+    subscriptionId: 'sub_a',
+    externalId: 'u1',
+    category: 'sport',
+    kids: ['k1'],
+    responsibleParent: 'Anna',
+    effortLevel: 'high',
     ...over,
   });
 
-  it('is stable across re-fetches of the same content', () => {
-    expect(feedFingerprint([ev()])).toBe(feedFingerprint([ev()]));
+  it('overlays the family fields onto the matching feed event', () => {
+    const [out] = applyAnnotations([feedEvent], indexAnnotations([annotationDoc()]));
+    expect(out.category).toBe('sport');
+    expect(out.kids).toEqual(['k1']);
+    expect(out.responsibleParent).toBe('Anna');
+    expect(out.effortLevel).toBe('high');
   });
 
-  it('ignores the order the provider happens to emit events in', () => {
-    const a = ev({ uid: 'a' });
-    const b = ev({ uid: 'b' });
-    expect(feedFingerprint([a, b])).toBe(feedFingerprint([b, a]));
+  it('never lets an annotation override what the feed owns', () => {
+    const [out] = applyAnnotations(
+      [feedEvent],
+      indexAnnotations([annotationDoc({ title: 'Gehackt', date: new Date(2000, 0, 1) })]),
+    );
+    expect(out.title).toBe('Turnen');
+    expect(out.date).toBe(feedEvent.date);
   });
 
-  it('changes when a title, time, description or recurrence changes', () => {
-    const base = feedFingerprint([ev()]);
-    expect(feedFingerprint([ev({ title: 'Turnen verlegt' })])).not.toBe(base);
-    expect(feedFingerprint([ev({ date: new Date(2026, 2, 3, 17, 0, 0) })])).not.toBe(base);
-    expect(feedFingerprint([ev({ description: 'Halle 2' })])).not.toBe(base);
-    expect(feedFingerprint([ev({ recurrence: { freq: 'weekly', interval: 1 } })])).not.toBe(base);
+  it('leaves events without an annotation untouched', () => {
+    const other = { ...feedEvent, externalId: 'u2' };
+    const [out] = applyAnnotations([other], indexAnnotations([annotationDoc()]));
+    expect(out).toBe(other);
   });
 
-  it('changes when an event is added or removed', () => {
-    const base = feedFingerprint([ev()]);
-    expect(feedFingerprint([ev(), ev({ uid: 'u2' })])).not.toBe(base);
-    expect(feedFingerprint([])).not.toBe(base);
+  it('does not apply one subscription\'s annotation to another', () => {
+    const otherSub = { ...feedEvent, subscriptionId: 'sub_b' };
+    const [out] = applyAnnotations([otherSub], indexAnnotations([annotationDoc()]));
+    expect(out.responsibleParent).toBe('');
   });
 
-  it('handles an empty feed without throwing', () => {
-    expect(feedFingerprint([])).toBe(feedFingerprint([]));
-    expect(typeof feedFingerprint(null)).toBe('string');
+  it('returns the input unchanged when there are no annotations', () => {
+    const input = [feedEvent];
+    expect(applyAnnotations(input, indexAnnotations([]))).toBe(input);
   });
 });
 
-describe('needsUpdate', () => {
-  const uid = 'u1';
-  const subId = 'sub_a';
-  const date = new Date(2026, 2, 3, 16, 0, 0);
-  const feedEvent = { uid, title: 'Turnen', description: 'Halle 1', date, recurrence: null };
-  const stored = {
-    title: 'Turnen',
-    description: 'Halle 1',
-    date,
-    recurrence: null,
-    source: 'subscription',
-    subscriptionId: subId,
-    externalId: uid,
-  };
-
-  it('reports no work for an unchanged event', () => {
-    expect(needsUpdate(stored, feedEvent, subId)).toBe(false);
-  });
-
-  it('accepts a Firestore Timestamp for the stored date', () => {
-    const asTimestamp = { ...stored, date: { toDate: () => new Date(date.getTime()) } };
-    expect(needsUpdate(asTimestamp, feedEvent, subId)).toBe(false);
-  });
-
-  it('reports work for a new event', () => {
-    expect(needsUpdate(null, feedEvent, subId)).toBe(true);
-  });
-
-  it('spots a changed title, description or time', () => {
-    expect(needsUpdate({ ...stored, title: 'Alt' }, feedEvent, subId)).toBe(true);
-    expect(needsUpdate({ ...stored, description: 'Alt' }, feedEvent, subId)).toBe(true);
-    expect(needsUpdate({ ...stored, date: new Date(2026, 2, 3, 17) }, feedEvent, subId)).toBe(true);
-  });
-
-  it('spots a changed recurrence in either direction', () => {
-    const weekly = { freq: 'weekly', interval: 1, until: null };
-    expect(needsUpdate({ ...stored, recurrence: weekly }, feedEvent, subId)).toBe(true);
-    expect(needsUpdate(stored, { ...feedEvent, recurrence: weekly }, subId)).toBe(true);
-    expect(needsUpdate(
-      { ...stored, recurrence: weekly },
-      { ...feedEvent, recurrence: { freq: 'weekly', interval: 1 } },
-      subId,
-    )).toBe(false);
-  });
-
-  it('spots a changed recurrence interval or end date', () => {
-    const weekly = { freq: 'weekly', interval: 1, until: null };
-    expect(needsUpdate(
-      { ...stored, recurrence: weekly },
-      { ...feedEvent, recurrence: { freq: 'weekly', interval: 2 } },
-      subId,
-    )).toBe(true);
-    expect(needsUpdate(
-      { ...stored, recurrence: weekly },
-      { ...feedEvent, recurrence: { freq: 'weekly', interval: 1, until: '2026-12-31' } },
-      subId,
-    )).toBe(true);
-  });
-
-  it('rewrites a document being adopted, even if its content matches', () => {
-    // A file import or an event stranded by a dead subscription: the content is
-    // right but the ownership fields have to be claimed.
-    expect(needsUpdate({ ...stored, source: 'import', subscriptionId: undefined }, feedEvent, subId))
-      .toBe(true);
-    expect(needsUpdate({ ...stored, subscriptionId: 'sub_dead' }, feedEvent, subId)).toBe(true);
-  });
-
-  it('treats a missing description as equal to an empty one', () => {
-    const noDesc = { ...stored, description: undefined };
-    expect(needsUpdate(noDesc, { ...feedEvent, description: '' }, subId)).toBe(false);
-  });
-
-  it('matches the Untitled fallback the sync writes for a nameless event', () => {
-    const untitled = { ...stored, title: 'Untitled' };
-    expect(needsUpdate(untitled, { ...feedEvent, title: '' }, subId)).toBe(false);
+describe('indexAnnotations', () => {
+  it('ignores documents that are not annotations', () => {
+    const index = indexAnnotations([
+      { source: 'subscription', subscriptionId: 'sub_a', externalId: 'u1' },
+      { title: 'Zahnarzt' },
+      { source: 'annotation', subscriptionId: 'sub_a' },
+    ]);
+    expect(index.size).toBe(0);
   });
 });
 
@@ -295,81 +245,14 @@ describe('isOrphanedSubscriptionEvent', () => {
     expect(isOrphanedSubscriptionEvent({ title: 'Zahnarzt' }, live)).toBe(false);
     expect(isOrphanedSubscriptionEvent(null, live)).toBe(false);
   });
-});
 
-describe('classifyExistingEvents', () => {
-  const liveSubscriptionIds = new Set(['sub_a', 'sub_b']);
-  const entry = (id, data) => ({ id, data });
-
-  const classify = (entries) => classifyExistingEvents({
-    entries,
-    subscriptionId: 'sub_a',
-    liveSubscriptionIds,
-  });
-
-  it('groups the subscription\'s own events by UID', () => {
-    const a1 = entry('1', { source: 'subscription', subscriptionId: 'sub_a', externalId: 'u1' });
-    const a2 = entry('2', { source: 'subscription', subscriptionId: 'sub_a', externalId: 'u1' });
-    const { owned } = classify([a1, a2]);
-    expect(owned.get('u1')).toEqual([a1, a2]);
-  });
-
-  it('never claims events belonging to another live subscription', () => {
-    const other = entry('1', { source: 'subscription', subscriptionId: 'sub_b', externalId: 'u1' });
-    const { owned, adoptable, orphans } = classify([other]);
-    expect(owned.size).toBe(0);
-    expect(adoptable.size).toBe(0);
-    expect(orphans).toEqual([]);
-  });
-
-  it('treats events of a dead subscription as both adoptable and orphaned', () => {
-    const stranded = entry('1', {
-      source: 'subscription', subscriptionId: 'sub_dead', externalId: 'u1',
-    });
-    const { adoptable, orphans } = classify([stranded]);
-    expect(adoptable.get('u1')).toEqual([stranded]);
-    expect(orphans).toEqual([stranded]);
-  });
-
-  it('orphans a stranded event even when it has no UID to adopt it by', () => {
-    const stranded = entry('1', { source: 'subscription', subscriptionId: 'sub_dead' });
-    const { adoptable, orphans } = classify([stranded]);
-    expect(adoptable.size).toBe(0);
-    expect(orphans).toEqual([stranded]);
-  });
-
-  it('offers file imports for adoption without orphaning them', () => {
-    const imported = entry('1', { source: 'import', externalId: 'u1' });
-    const { adoptable, orphans } = classify([imported]);
-    expect(adoptable.get('u1')).toEqual([imported]);
-    expect(orphans).toEqual([]);
-  });
-
-  it('ignores events the user created by hand', () => {
-    const manual = entry('1', { title: 'Zahnarzt' });
-    const { owned, adoptable, orphans } = classify([manual]);
-    expect(owned.size).toBe(0);
-    expect(adoptable.size).toBe(0);
-    expect(orphans).toEqual([]);
-  });
-
-  it('resolves a re-added calendar to one document per event, not two', () => {
-    // What the user hit: removal stranded the old feed, re-subscribing built a
-    // second copy. The stranded one is adopted, so nothing is duplicated.
-    const stranded = entry('old', {
-      source: 'subscription', subscriptionId: 'sub_dead', externalId: 'u1',
-    });
-    const { owned, adoptable, orphans } = classify([stranded]);
-    const { keep, drop } = pickCanonicalDoc(
-      'ics_sub_a_u1_hash',
-      owned.get('u1') || [],
-      adoptable.get('u1') || [],
-    );
-    expect(keep).toBe(stranded);
-    expect(drop).toEqual([]);
-    // Adopted, so the sweep must not delete it afterwards.
-    expect(orphans).toEqual([stranded]);
-    expect(orphans.filter((o) => o !== keep)).toEqual([]);
+  it('flags an annotation whose subscription is gone, and spares a live one', () => {
+    expect(isOrphanedSubscriptionEvent(
+      { source: 'annotation', subscriptionId: 'sub_gone' }, live,
+    )).toBe(true);
+    expect(isOrphanedSubscriptionEvent(
+      { source: 'annotation', subscriptionId: 'sub_live' }, live,
+    )).toBe(false);
   });
 });
 

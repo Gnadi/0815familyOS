@@ -13,14 +13,11 @@ import { createTask } from '../../services/tasks';
 import { createGift } from '../../services/gifts';
 import {
   cleanupOrphanedSubscriptionEvents,
-  syncSubscription,
-  updateSubscriptionMeta,
+  migrateMirroredSubscriptionEvents,
 } from '../../services/calendarSubscriptions';
 
-// A family calendar changes a few times a week. Re-checking every few hours
-// is plenty, and an unchanged feed now costs nothing anyway.
-const SYNC_STALE_MS = 3 * 60 * 60 * 1000;
-const SYNC_START_DELAY_MS = 4000; // let the app finish loading before syncing
+// Let the app finish loading before any background housekeeping runs.
+const HOUSEKEEPING_DELAY_MS = 4000;
 
 export default function AppShell() {
   const { user, userDoc, family } = useAuth();
@@ -54,57 +51,31 @@ export default function AppShell() {
   // instead of opening the event form.
   const [shoppingFabCallback, setShoppingFabCallback] = useState(null);
 
-  // Re-sync any stale calendar subscriptions in the background once per
-  // session. Intentionally fire-and-forget; errors land in the subscription's
-  // lastError field and surface in Settings.
+  // Subscribed calendars are computed from their .ics feeds at render time and
+  // are not stored, so there is no sync to run here. What is left is one-off
+  // housekeeping: retire the mirrored copies the old sync wrote, and drop
+  // annotations belonging to subscriptions that no longer exist.
   //
-  // Held back by SYNC_START_DELAY_MS so the fetch, the full-collection read and
-  // the batch writes a sync performs do not compete with the first render for
-  // the connection -- starting it immediately on mount is what left the
-  // calendar sitting on "loading events" after a reload.
-  const syncedThisSession = useRef(new Set());
-  const sweptThisSession = useRef(null);
+  // Both are free when there is nothing to do -- they inspect the events the
+  // live listener already holds and stop there.
+  const tidiedThisSession = useRef(null);
   useEffect(() => {
     if (!family?.id || !user?.uid) return undefined;
-    const subs = family.calendarSubscriptions || [];
-    const now = Date.now();
-    const due = subs.filter((sub) => {
-      if (!sub?.id || syncedThisSession.current.has(sub.id)) return false;
-      const last = sub.lastSyncAt ? new Date(sub.lastSyncAt).getTime() : 0;
-      return now - last >= SYNC_STALE_MS;
-    });
     const familyId = family.id;
-    const userId = user.uid;
-    // Events stranded by a removal that failed part-way have no owner left, so
-    // no sync would ever reach them -- least of all for a family that removed
-    // its last subscription. Sweep once per session regardless.
-    const needsSweep = sweptThisSession.current !== familyId;
-    if (due.length === 0 && !needsSweep) return undefined;
+    if (tidiedThisSession.current === familyId) return undefined;
 
-    const timer = setTimeout(() => {
-      // Whatever the live listener already holds. Handing it over keeps the
-      // sync from re-reading the entire events collection out of Firestore.
+    const timer = setTimeout(async () => {
+      tidiedThisSession.current = familyId;
       const existingEvents = peekEvents(familyId);
-      // A sync sweeps orphans itself, so only pay for a standalone pass when
-      // no sync is going to run.
-      if (needsSweep) {
-        sweptThisSession.current = familyId;
-        if (due.length === 0) {
-          cleanupOrphanedSubscriptionEvents(familyId, { existingEvents }).catch(() => {});
-        }
+      try {
+        await migrateMirroredSubscriptionEvents(familyId, { userId: user.uid, existingEvents });
+        await cleanupOrphanedSubscriptionEvents(familyId, { existingEvents: peekEvents(familyId) });
+      } catch {
+        // Housekeeping is best-effort; it retries next session.
       }
-      for (const sub of due) {
-        if (syncedThisSession.current.has(sub.id)) continue;
-        syncedThisSession.current.add(sub.id);
-        syncSubscription({ familyId, userId, subscription: sub, existingEvents }).catch((err) => {
-          updateSubscriptionMeta(familyId, sub.id, {
-            lastError: err.message || 'Background sync failed.',
-          }).catch(() => {});
-        });
-      }
-    }, SYNC_START_DELAY_MS);
+    }, HOUSEKEEPING_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [family?.id, user?.uid, family?.calendarSubscriptions]);
+  }, [family?.id, user?.uid]);
 
   async function handleCreateEvent(values) {
     await createEvent({ familyId: userDoc.familyId, userId: user.uid, ...values });

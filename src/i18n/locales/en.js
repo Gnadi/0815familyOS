@@ -666,7 +666,7 @@ export default {
     modalEdit: 'Edit Event',
     modalNew: 'New Event',
     subscribedWarning:
-      'This event is synced from an external calendar. Any edits here will be overwritten the next time it syncs — change it in the original calendar instead.',
+      'This event comes from a subscribed calendar. Its title, time and notes are set by that calendar; you can still add kids, who is responsible, the effort and a category.',
     titleLabel: 'Title',
     titlePlaceholder: 'Soccer Practice',
     dateLabel: 'Date',

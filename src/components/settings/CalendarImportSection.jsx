@@ -2,17 +2,16 @@ import { useState } from 'react';
 import { CalendarPlus, FileUp, Link as LinkIcon, RefreshCw, Trash2, UploadCloud } from 'lucide-react';
 import Button from '../common/Button';
 import useAuth from '../../hooks/useAuth';
-import { peekEvents } from '../../hooks/useEvents';
+import { invalidateFeeds, peekEvents } from '../../hooks/useEvents';
 import useT from '../../hooks/useT';
 import { parseICS } from '../../utils/icsParser';
 import {
   addSubscription,
-  fetchRemoteICS,
   importEventsFromParsed,
   removeSubscription,
-  syncSubscription,
   updateSubscriptionMeta,
 } from '../../services/calendarSubscriptions';
+import { clearFeedCache, loadFeed } from '../../services/calendarFeeds';
 import ProviderInstructions from './ProviderInstructions';
 
 function formatRelative(iso, t) {
@@ -189,19 +188,17 @@ function UrlSubscriptionPane({ family, userId }) {
     setBusy(true);
     try {
       const sub = await addSubscription(family.id, { label, url });
-      // Run an initial sync so the user immediately sees their events.
+      // Nothing is written to the database for a subscribed calendar -- load
+      // the feed once so a bad URL surfaces here rather than as an empty
+      // calendar later.
       try {
-        await syncSubscription({
-          familyId: family.id,
-          userId,
-          subscription: sub,
-          existingEvents: peekEvents(family.id),
-        });
-      } catch (syncErr) {
+        await loadFeed(sub, { force: true });
+        invalidateFeeds();
+      } catch (feedErr) {
         await updateSubscriptionMeta(family.id, sub.id, {
-          lastError: syncErr.message || t('calImport.initialSyncFailed'),
+          lastError: feedErr.message || t('calImport.initialSyncFailed'),
         });
-        throw syncErr;
+        throw feedErr;
       }
       setLabel('');
       setUrl('');
@@ -217,19 +214,23 @@ function UrlSubscriptionPane({ family, userId }) {
   }
 
   async function handleSyncNow(sub) {
-    if (!family?.id || !userId) return;
     setBusyId(sub.id);
     try {
-      await syncSubscription({
-        familyId: family.id,
-        userId,
-        subscription: sub,
-        existingEvents: peekEvents(family.id),
-      });
+      clearFeedCache(sub.id);
+      await loadFeed(sub, { force: true });
+      invalidateFeeds();
+      if (family?.id) {
+        await updateSubscriptionMeta(family.id, sub.id, {
+          lastSyncAt: new Date().toISOString(),
+          lastError: null,
+        });
+      }
     } catch (err) {
-      await updateSubscriptionMeta(family.id, sub.id, {
-        lastError: err.message || t('calImport.syncFailed'),
-      });
+      if (family?.id) {
+        await updateSubscriptionMeta(family.id, sub.id, {
+          lastError: err.message || t('calImport.syncFailed'),
+        });
+      }
     } finally {
       setBusyId(null);
     }
@@ -241,7 +242,8 @@ function UrlSubscriptionPane({ family, userId }) {
     setBusyId(sub.id);
     setError('');
     try {
-      await removeSubscription(family.id, sub.id);
+      await removeSubscription(family.id, sub.id, { existingEvents: peekEvents(family.id) });
+      invalidateFeeds();
     } catch (err) {
       // Silently swallowing this is how the calendar ended up with events
       // nobody owned: the removal looked like it worked while the events

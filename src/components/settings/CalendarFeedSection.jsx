@@ -3,7 +3,7 @@ import { Download } from 'lucide-react';
 import Button from '../common/Button';
 import useAuth from '../../hooks/useAuth';
 import useT from '../../hooks/useT';
-import { fetchEventsOnce } from '../../services/events';
+import { fetchCalendarOnce } from '../../services/events';
 import { expandEventsInRange } from '../../utils/recurrence';
 import { downloadICS } from '../../utils/ics';
 
@@ -26,7 +26,9 @@ export default function CalendarFeedSection() {
     setError('');
     setBusy(true);
     try {
-      const events = await fetchEventsOnce(family.id);
+      // Subscribed calendars are not stored, so the export computes them the
+      // same way the app renders them.
+      const events = await fetchCalendarOnce(family.id, family.calendarSubscriptions);
       const now = Date.now();
       const expanded = expandEventsInRange(
         events,

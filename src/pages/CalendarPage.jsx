@@ -11,10 +11,12 @@ import useAuth from '../hooks/useAuth';
 import useT from '../hooks/useT';
 import useEvents from '../hooks/useEvents';
 import useFamilyMembers from '../hooks/useFamilyMembers';
-import { createEvent, deleteEvent, updateEvent } from '../services/events';
+import { createEvent, deleteEvent, saveFeedAnnotation, updateEvent } from '../services/events';
 import { downloadICS } from '../utils/ics';
 import { expandEventsInRange } from '../utils/recurrence';
-import { syncSubscription } from '../services/calendarSubscriptions';
+import { isFeedEvent } from '../utils/calendarSync';
+import { invalidateFeeds } from '../hooks/useEvents';
+import { loadFeed } from '../services/calendarFeeds';
 
 const MEMBER_PALETTE = ['red', 'blue', 'emerald', 'amber', 'violet', 'pink', 'cyan'];
 
@@ -110,6 +112,19 @@ export default function CalendarPage() {
 
   async function handleSubmit(values) {
     if (editing && editing !== 'new') {
+      // A subscribed calendar is computed from its feed, so its title, time and
+      // description cannot be written back. What the family adds on top is
+      // stored as an overlay instead.
+      if (isFeedEvent(editing)) {
+        await saveFeedAnnotation({
+          familyId: userDoc.familyId,
+          userId: user.uid,
+          event: editing,
+          values,
+        });
+        setEditing(null);
+        return;
+      }
       await updateEvent(editing.id, values);
     } else {
       await createEvent({
@@ -122,7 +137,8 @@ export default function CalendarPage() {
   }
 
   async function handleDelete() {
-    if (!editing || editing === 'new') return;
+    // Feed events have no document to delete; the form hides the button.
+    if (!editing || editing === 'new' || isFeedEvent(editing)) return;
     await deleteEvent(editing.id);
     setEditing(null);
   }
@@ -145,22 +161,13 @@ export default function CalendarPage() {
 
   const subs = family?.calendarSubscriptions || [];
 
+  // Feeds are cached for half an hour; this drops the cache and refetches now.
   async function handleSyncAll() {
-    if (!family?.id || !user?.uid || !subs.length || syncing) return;
+    if (!subs.length || syncing) return;
     setSyncing(true);
     try {
-      await Promise.allSettled(
-        subs.map((sub) =>
-          syncSubscription({
-            familyId: family.id,
-            userId: user.uid,
-            subscription: sub,
-            // Already loaded by this page's listener; no need to pay for the
-            // whole collection a second time.
-            existingEvents: events,
-          }),
-        ),
-      );
+      await Promise.allSettled(subs.map((sub) => loadFeed(sub, { force: true })));
+      invalidateFeeds();
     } finally {
       setSyncing(false);
     }
