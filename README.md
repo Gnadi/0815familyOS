@@ -121,6 +121,17 @@ cannot express.
 
 Links are `/join/:token` and are handled by `src/pages/JoinPage.jsx`.
 
+Invite links are made to be forwarded, so `/join/*` is served by its own static
+shells (`dist/join.html` and `dist/join.de.html`, written by
+`scripts/emit-app-shell.mjs` and wired up in `vercel.json`) carrying Open
+Graph/Twitter tags and a 1200x630 card (`public/og-invite*.png`, regenerate with
+`scripts/generate_invite_og_image.py`). WhatsApp, Signal, iMessage and friends
+never run JS, so without those static tags a pasted invite previews as the bare
+domain. A static card cannot localize itself either, hence one shell per UI
+language, chosen on `Accept-Language`. The card names no family: it is rendered
+by every chat the link travels through, while reading the invite itself still
+requires signing in.
+
 ## Shared Calendar (the working module)
 
 - Toggle between Week and Month views.
