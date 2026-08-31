@@ -1,5 +1,23 @@
 {
   "rewrites": [
+    {
+      "source": "/join/:token",
+      "has": [
+        {
+          "type": "header",
+          "key": "accept-language",
+          "value": "^de(-[A-Za-z]{2,8})?([,;].*)?$"
+        }
+      ],
+      "destination": "/join.de.html"
+    },
+    { "source": "/join/:token", "destination": "/join.html" },
     { "source": "/((?!assets/|api/).*)", "destination": "/app.html" }
+  ],
+  "headers": [
+    {
+      "source": "/join/:token",
+      "headers": [{ "key": "Vary", "value": "Accept-Language" }]
+    }
   ]
 }
