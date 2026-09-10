@@ -22,6 +22,7 @@ import {
   hasAnnotation,
   indexAnnotations,
 } from '../utils/calendarSync';
+import { DAY_CODES } from '../utils/recurrence';
 import { loadAllFeeds } from './calendarFeeds';
 import { isDemoMode } from '../lib/demoMode';
 import { demoAdd, demoDelete, demoDocs, demoSubscribe, demoUpdate } from './demoStore';
@@ -46,7 +47,30 @@ function normalizeRecurrence(rec) {
   if (!freq) return null;
   const interval = Math.max(1, Math.min(99, Math.round(Number(rec.interval) || 1)));
   const until = rec.until ? String(rec.until) : null;
-  return { freq, interval, until };
+
+  // BYDAY, COUNT and the cancelled occurrences of an imported series. The event
+  // form cannot express them, so they only ever arrive from an .ics import --
+  // and this function runs on every read as well as every write, so dropping
+  // them here would quietly turn a "Mon, Wed, Fri" import back into a
+  // Mondays-only series the first time anyone opened the calendar.
+  const byDay = Array.isArray(rec.byDay)
+    ? rec.byDay.filter((d) => DAY_CODES.includes(d))
+    : null;
+  const count = Number.isFinite(Number(rec.count)) && Number(rec.count) > 0
+    ? Math.floor(Number(rec.count))
+    : null;
+  const exdates = Array.isArray(rec.exdates)
+    ? rec.exdates.filter((d) => typeof d === 'string' && d)
+    : null;
+
+  return {
+    freq,
+    interval,
+    until,
+    byDay: byDay?.length ? byDay : null,
+    count,
+    exdates: exdates?.length ? exdates : null,
+  };
 }
 
 function mapEventDoc(d) {

@@ -143,11 +143,11 @@ function useFeedGeneration() {
 function useFeedEvents(subscriptions) {
   const key = feedKey(subscriptions);
   const generation = useFeedGeneration();
-  const [state, setState] = useState({ events: [], loading: Boolean(key), errors: [] });
+  const [state, setState] = useState({ events: [], loading: Boolean(key), errors: [], reports: [] });
 
   useEffect(() => {
     if (!key) {
-      setState({ events: [], loading: false, errors: [] });
+      setState({ events: [], loading: false, errors: [], reports: [] });
       return undefined;
     }
     let cancelled = false;
@@ -164,12 +164,19 @@ function useFeedEvents(subscriptions) {
     setState((prev) => ({ ...prev, loading: true }));
     load
       .then((res) => {
-        if (!cancelled) setState({ events: res.events, loading: false, errors: res.errors });
+        if (!cancelled) {
+          setState({
+            events: res.events,
+            loading: false,
+            errors: res.errors,
+            reports: res.reports || [],
+          });
+        }
       })
       .catch(() => {
         // loadAllFeeds settles per feed and never rejects, but a broken cache
         // read must not leave the calendar spinning.
-        if (!cancelled) setState({ events: [], loading: false, errors: [] });
+        if (!cancelled) setState({ events: [], loading: false, errors: [], reports: [] });
       });
     return () => {
       cancelled = true;
@@ -197,6 +204,7 @@ export default function useEvents(familyId) {
         loading: stored.loading || feed.loading,
         error: stored.error,
         feedErrors: feed.errors,
+        feedReports: feed.reports,
       };
     }
     const annotated = applyAnnotations(feed.events, indexAnnotations(stored.events));
@@ -205,6 +213,15 @@ export default function useEvents(familyId) {
       loading: stored.loading || feed.loading,
       error: stored.error,
       feedErrors: feed.errors,
+      feedReports: feed.reports,
     };
-  }, [stored.events, stored.loading, stored.error, feed.events, feed.loading, feed.errors]);
+  }, [
+    stored.events,
+    stored.loading,
+    stored.error,
+    feed.events,
+    feed.loading,
+    feed.errors,
+    feed.reports,
+  ]);
 }

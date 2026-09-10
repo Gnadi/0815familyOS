@@ -1,7 +1,10 @@
 // Minimal ICS (iCalendar / RFC 5545) parser. We only consume what myFAOS
-// needs: VEVENT with SUMMARY, DESCRIPTION, DTSTART, DTEND, UID, and (limited)
-// RRULE → mapped to our { freq, interval, until } recurrence shape. Time zones
-// are read as local-floating; UTC ("Z" suffix) is honoured.
+// needs: VEVENT with SUMMARY, DESCRIPTION, DTSTART, DTEND, UID, EXDATE and
+// (limited) RRULE → mapped to our { freq, interval, until, byDay, count }
+// recurrence shape. Time zones are read as local-floating; UTC ("Z" suffix) is
+// honoured.
+
+import { DAY_CODES, occurrenceKey } from './recurrence';
 
 const FREQ_MAP = {
   DAILY: 'daily',
@@ -70,6 +73,27 @@ function parseRRule(value) {
   const freq = FREQ_MAP[(parts.FREQ || '').toUpperCase()];
   if (!freq) return null;
   const interval = Math.max(1, Math.min(99, parseInt(parts.INTERVAL, 10) || 1));
+
+  // BYDAY is what makes "Mon, Wed and Fri" a single weekly series. Ordinal
+  // forms (2TU = every second Tuesday of the month) belong to monthly rules we
+  // do not expand; dropping them leaves the plain monthly walk, which is closer
+  // to the truth than treating "2TU" as "every Tuesday".
+  let byDay = null;
+  if (parts.BYDAY && freq === 'weekly') {
+    const codes = [...new Set(
+      String(parts.BYDAY)
+        .split(',')
+        .map((code) => code.trim().toUpperCase())
+        .filter((code) => DAY_CODES.includes(code)),
+    )];
+    if (codes.length) byDay = codes;
+  }
+
+  // COUNT ends a series after N occurrences. Without it a six-session course
+  // imported from Google repeated forever.
+  const countRaw = parseInt(parts.COUNT, 10);
+  const count = Number.isFinite(countRaw) && countRaw > 0 ? countRaw : null;
+
   let until = null;
   if (parts.UNTIL) {
     const d = parseICalDate(parts.UNTIL);
@@ -80,7 +104,18 @@ function parseRRule(value) {
       until = `${yyyy}-${mm}-${dd}`;
     }
   }
-  return { freq, interval, until };
+  return { freq, interval, until, byDay, count };
+}
+
+// EXDATE lines list occurrences the organiser cancelled. A VEVENT may carry
+// several of them and each may hold a comma-separated list, so they accumulate
+// instead of overwriting one another the way single-valued properties do.
+function collectExDates(prop, into) {
+  for (const raw of String(prop.value || '').split(',')) {
+    const date = parseICalDate(raw.trim(), prop.params);
+    const key = occurrenceKey(date);
+    if (key) into.push(key);
+  }
 }
 
 export function parseICS(text) {
@@ -96,12 +131,16 @@ export function parseICS(text) {
   // carries its own DESCRIPTION -- and sometimes SUMMARY -- which used to
   // overwrite the event's title and description with the reminder text.
   let nested = 0;
+  // Multi-valued, so it cannot live in `current` next to the single-valued
+  // properties: a second EXDATE line would overwrite the first.
+  let exdates = [];
 
   for (const rawLine of lines) {
     const line = rawLine.trim();
     if (!line) continue;
     if (line === 'BEGIN:VEVENT') {
       current = {};
+      exdates = [];
       nested = 0;
       continue;
     }
@@ -112,6 +151,10 @@ export function parseICS(text) {
       if (!cancelled && current.SUMMARY && current.DTSTART) {
         const startDate = parseICalDate(current.DTSTART.value, current.DTSTART.params);
         if (startDate) {
+          const recurrence = current.RRULE ? parseRRule(current.RRULE.value) : null;
+          // Cancelled occurrences only mean anything alongside a rule that
+          // would otherwise generate them.
+          if (recurrence && exdates.length) recurrence.exdates = [...new Set(exdates)];
           events.push({
             uid: current.UID?.value || null,
             // Set on VEVENTs that override a single occurrence of a recurring
@@ -121,7 +164,7 @@ export function parseICS(text) {
             title: unescapeText(current.SUMMARY.value),
             description: current.DESCRIPTION ? unescapeText(current.DESCRIPTION.value) : '',
             date: startDate,
-            recurrence: current.RRULE ? parseRRule(current.RRULE.value) : null,
+            recurrence,
             location: current.LOCATION ? unescapeText(current.LOCATION.value) : '',
           });
         }
@@ -141,6 +184,10 @@ export function parseICS(text) {
     if (!prop) continue;
     if (!current) {
       if (prop.name === 'X-WR-CALNAME') calendarName = unescapeText(prop.value);
+      continue;
+    }
+    if (prop.name === 'EXDATE') {
+      collectExDates(prop, exdates);
       continue;
     }
     current[prop.name] = { value: prop.value, params: prop.params };

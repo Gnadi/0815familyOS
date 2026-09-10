@@ -12,6 +12,7 @@ import {
   updateSubscriptionMeta,
 } from '../../services/calendarSubscriptions';
 import { clearFeedCache, loadFeed } from '../../services/calendarFeeds';
+import { feedIssue, feedSummary } from '../../utils/feedMessages';
 import ProviderInstructions from './ProviderInstructions';
 
 function formatRelative(iso, t) {
@@ -170,21 +171,47 @@ function FileImportPane({ familyId, userId }) {
   );
 }
 
+// The result of one feed load, in the same three tones everywhere: green when
+// events came in, amber when the calendar is reachable but empty, red when it
+// is not a calendar at all.
+function OutcomeLine({ outcome, className = '' }) {
+  if (!outcome?.text) return null;
+  const tone = {
+    ok: 'bg-emerald-50 text-emerald-800',
+    warn: 'bg-amber-50 text-amber-900',
+    error: 'bg-red-50 text-red-700',
+  }[outcome.tone] || 'bg-slate-100 text-slate-700';
+  return <p className={`rounded-lg px-3 py-2 text-xs ${tone} ${className}`}>{outcome.text}</p>;
+}
+
 function UrlSubscriptionPane({ family, userId }) {
-  const { t } = useT();
+  const { t, tn } = useT();
   const [showHelp, setShowHelp] = useState(true);
   const [label, setLabel] = useState('');
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState(null);
+  // What the last load of a feed actually delivered, keyed by subscription id
+  // ('new' for the one being subscribed). A fetch that works tells you nothing
+  // about whether the family will see any events -- this does.
+  const [outcome, setOutcome] = useState(null);
 
   const subs = family?.calendarSubscriptions || [];
+
+  // One place that turns a load result into what the user reads and into what
+  // is stored on the subscription, so the two can never disagree.
+  function describe(id, { report, error: loadError }) {
+    const issue = feedIssue(t, { report, error: loadError });
+    if (issue) return { id, tone: issue.tone, text: issue.text };
+    return { id, tone: 'ok', text: feedSummary(t, tn, report) || '' };
+  }
 
   async function handleSubscribe(e) {
     e.preventDefault();
     if (!family?.id || !userId) return;
     setError('');
+    setOutcome(null);
     setBusy(true);
     try {
       const sub = await addSubscription(family.id, { label, url });
@@ -192,12 +219,28 @@ function UrlSubscriptionPane({ family, userId }) {
       // the feed once so a bad URL surfaces here rather than as an empty
       // calendar later.
       try {
-        await loadFeed(sub, { force: true });
+        const { report } = await loadFeed(sub, { force: true });
         invalidateFeeds();
-      } catch (feedErr) {
         await updateSubscriptionMeta(family.id, sub.id, {
-          lastError: feedErr.message || t('calImport.initialSyncFailed'),
+          lastSyncAt: new Date().toISOString(),
+          lastEventCount: report?.keptCount ?? 0,
+          lastError: null,
         });
+        setOutcome(describe(sub.id, { report }));
+      } catch (feedErr) {
+        // A URL that does not return a calendar is not a subscription worth
+        // keeping: leaving it behind gave the family a permanently empty feed
+        // they then had to notice and delete themselves. A network error is
+        // different -- that one is worth retrying, so the subscription stays.
+        if (feedErr.code === 'feed/not-calendar') {
+          await removeSubscription(family.id, sub.id).catch(() => {});
+        } else {
+          await updateSubscriptionMeta(family.id, sub.id, {
+            lastError: feedIssue(t, { error: feedErr })?.text
+              || feedErr.message
+              || t('calImport.initialSyncFailed'),
+          });
+        }
         throw feedErr;
       }
       setLabel('');
@@ -206,7 +249,9 @@ function UrlSubscriptionPane({ family, userId }) {
       setError(
         err.code === 'duplicate-subscription'
           ? t('calImport.alreadySubscribed')
-          : err.message || t('calImport.couldNotSubscribe'),
+          : feedIssue(t, { error: err })?.text
+            || err.message
+            || t('calImport.couldNotSubscribe'),
       );
     } finally {
       setBusy(false);
@@ -215,20 +260,25 @@ function UrlSubscriptionPane({ family, userId }) {
 
   async function handleSyncNow(sub) {
     setBusyId(sub.id);
+    setOutcome(null);
     try {
       clearFeedCache(sub.id);
-      await loadFeed(sub, { force: true });
+      const { report } = await loadFeed(sub, { force: true });
       invalidateFeeds();
+      setOutcome(describe(sub.id, { report }));
       if (family?.id) {
         await updateSubscriptionMeta(family.id, sub.id, {
           lastSyncAt: new Date().toISOString(),
+          lastEventCount: report?.keptCount ?? 0,
           lastError: null,
         });
       }
     } catch (err) {
+      const issue = feedIssue(t, { error: err });
+      setOutcome({ id: sub.id, tone: issue?.tone || 'error', text: issue?.text || t('calImport.syncFailed') });
       if (family?.id) {
         await updateSubscriptionMeta(family.id, sub.id, {
-          lastError: err.message || t('calImport.syncFailed'),
+          lastError: issue?.text || err.message || t('calImport.syncFailed'),
         });
       }
     } finally {
@@ -303,6 +353,8 @@ function UrlSubscriptionPane({ family, userId }) {
         </Button>
       </form>
 
+      {outcome && !subs.some((entry) => entry.id === outcome.id) && <OutcomeLine outcome={outcome} />}
+
       {subs.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -318,6 +370,8 @@ function UrlSubscriptionPane({ family, userId }) {
                   <p className="truncate text-xs text-slate-500">{sub.url}</p>
                   <p className="mt-1 text-xs text-slate-500">
                     {t('calImport.lastSynced', { when: formatRelative(sub.lastSyncAt, t) })}
+                    {typeof sub.lastEventCount === 'number'
+                      && ` · ${tn('calImport.syncedEvents', sub.lastEventCount)}`}
                   </p>
                   {sub.lastError && (
                     <p className="mt-1 text-xs text-red-600">⚠ {sub.lastError}</p>
@@ -347,6 +401,7 @@ function UrlSubscriptionPane({ family, userId }) {
                   </button>
                 </div>
               </div>
+              {outcome?.id === sub.id && <OutcomeLine outcome={outcome} className="mt-2" />}
             </div>
           ))}
         </div>
