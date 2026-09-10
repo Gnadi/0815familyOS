@@ -1,6 +1,15 @@
 // Lightweight recurrence helper. A `recurrence` is one of:
 //   null
-//   { freq: 'daily'|'weekly'|'monthly'|'yearly', interval: 1, until?: 'YYYY-MM-DD' }
+//   { freq: 'daily'|'weekly'|'monthly'|'yearly', interval: 1, until?: 'YYYY-MM-DD',
+//     byDay?: ['MO','WE','FR'], count?: 6, exdates?: ['20260915T160000'] }
+//
+// The three optional fields come from subscribed and imported calendars, where
+// they decide what the series actually is: Google writes "Mon, Wed and Fri" as
+// one weekly rule with BYDAY, ends a course after six sessions with COUNT, and
+// records a cancelled single occurrence as an EXDATE. Ignoring them meant two
+// thirds of a BYDAY series never appeared, a COUNT series ran forever, and
+// cancelled occurrences kept showing up. The event form never sets them; only
+// the .ics parser does.
 //
 // We store the master event/task with its original `date`/`dueDate`. Views
 // expand it virtually with `expandRecurringEvent(master, from, to)`.
@@ -10,6 +19,41 @@ export const FREQS = ['daily', 'weekly', 'monthly', 'yearly'];
 export function isValidRecurrence(rec) {
   if (!rec) return false;
   return FREQS.includes(rec.freq) && Number(rec.interval) > 0;
+}
+
+// ICS weekday codes, indexed the way Date#getDay() counts.
+export const DAY_CODES = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+
+// Wall-clock identity of one occurrence, in the local YYYYMMDDTHHMMSS form an
+// ICS EXDATE carries. Compared as text, so an hour lost to DST cannot turn
+// "16:00 every Tuesday" into a near-miss that fails to cancel.
+export function occurrenceKey(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+  const p = (n) => String(n).padStart(2, '0');
+  return (
+    `${date.getFullYear()}${p(date.getMonth() + 1)}${p(date.getDate())}`
+    + `T${p(date.getHours())}${p(date.getMinutes())}${p(date.getSeconds())}`
+  );
+}
+
+// Weekdays of a weekly BYDAY rule, as Date#getDay() numbers, ascending.
+function byDayNumbers(rec) {
+  if (rec.freq !== 'weekly' || !Array.isArray(rec.byDay) || !rec.byDay.length) return null;
+  const days = [...new Set(
+    rec.byDay
+      .map((code) => DAY_CODES.indexOf(String(code).toUpperCase()))
+      .filter((n) => n >= 0),
+  )].sort((a, b) => a - b);
+  return days.length ? days : null;
+}
+
+function excludedKeys(rec) {
+  return Array.isArray(rec.exdates) && rec.exdates.length ? new Set(rec.exdates) : null;
+}
+
+function occurrenceLimit(rec) {
+  const n = Number(rec.count);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : null;
 }
 
 // Pass the i18n helpers ({ t, tn }) to localize; without them it falls back to
@@ -71,6 +115,86 @@ function dayNumber(d) {
 const MAX_STEPS = 1000;
 const MAX_OCCURRENCES = 500;
 
+function occurrenceOf(master, date, index) {
+  return {
+    ...master,
+    date: new Date(date),
+    // Keep the master id stable for editing; but flag virtual instances.
+    id: index === 0 ? master.id : `${master.id}__r${index}`,
+    masterId: master.id,
+    isRecurringInstance: index > 0,
+  };
+}
+
+// The date of `dayNum` (Date#getDay() numbering) in the Monday-started week of
+// `weekStart`, at the series' time of day.
+function dayInWeek(weekStart, dayNum, start) {
+  const d = new Date(weekStart);
+  d.setDate(d.getDate() + ((dayNum + 6) % 7));
+  d.setHours(start.getHours(), start.getMinutes(), start.getSeconds(), 0);
+  return d;
+}
+
+// Weekly rules that name their weekdays (BYDAY:MO,WE,FR). One step is a week
+// and every named weekday in it is an occurrence -- which is why walking the
+// rule one interval at a time, as the plain path below does, only ever produced
+// the master's own weekday and dropped the rest of the series.
+function expandWeeklyByDay(master, rec, from, to, days) {
+  const interval = Math.max(1, Number(rec.interval) || 1);
+  const stop = untilDate(rec);
+  const limit = occurrenceLimit(rec);
+  const excluded = excludedKeys(rec);
+  const start = new Date(master.date);
+  const out = [];
+
+  // Monday of the master's own week; every later week is a multiple of the
+  // interval from here.
+  const weekStart = new Date(start);
+  weekStart.setDate(weekStart.getDate() - ((start.getDay() + 6) % 7));
+
+  // Jump to the week before the window rather than walking there one week at a
+  // time, for the same reason the plain path does: a series started years ago
+  // would otherwise run out of steps before reaching `from` and disappear.
+  let index = 0;
+  let firstWeek = 0;
+  if (weekStart < from) {
+    const weeks = Math.floor((dayNumber(from) - dayNumber(weekStart)) / (7 * interval));
+    if (weeks > 0) {
+      // The master's own week starts mid-rule and may contribute fewer days.
+      const firstWeekDays = days.filter((d) => dayInWeek(weekStart, d, start) >= start).length;
+      index = firstWeekDays + (weeks - 1) * days.length;
+      firstWeek = weeks;
+    }
+  }
+
+  for (let week = firstWeek; week < firstWeek + MAX_STEPS; week += 1) {
+    if (out.length >= MAX_OCCURRENCES) break;
+    const base = new Date(weekStart);
+    base.setDate(base.getDate() + week * interval * 7);
+    // Every day of this week lies on or after its Monday, so once that is past
+    // the window (or the rule's end) nothing later can qualify.
+    if (base > to) break;
+    if (stop && base > stop) break;
+
+    for (const dayNum of days) {
+      const d = dayInWeek(base, dayNum, start);
+      // Days named by the rule but lying before the series started are not
+      // occurrences, and they must not consume an occurrence number either.
+      if (d < start) continue;
+      if (stop && d > stop) return out;
+      if (limit && index >= limit) return out;
+      const n = index;
+      index += 1;
+      // An excluded occurrence still counts towards COUNT and still consumes
+      // its number, so the ids of the ones around it do not shift.
+      if (excluded && excluded.has(occurrenceKey(d))) continue;
+      if (d > to) return out;
+      if (d >= from) out.push(occurrenceOf(master, d, n));
+    }
+  }
+  return out;
+}
+
 // Expand a single master event into virtual occurrences within [from, to].
 // Returns an array of "shadow" events that share the master's id but have
 // `masterId` and `isRecurringInstance` set, plus a unique virtual id.
@@ -80,9 +204,14 @@ export function expandRecurringEvent(master, from, to) {
 
   const interval = Math.max(1, Number(rec.interval) || 1);
   const stop = untilDate(rec);
+  const limit = occurrenceLimit(rec);
+  const excluded = excludedKeys(rec);
   const out = [];
   const start = master.date instanceof Date ? new Date(master.date) : new Date(master.date);
   if (Number.isNaN(start.getTime())) return [];
+
+  const days = byDayNumbers(rec);
+  if (days) return expandWeeklyByDay(master, rec, from, to, days);
 
   // `index` is the occurrence number counted from the master, so the virtual
   // ids stay identical no matter which window we happen to be expanding.
@@ -105,17 +234,13 @@ export function expandRecurringEvent(master, from, to) {
   }
 
   for (let step = 0; step < MAX_STEPS && out.length < MAX_OCCURRENCES; step += 1) {
+    if (limit && index >= limit) break;
     if (stop && cursor > stop) break;
     if (cursor > to) break;
-    if (cursor >= from) {
-      out.push({
-        ...master,
-        date: new Date(cursor),
-        // Keep the master id stable for editing; but flag virtual instances.
-        id: index === 0 ? master.id : `${master.id}__r${index}`,
-        masterId: master.id,
-        isRecurringInstance: index > 0,
-      });
+    // An excluded occurrence keeps its number: the ids of the occurrences
+    // around it must not shift because one was cancelled upstream.
+    if (cursor >= from && !(excluded && excluded.has(occurrenceKey(cursor)))) {
+      out.push(occurrenceOf(master, cursor, index));
     }
     const next = addInterval(cursor, rec.freq, interval);
     if (!next || next.getTime() === cursor.getTime()) break;
