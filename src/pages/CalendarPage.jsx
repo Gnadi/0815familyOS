@@ -4,6 +4,8 @@ import { Download, RefreshCw } from 'lucide-react';
 import TopBar from '../components/layout/TopBar';
 import ViewToggle from '../components/calendar/ViewToggle';
 import FilterChips from '../components/calendar/FilterChips';
+import EventSearchBar from '../components/calendar/EventSearchBar';
+import SearchResults from '../components/calendar/SearchResults';
 import WeekView from '../components/calendar/WeekView';
 import MonthView from '../components/calendar/MonthView';
 import EventFormModal from '../components/calendar/EventFormModal';
@@ -11,9 +13,12 @@ import useAuth from '../hooks/useAuth';
 import useT from '../hooks/useT';
 import useEvents from '../hooks/useEvents';
 import useFamilyMembers from '../hooks/useFamilyMembers';
+import useCategories from '../hooks/useCategories';
+import { tLabel } from '../i18n/labels';
 import { createEvent, deleteEvent, saveFeedAnnotation, updateEvent } from '../services/events';
 import { downloadICS } from '../utils/ics';
 import { expandEventsInRange } from '../utils/recurrence';
+import { EMPTY_SEARCH_RESULT, searchEvents } from '../utils/eventSearch';
 import { isFeedEvent } from '../utils/calendarSync';
 import { invalidateFeeds } from '../hooks/useEvents';
 import { loadFeed } from '../services/calendarFeeds';
@@ -23,8 +28,9 @@ const MEMBER_PALETTE = ['red', 'blue', 'emerald', 'amber', 'violet', 'pink', 'cy
 export default function CalendarPage() {
   const { user, userDoc, family } = useAuth();
   const { t } = useT();
-  const { events, loading, error } = useEvents(userDoc?.familyId);
+  const { events, loading, error, feedErrors } = useEvents(userDoc?.familyId);
   const members = useFamilyMembers();
+  const { get: getCategory } = useCategories();
   const { setCreateDefaultDate } = useOutletContext() || {};
   const [view, setView] = useState('week');
   const [anchor, setAnchor] = useState(new Date());
@@ -32,6 +38,10 @@ export default function CalendarPage() {
   const [editing, setEditing] = useState(null); // event object or 'new' or null
   const [activeFilters, setActiveFilters] = useState(new Set());
   const [syncing, setSyncing] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const searchQuery = search.trim();
+  const isSearching = searchQuery.length > 0;
 
   const chips = useMemo(() => [
     { id: 'all', label: t('common.all'), colorKey: 'slate' },
@@ -80,6 +90,24 @@ export default function CalendarPage() {
     () => (matchesFilters ? expandedEvents.filter(matchesFilters) : expandedEvents),
     [expandedEvents, matchesFilters],
   );
+
+  // Category and kid are ids on an event; search only becomes useful once they
+  // are the words the family actually reads on screen.
+  const searchContext = useMemo(() => ({
+    categoryLabel: (id) => tLabel(t, getCategory(id)),
+    kidName: (id) => (family?.kids || []).find((k) => k.id === id)?.name || '',
+  }), [t, getCategory, family?.kids]);
+
+  // Search runs over the unexpanded events -- the family's own, the ones
+  // imported from an .ics file and the ones computed from subscribed calendars
+  // alike, since `useEvents` hands them over as one list. It deliberately does
+  // not reuse `expandedEvents`: that window is the month in view, and a search
+  // that only finds what is already on screen is no search at all.
+  const searchResults = useMemo(() => {
+    if (!isSearching) return EMPTY_SEARCH_RESULT;
+    const source = matchesFilters ? events.filter(matchesFilters) : events;
+    return searchEvents(source, searchQuery, { context: searchContext });
+  }, [isSearching, searchQuery, events, matchesFilters, searchContext]);
 
   function handleToggle(id) {
     if (id === 'all') {
@@ -207,7 +235,8 @@ export default function CalendarPage() {
     <>
       <TopBar title={view === 'week' ? t('calendar.thisWeek') : t('calendar.familyCalendar')} right={topBarActions} />
       <main className="mx-auto max-w-md space-y-5 px-5 py-5">
-        <ViewToggle value={view} onChange={setView} />
+        <EventSearchBar value={search} onChange={setSearch} />
+        {!isSearching && <ViewToggle value={view} onChange={setView} />}
         <FilterChips chips={chips} selected={activeFilters} onToggle={handleToggle} />
         {loading ? (
           <p className="py-10 text-center text-sm text-slate-400">{t('calendar.loadingEvents')}</p>
@@ -215,6 +244,13 @@ export default function CalendarPage() {
           <p className="rounded-xl bg-red-50 px-3 py-4 text-center text-sm text-red-700">
             {t('calendar.loadFailed')}
           </p>
+        ) : isSearching ? (
+          <SearchResults
+            query={searchQuery}
+            results={searchResults}
+            feedErrors={feedErrors}
+            onEventClick={handleEventClick}
+          />
         ) : view === 'week' ? (
           <WeekView
             anchor={anchor}
