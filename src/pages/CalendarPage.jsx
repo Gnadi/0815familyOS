@@ -5,6 +5,7 @@ import TopBar from '../components/layout/TopBar';
 import ViewToggle from '../components/calendar/ViewToggle';
 import FilterChips from '../components/calendar/FilterChips';
 import EventSearchBar from '../components/calendar/EventSearchBar';
+import FeedIssueBanner from '../components/calendar/FeedIssueBanner';
 import SearchResults from '../components/calendar/SearchResults';
 import WeekView from '../components/calendar/WeekView';
 import MonthView from '../components/calendar/MonthView';
@@ -28,7 +29,7 @@ const MEMBER_PALETTE = ['red', 'blue', 'emerald', 'amber', 'violet', 'pink', 'cy
 export default function CalendarPage() {
   const { user, userDoc, family } = useAuth();
   const { t } = useT();
-  const { events, loading, error, feedErrors } = useEvents(userDoc?.familyId);
+  const { events, loading, error, feedErrors, feedReports } = useEvents(userDoc?.familyId);
   const members = useFamilyMembers();
   const { get: getCategory } = useCategories();
   const { setCreateDefaultDate } = useOutletContext() || {};
@@ -236,6 +237,7 @@ export default function CalendarPage() {
       <TopBar title={view === 'week' ? t('calendar.thisWeek') : t('calendar.familyCalendar')} right={topBarActions} />
       <main className="mx-auto max-w-md space-y-5 px-5 py-5">
         <EventSearchBar value={search} onChange={setSearch} />
+        <FeedIssueBanner reports={feedReports} />
         {!isSearching && <ViewToggle value={view} onChange={setView} />}
         <FilterChips chips={chips} selected={activeFilters} onToggle={handleToggle} />
         {loading ? (

@@ -17,10 +17,12 @@ import {
   withStableUids,
 } from '../utils/calendarSync';
 import { DEFAULT_CATEGORY } from '../constants/eventCategories';
-
-// How far back a feed is rendered. Anything older is history nobody scrolls to,
-// and parsing it on every load costs time.
-const PAST_WINDOW_DAYS = 365;
+import {
+  cachedFeedReport,
+  classifyFeed,
+  FEED_NOT_CALENDAR,
+  FEED_PAST_WINDOW_DAYS,
+} from '../utils/feedDiagnostics';
 
 // How long a cached feed is served before it is refetched. The cache is served
 // immediately either way; a stale one just triggers a background refresh.
@@ -84,7 +86,7 @@ export function clearFeedCache(subscriptionId) {
 function toFeedEvents(parsedEvents, subscription) {
   const cutoff = new Date();
   cutoff.setHours(0, 0, 0, 0);
-  cutoff.setDate(cutoff.getDate() - PAST_WINDOW_DAYS);
+  cutoff.setDate(cutoff.getDate() - FEED_PAST_WINDOW_DAYS);
 
   const feed = selectSyncableEvents(
     dedupeFeedEvents(withStableUids(parsedEvents)),
@@ -133,7 +135,9 @@ async function fetchFeed(subscription, validators) {
 export async function loadFeed(subscription, { force = false } = {}) {
   const cached = readCache(subscription);
   const fresh = cached && !force && Date.now() - cached.fetchedAt < FRESH_MS;
-  if (fresh) return { events: cached.events, fromCache: true, stale: false };
+  if (fresh) {
+    return { events: cached.events, fromCache: true, stale: false, report: cachedFeedReport(cached.events) };
+  }
 
   try {
     const data = await fetchFeed(subscription, cached);
@@ -141,19 +145,54 @@ export async function loadFeed(subscription, { force = false } = {}) {
       // Unchanged upstream: keep the events, just restart the freshness clock.
       const entry = { ...cached, fetchedAt: Date.now() };
       writeCache(subscription, entry);
-      return { events: entry.events, fromCache: true, stale: false };
+      return {
+        events: entry.events,
+        fromCache: true,
+        stale: false,
+        report: cachedFeedReport(entry.events),
+      };
     }
-    const events = toFeedEvents(parseICS(data.ics || '').events, subscription);
+    const parsed = parseICS(data.ics || '');
+    const events = toFeedEvents(parsed.events, subscription);
+    const report = classifyFeed({
+      ics: data.ics,
+      parsed: parsed.events,
+      kept: events,
+      calendarName: parsed.calendarName,
+    });
+
+    // Not a calendar at all -- almost always the wrong link out of a provider's
+    // sharing settings (Google's HTML address, or a page that redirected to a
+    // sign-in). Refusing it here is what makes "Test & subscribe" a real test:
+    // it used to report success and leave the family with an empty calendar and
+    // no hint as to why. Nothing is cached, so a corrected URL starts clean.
+    if (report.code === FEED_NOT_CALENDAR) {
+      const err = new Error('This URL does not return a calendar (.ics) file.');
+      err.code = 'feed/not-calendar';
+      err.report = report;
+      throw err;
+    }
+
     writeCache(subscription, {
       fetchedAt: Date.now(),
       etag: data.etag || null,
       lastModified: data.lastModified || null,
       events,
     });
-    return { events, fromCache: false, stale: false };
+    return { events, fromCache: false, stale: false, report };
   } catch (err) {
     // Offline or the provider is down: a stale cache beats an empty calendar.
-    if (cached) return { events: cached.events, fromCache: true, stale: true, error: err };
+    // A payload that is not a calendar is not that case -- there is nothing to
+    // fall back to and the caller has to hear about it.
+    if (cached && err.code !== 'feed/not-calendar') {
+      return {
+        events: cached.events,
+        fromCache: true,
+        stale: true,
+        error: err,
+        report: cachedFeedReport(cached.events),
+      };
+    }
     throw err;
   }
 }
@@ -161,21 +200,39 @@ export async function loadFeed(subscription, { force = false } = {}) {
 // Load every subscription of a family. One feed failing must not take the
 // others (or the family's own events) down with it.
 export async function loadAllFeeds(subscriptions, options) {
-  const results = await Promise.allSettled(
-    (subscriptions || [])
-      .filter((sub) => sub?.id && sub?.url)
-      .map(async (sub) => ({ sub, ...(await loadFeed(sub, options)) })),
-  );
+  // Filtered once, up front: `results` is index-aligned with this list and the
+  // failure branch reads the subscription back out of it. Filtering a second
+  // time further down is how a rejected feed used to be reported against the
+  // wrong calendar.
+  const live = (subscriptions || []).filter((sub) => sub?.id && sub?.url);
+  const results = await Promise.allSettled(live.map((sub) => loadFeed(sub, options)));
 
   const events = [];
   const errors = [];
+  // One entry per subscription, whatever happened to it. The calendar needs
+  // this to say "Schule delivered nothing" instead of just showing an empty
+  // week and leaving the family to guess.
+  const reports = [];
   results.forEach((res, i) => {
+    const subscription = live[i];
     if (res.status === 'fulfilled') {
       events.push(...res.value.events);
-      if (res.value.error) errors.push({ subscription: res.value.sub, error: res.value.error });
+      if (res.value.error) errors.push({ subscription, error: res.value.error });
+      reports.push({
+        subscription,
+        report: res.value.report || null,
+        stale: Boolean(res.value.stale),
+        error: res.value.error || null,
+      });
     } else {
-      errors.push({ subscription: subscriptions[i], error: res.reason });
+      errors.push({ subscription, error: res.reason });
+      reports.push({
+        subscription,
+        report: res.reason?.report || null,
+        stale: false,
+        error: res.reason,
+      });
     }
   });
-  return { events, errors };
+  return { events, errors, reports };
 }
