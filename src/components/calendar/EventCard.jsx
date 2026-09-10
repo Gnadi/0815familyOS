@@ -20,7 +20,11 @@ const KID_CHIP = {
   indigo: 'bg-indigo-100 text-indigo-700',
 };
 
-export default function EventCard({ event, onClick }) {
+// `showSource` names the subscribed calendar an event came from. The week and
+// month views show one day at a time, where the little external-link icon is
+// context enough; search results mix calendars, so there the source is spelled
+// out.
+export default function EventCard({ event, onClick, showSource = false }) {
   const { get } = useCategories();
   const { family } = useAuth();
   const { t } = useT();
@@ -28,6 +32,11 @@ export default function EventCard({ event, onClick }) {
 
   const effort = event.effortLevel ? EFFORT[event.effortLevel] : null;
   const barClass = effort ? effort.bar : cat.bar;
+
+  const isSynced = event.source === 'subscription';
+  const sourceLabel = event.subscriptionLabel
+    ? t('calendar.syncedFromCalendar', { name: event.subscriptionLabel })
+    : t('calendar.syncedFromExternal');
 
   const familyKids = family?.kids || [];
   const eventKids = (event.kids || [])
@@ -49,11 +58,11 @@ export default function EventCard({ event, onClick }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <h3 className="flex min-w-0 items-center gap-1.5 truncate text-base font-semibold text-slate-900">
-            {event.source === 'subscription' && (
+            {isSynced && (
               <ExternalLink
                 size={12}
                 className="flex-shrink-0 text-slate-400"
-                aria-label={t('calendar.syncedFromExternal')}
+                aria-label={sourceLabel}
               />
             )}
             <span className="truncate">{event.title}</span>
@@ -79,6 +88,12 @@ export default function EventCard({ event, onClick }) {
                 {kid.name}
               </span>
             ))}
+          </div>
+        )}
+        {isSynced && showSource && (
+          <div className="mt-1 flex items-center gap-1 text-xs text-slate-400">
+            <ExternalLink size={12} className="flex-shrink-0" />
+            <span className="truncate">{sourceLabel}</span>
           </div>
         )}
         {event.responsibleParent && (
