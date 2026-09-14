@@ -1,15 +1,16 @@
-import { Calendar, ChevronDown, ChevronUp, Clock } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import useT from '../../hooks/useT';
 import useUIPreferences from '../../hooks/useUIPreferences';
 import DayTimeline from './DayTimeline';
 import EventCard from './EventCard';
 import EmptyState from '../common/EmptyState';
 
-// One day, as the week and month views both show it: the hour grid (optional,
-// and remembered once switched on) above the list of cards.
+// One day, as the week and month views both show it -- either as the list of
+// cards or as the hour grid, never both. The switch sits in the calendar's top
+// bar and is remembered across sessions.
 export default function DayAgenda({ day, events, onEventClick, title }) {
   const { t } = useT();
-  const { showDayTimeline, setShowDayTimeline } = useUIPreferences();
+  const { showDayTimeline } = useUIPreferences();
 
   return (
     <div>
@@ -22,22 +23,12 @@ export default function DayAgenda({ day, events, onEventClick, title }) {
             description={t('calendar.noEventsDayDesc')}
           />
         </div>
+      ) : showDayTimeline ? (
+        <div className={title ? 'mt-3' : ''}>
+          <DayTimeline day={day} events={events} onEventClick={onEventClick} />
+        </div>
       ) : (
         <div className={`space-y-3 ${title ? 'mt-3' : ''}`}>
-          <button
-            onClick={() => setShowDayTimeline(!showDayTimeline)}
-            aria-expanded={showDayTimeline}
-            className="flex w-full items-center gap-2 rounded-xl px-1 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-100"
-          >
-            <Clock size={14} className="flex-shrink-0" />
-            <span className="flex-1 text-left">{t('calendar.dayTimeline')}</span>
-            {showDayTimeline ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
-
-          {showDayTimeline && (
-            <DayTimeline day={day} events={events} onEventClick={onEventClick} />
-          )}
-
           {events.map((ev) => (
             <EventCard key={ev.id} event={ev} onClick={() => onEventClick(ev)} />
           ))}
