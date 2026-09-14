@@ -90,6 +90,7 @@ function mapEventDoc(d) {
     // Imported events carry the DTEND of their VEVENT. The event form has no
     // end field, so an event created here simply has none.
     endDate: toJsDate(data.endDate),
+    location: data.location || '',
     kids: data.kids || [],
     responsibleParent: data.responsibleParent || '',
     effortLevel: data.effortLevel || '',
@@ -138,7 +139,7 @@ export async function fetchCalendarOnce(familyId, subscriptions) {
   return [...own, ...applyAnnotations(events, indexAnnotations(all))];
 }
 
-export function createEvent({ familyId, userId, title, description, date, endDate, category, kids, responsibleParent, effortLevel, recurrence }) {
+export function createEvent({ familyId, userId, title, description, date, endDate, location, category, kids, responsibleParent, effortLevel, recurrence }) {
   const payload = {
     familyId,
     userId,
@@ -147,6 +148,7 @@ export function createEvent({ familyId, userId, title, description, date, endDat
     category: normalizeCategory(category),
     date: dateVal(date),
     endDate: endDate ? dateVal(endDate) : null,
+    location: location || '',
     kids: kids || [],
     responsibleParent: responsibleParent || '',
     effortLevel: effortLevel || '',
@@ -158,7 +160,7 @@ export function createEvent({ familyId, userId, title, description, date, endDat
   return addDoc(eventsRef, payload);
 }
 
-export function updateEvent(id, { title, description, date, endDate, category, kids, responsibleParent, effortLevel, recurrence }) {
+export function updateEvent(id, { title, description, date, endDate, location, category, kids, responsibleParent, effortLevel, recurrence }) {
   const payload = {
     title: title.trim(),
     description: description?.trim() || '',
@@ -170,10 +172,11 @@ export function updateEvent(id, { title, description, date, endDate, category, k
     recurrence: normalizeRecurrence(recurrence),
     updatedAt: nowVal(),
   };
-  // The event form cannot express an end time yet, so it sends none. Writing a
-  // null for it anyway would erase the DTEND of an imported event the first
-  // time anyone touched its category.
+  // The event form cannot express an end time or a place yet, so it sends
+  // neither. Writing them anyway would erase the DTEND and LOCATION of an
+  // imported event the first time anyone touched its category.
   if (endDate !== undefined) payload.endDate = endDate ? dateVal(endDate) : null;
+  if (location !== undefined) payload.location = location || '';
   if (isDemoMode()) return demoUpdate('events', id, payload);
   return updateDoc(doc(db, 'events', id), payload);
 }

@@ -110,6 +110,9 @@ function toFeedEvents(parsedEvents, subscription) {
     description: ev.description || '',
     date: ev.date,
     endDate: ev.endDate || null,
+    // The VEVENT's LOCATION. It was parsed all along and then dropped here, so
+    // "Flughafen Hörsching" never reached the calendar.
+    location: ev.location || '',
     recurrence: ev.recurrence || null,
     category: DEFAULT_CATEGORY,
     kids: [],

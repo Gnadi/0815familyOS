@@ -366,6 +366,14 @@ export default function EventFormModal({
             {t('events.endsOnDate', { date: format(endsAt, 'PPP') })}
           </p>
         )}
+        {initial?.location && (
+          <Input
+            label={t('events.locationLabel')}
+            value={initial.location}
+            readOnly
+            disabled
+          />
+        )}
 
         {/* Kids */}
         {(familyKids.length > 0 || userDoc?.familyId) && (

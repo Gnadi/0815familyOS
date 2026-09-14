@@ -27,6 +27,9 @@ const THEME_KEY = 'familyos:theme';
 const MODE_KEY = 'familyos:mode';
 const SKIN_KEY = 'familyos:skin';
 const LABELS_KEY = 'familyos:showLabels';
+// Whether the calendar shows the hour grid under the selected day. Off by
+// default: it is the extra detail, not the default reading of a day.
+const DAY_TIMELINE_KEY = 'familyos:dayTimeline';
 const QUICK_ACCESS_KEY = 'familyos:quickAccess';
 // The shortcut ids this install has already offered the user; see
 // src/utils/quickAccess.js for why a second key is needed.
@@ -41,6 +44,8 @@ export const UIPreferencesContext = createContext({
   setSkin: () => {},
   showLabels: true,
   setShowLabels: () => {},
+  showDayTimeline: false,
+  setShowDayTimeline: () => {},
   quickAccess: DEFAULT_QUICK_ACCESS,
   setQuickAccess: () => {},
 });
@@ -79,6 +84,11 @@ function readShowLabels() {
   return stored === null ? true : stored === 'true';
 }
 
+function readDayTimeline() {
+  if (typeof window === 'undefined') return false;
+  return window.localStorage.getItem(DAY_TIMELINE_KEY) === 'true';
+}
+
 function readQuickAccess() {
   if (typeof window === 'undefined') return DEFAULT_QUICK_ACCESS;
   return resolveQuickAccess({
@@ -95,6 +105,7 @@ export function UIPreferencesProvider({ children }) {
   const [mode, setModeState] = useState(readMode);
   const [skin, setSkinState] = useState(readSkin);
   const [showLabels, setShowLabelsState] = useState(readShowLabels);
+  const [showDayTimeline, setShowDayTimelineState] = useState(readDayTimeline);
   const [quickAccess, setQuickAccessState] = useState(readQuickAccess);
 
   useEffect(() => {
@@ -115,6 +126,10 @@ export function UIPreferencesProvider({ children }) {
   useEffect(() => {
     window.localStorage.setItem(LABELS_KEY, String(showLabels));
   }, [showLabels]);
+
+  useEffect(() => {
+    window.localStorage.setItem(DAY_TIMELINE_KEY, String(showDayTimeline));
+  }, [showDayTimeline]);
 
   useEffect(() => {
     window.localStorage.setItem(QUICK_ACCESS_KEY, JSON.stringify(quickAccess));
@@ -144,9 +159,10 @@ export function UIPreferencesProvider({ children }) {
     () => ({
       theme, setTheme, mode, setMode, skin, setSkin,
       showLabels, setShowLabels: setShowLabelsState,
+      showDayTimeline, setShowDayTimeline: setShowDayTimelineState,
       quickAccess, setQuickAccess,
     }),
-    [theme, mode, skin, showLabels, quickAccess],
+    [theme, mode, skin, showLabels, showDayTimeline, quickAccess],
   );
 
   return (

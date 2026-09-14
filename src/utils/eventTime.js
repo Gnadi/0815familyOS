@@ -42,3 +42,23 @@ export function formatEventEnd(event, pattern = 'HH:mm') {
   const days = dayOffset(event.date instanceof Date ? event.date : new Date(event.date), end);
   return days > 0 ? `${format(end, pattern)} +${days}d` : format(end, pattern);
 }
+
+// How long an event runs, as words: "1 Std 15 Min". Pass the i18n helper to
+// localize; without it the English form keeps the function usable outside
+// React (and in tests).
+export function formatDuration(event, { t } = {}) {
+  const end = eventEnd(event);
+  if (!end) return null;
+  const start = event.date instanceof Date ? event.date : new Date(event.date);
+  const minutes = Math.round((end.getTime() - start.getTime()) / 60000);
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (t) {
+    if (h && m) return t('calendar.durationHM', { h, m });
+    if (h) return t('calendar.durationH', { h });
+    return t('calendar.durationM', { m });
+  }
+  if (h && m) return `${h} h ${m} min`;
+  if (h) return `${h} h`;
+  return `${m} min`;
+}

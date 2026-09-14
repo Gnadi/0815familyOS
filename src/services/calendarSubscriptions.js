@@ -278,6 +278,7 @@ export async function importEventsFromParsed({
         category: 'general',
         date: ev.date,
         endDate: ev.endDate || null,
+        location: ev.location || '',
         kids: [],
         responsibleParent: '',
         effortLevel: '',
@@ -324,6 +325,7 @@ export async function importEventsFromParsed({
       // DTEND/DURATION from the file. Without it an imported event showed only
       // when it starts, never how long it runs.
       endDate: ev.endDate ? Timestamp.fromDate(ev.endDate) : null,
+      location: ev.location || '',
       kids: [],
       responsibleParent: '',
       effortLevel: '',

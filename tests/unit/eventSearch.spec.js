@@ -85,6 +85,14 @@ describe('eventSearchText', () => {
     expect(text).toContain('schule');
   });
 
+  it('covers the place an event is at', () => {
+    const text = eventSearchText(synced({ location: 'Flughafen Hörsching' }), context);
+    expect(text).toContain('flughafen');
+    // The place goes through the same umlaut handling as every other field.
+    expect(text).toContain('horsching');
+    expect(text).toContain('hoersching');
+  });
+
   it('carries both spellings of an umlaut', () => {
     const text = eventSearchText(stored({ title: 'München' }), null);
     expect(text).toContain('munchen');
