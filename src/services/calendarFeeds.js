@@ -31,7 +31,10 @@ const FRESH_MS = 30 * 60 * 1000;
 // Cached feeds survive a reload, so the calendar renders instantly and keeps
 // working offline.
 const CACHE_PREFIX = 'faos.feed.';
-const CACHE_VERSION = 1;
+// Bumped when the cached event shape changes -- v1 entries predate `endDate`,
+// and serving them would keep a subscribed calendar end-less until the feed
+// happened to change upstream.
+const CACHE_VERSION = 2;
 
 function cacheKey(subscriptionId) {
   return `${CACHE_PREFIX}${subscriptionId}`;
@@ -50,7 +53,11 @@ function readCache(subscription) {
       fetchedAt: parsed.fetchedAt || 0,
       etag: parsed.etag || null,
       lastModified: parsed.lastModified || null,
-      events: (parsed.events || []).map((ev) => ({ ...ev, date: new Date(ev.date) })),
+      events: (parsed.events || []).map((ev) => ({
+        ...ev,
+        date: new Date(ev.date),
+        endDate: ev.endDate ? new Date(ev.endDate) : null,
+      })),
     };
   } catch {
     // Unparseable, or storage unavailable (private mode). Treat as no cache.
@@ -66,7 +73,11 @@ function writeCache(subscription, entry) {
       fetchedAt: entry.fetchedAt,
       etag: entry.etag,
       lastModified: entry.lastModified,
-      events: entry.events.map((ev) => ({ ...ev, date: ev.date.toISOString() })),
+      events: entry.events.map((ev) => ({
+        ...ev,
+        date: ev.date.toISOString(),
+        endDate: ev.endDate ? ev.endDate.toISOString() : null,
+      })),
     }));
   } catch {
     // Quota exceeded or storage unavailable -- the feed still works, it just
@@ -98,6 +109,10 @@ function toFeedEvents(parsedEvents, subscription) {
     title: ev.title || 'Untitled',
     description: ev.description || '',
     date: ev.date,
+    endDate: ev.endDate || null,
+    // The VEVENT's LOCATION. It was parsed all along and then dropped here, so
+    // "Flughafen Hörsching" never reached the calendar.
+    location: ev.location || '',
     recurrence: ev.recurrence || null,
     category: DEFAULT_CATEGORY,
     kids: [],

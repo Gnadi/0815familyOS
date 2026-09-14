@@ -1,11 +1,10 @@
 import { useMemo } from 'react';
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { addWeeks, format, isSameDay, subWeeks } from 'date-fns';
 import { dayKey, getWeekDays, groupEventsByDay, NO_EVENTS } from '../../utils/date';
 import useCategories from '../../hooks/useCategories';
 import useT from '../../hooks/useT';
-import EventCard from './EventCard';
-import EmptyState from '../common/EmptyState';
+import DayAgenda from './DayAgenda';
 
 export default function WeekView({ anchor, selected, onAnchorChange, onSelect, events, onEventClick }) {
   const { get: getCat } = useCategories();
@@ -72,18 +71,8 @@ export default function WeekView({ anchor, selected, onAnchorChange, onSelect, e
         })}
       </div>
 
-      <div className="mt-6 space-y-3">
-        {dayEvents.length === 0 ? (
-          <EmptyState
-            icon={Calendar}
-            title={t('calendar.noEventsDay')}
-            description={t('calendar.noEventsDayDesc')}
-          />
-        ) : (
-          dayEvents.map((ev) => (
-            <EventCard key={ev.id} event={ev} onClick={() => onEventClick(ev)} />
-          ))
-        )}
+      <div className="mt-6">
+        <DayAgenda day={selected} events={dayEvents} onEventClick={onEventClick} />
       </div>
     </div>
   );

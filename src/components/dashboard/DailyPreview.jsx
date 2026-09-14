@@ -11,6 +11,7 @@ import useT from '../../hooks/useT';
 import { tLabel } from '../../i18n/labels';
 import { TASK_PRIORITY_MAP } from '../../constants/taskCategories';
 import { expandEventsInRange } from '../../utils/recurrence';
+import { formatEventEnd } from '../../utils/eventTime';
 import QuickAddModal from './QuickAddModal';
 
 const PRIORITY_WEIGHT = { urgent: 0, high: 1, normal: 2, low: 3 };
@@ -97,6 +98,7 @@ export default function DailyPreview() {
                 <ul className="space-y-2.5">
                   {todayEvents.map((ev) => {
                     const cat = getCat(ev.category);
+                    const endLabel = formatEventEnd(ev, 'p');
                     const kids = kidNames(ev.kids);
                     const meta = [kids, ev.responsibleParent].filter(Boolean).join(' · ');
                     return (
@@ -114,9 +116,12 @@ export default function DailyPreview() {
                             <p className={`mt-0.5 truncate text-xs ${cat.chipText}`}>{tLabel(t, cat)}</p>
                           )}
                         </div>
-                        <span className="mt-0.5 flex-shrink-0 text-xs font-medium text-slate-500">
-                          {format(ev.date, 'p')}
-                        </span>
+                        <div className="mt-0.5 flex-shrink-0 text-right">
+                          <p className="text-xs font-medium text-slate-500">{format(ev.date, 'p')}</p>
+                          {endLabel && (
+                            <p className="text-[11px] text-slate-400">{`– ${endLabel}`}</p>
+                          )}
+                        </div>
                       </li>
                     );
                   })}
