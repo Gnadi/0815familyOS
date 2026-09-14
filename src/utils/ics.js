@@ -3,6 +3,8 @@
 // `event.date`. Output uses local-floating times (no TZID/UTC conversion) —
 // most consumer calendars import them at the user's local time.
 
+import { eventEnd } from './eventTime';
+
 function pad(n) {
   return String(n).padStart(2, '0');
 }
@@ -52,7 +54,9 @@ export function buildICS(events, { calendarName = 'myFAOS' } = {}) {
   events.forEach((evt) => {
     const start = evt.date instanceof Date ? evt.date : new Date(evt.date);
     if (Number.isNaN(start.getTime())) return;
-    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    // Events that came from a calendar know when they end, so the export hands
+    // that back instead of the flat hour we assume for everything else.
+    const end = eventEnd(evt) || new Date(start.getTime() + 60 * 60 * 1000);
     lines.push(
       'BEGIN:VEVENT',
       fold(`UID:${evt.id || `${stamp}-${Math.random().toString(36).slice(2)}`}@familyos`),

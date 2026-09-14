@@ -116,9 +116,19 @@ const MAX_STEPS = 1000;
 const MAX_OCCURRENCES = 500;
 
 function occurrenceOf(master, date, index) {
+  const start = new Date(date);
+  const masterStart = master.date instanceof Date ? master.date : new Date(master.date);
+  const masterEnd = master.endDate instanceof Date ? master.endDate : null;
+  // A series has one duration, so every occurrence ends that far after its own
+  // start. Carrying the master's end over unchanged would have shown next
+  // month's appointment ending on the day the series began.
+  const endDate = masterEnd && masterEnd > masterStart
+    ? new Date(start.getTime() + (masterEnd.getTime() - masterStart.getTime()))
+    : null;
   return {
     ...master,
-    date: new Date(date),
+    date: start,
+    endDate,
     // Keep the master id stable for editing; but flag virtual instances.
     id: index === 0 ? master.id : `${master.id}__r${index}`,
     masterId: master.id,

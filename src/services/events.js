@@ -73,13 +73,23 @@ function normalizeRecurrence(rec) {
   };
 }
 
+// Firestore hands dates back as Timestamps; everything downstream works with
+// JS Dates.
+function toJsDate(value) {
+  if (!value) return null;
+  return value.toDate ? value.toDate() : value;
+}
+
 function mapEventDoc(d) {
   const data = d.data();
   return {
     id: d.id,
     ...data,
     category: normalizeCategory(data.category),
-    date: data.date?.toDate ? data.date.toDate() : data.date,
+    date: toJsDate(data.date),
+    // Imported events carry the DTEND of their VEVENT. The event form has no
+    // end field, so an event created here simply has none.
+    endDate: toJsDate(data.endDate),
     kids: data.kids || [],
     responsibleParent: data.responsibleParent || '',
     effortLevel: data.effortLevel || '',
@@ -128,7 +138,7 @@ export async function fetchCalendarOnce(familyId, subscriptions) {
   return [...own, ...applyAnnotations(events, indexAnnotations(all))];
 }
 
-export function createEvent({ familyId, userId, title, description, date, category, kids, responsibleParent, effortLevel, recurrence }) {
+export function createEvent({ familyId, userId, title, description, date, endDate, category, kids, responsibleParent, effortLevel, recurrence }) {
   const payload = {
     familyId,
     userId,
@@ -136,6 +146,7 @@ export function createEvent({ familyId, userId, title, description, date, catego
     description: description?.trim() || '',
     category: normalizeCategory(category),
     date: dateVal(date),
+    endDate: endDate ? dateVal(endDate) : null,
     kids: kids || [],
     responsibleParent: responsibleParent || '',
     effortLevel: effortLevel || '',
@@ -147,7 +158,7 @@ export function createEvent({ familyId, userId, title, description, date, catego
   return addDoc(eventsRef, payload);
 }
 
-export function updateEvent(id, { title, description, date, category, kids, responsibleParent, effortLevel, recurrence }) {
+export function updateEvent(id, { title, description, date, endDate, category, kids, responsibleParent, effortLevel, recurrence }) {
   const payload = {
     title: title.trim(),
     description: description?.trim() || '',
@@ -159,6 +170,10 @@ export function updateEvent(id, { title, description, date, category, kids, resp
     recurrence: normalizeRecurrence(recurrence),
     updatedAt: nowVal(),
   };
+  // The event form cannot express an end time yet, so it sends none. Writing a
+  // null for it anyway would erase the DTEND of an imported event the first
+  // time anyone touched its category.
+  if (endDate !== undefined) payload.endDate = endDate ? dateVal(endDate) : null;
   if (isDemoMode()) return demoUpdate('events', id, payload);
   return updateDoc(doc(db, 'events', id), payload);
 }

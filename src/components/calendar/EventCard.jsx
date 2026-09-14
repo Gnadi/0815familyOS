@@ -4,6 +4,7 @@ import useCategories from '../../hooks/useCategories';
 import useAuth from '../../hooks/useAuth';
 import useT from '../../hooks/useT';
 import { tLabel } from '../../i18n/labels';
+import { formatEventEnd } from '../../utils/eventTime';
 
 const EFFORT = {
   low:    { bar: 'bg-green-400',  badge: 'text-green-700 bg-green-100',   labelKey: 'calendar.effortLow' },
@@ -38,6 +39,11 @@ export default function EventCard({ event, onClick, showSource = false }) {
     ? t('calendar.syncedFromCalendar', { name: event.subscriptionLabel })
     : t('calendar.syncedFromExternal');
 
+  // Calendars ship DTEND with their events; the time column shows it under the
+  // start instead of the AM/PM marker, which said nothing the 24h start time
+  // did not already say.
+  const endLabel = formatEventEnd(event);
+
   const familyKids = family?.kids || [];
   const eventKids = (event.kids || [])
     .map((id) => familyKids.find((k) => k.id === id))
@@ -52,7 +58,9 @@ export default function EventCard({ event, onClick, showSource = false }) {
         <p className="text-sm font-semibold text-slate-900">
           {format(event.date, 'HH:mm')}
         </p>
-        <p className="text-xs text-slate-400">{format(event.date, 'a')}</p>
+        <p className="text-xs text-slate-400">
+          {endLabel ? `– ${endLabel}` : format(event.date, 'a')}
+        </p>
       </div>
       <div className={`w-1 flex-shrink-0 rounded-full ${barClass}`} />
       <div className="min-w-0 flex-1">
