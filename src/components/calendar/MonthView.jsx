@@ -5,6 +5,7 @@ import { addMonths, dayKey, getMonthGrid, groupEventsByDay, NO_EVENTS, subMonths
 import useCategories from '../../hooks/useCategories';
 import useT from '../../hooks/useT';
 import DayAgenda from './DayAgenda';
+import TodayButton from './TodayButton';
 
 export default function MonthView({ anchor, selected, onAnchorChange, onSelect, events, onEventClick }) {
   const { get: getCat } = useCategories();
@@ -18,24 +19,28 @@ export default function MonthView({ anchor, selected, onAnchorChange, onSelect, 
   return (
     <div>
       <div className="rounded-2xl bg-white p-4 shadow-card">
+        {/* Same shape as the week view's header: month left, controls right. */}
         <div className="flex items-center justify-between">
-          <button
-            onClick={() => onAnchorChange(subMonths(anchor, 1))}
-            className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
-            aria-label={t('calendar.prevMonth')}
-          >
-            <ChevronLeft size={18} />
-          </button>
           <h3 className="text-base font-semibold text-slate-900">
             {format(anchor, 'MMMM yyyy')}
           </h3>
-          <button
-            onClick={() => onAnchorChange(addMonths(anchor, 1))}
-            className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
-            aria-label={t('calendar.nextMonth')}
-          >
-            <ChevronRight size={18} />
-          </button>
+          <div className="flex items-center gap-1">
+            <TodayButton selected={selected} onJump={onAnchorChange} />
+            <button
+              onClick={() => onAnchorChange(subMonths(anchor, 1))}
+              className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
+              aria-label={t('calendar.prevMonth')}
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <button
+              onClick={() => onAnchorChange(addMonths(anchor, 1))}
+              className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
+              aria-label={t('calendar.nextMonth')}
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="mt-3 grid grid-cols-7 text-center text-xs font-medium text-slate-400">

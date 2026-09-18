@@ -740,6 +740,7 @@ export default {
     durationHM: '{h} Std {m} Min',
     durationH: '{h} Std',
     durationM: '{m} Min',
+    jumpToToday: 'Zu heute springen',
     noEventsDay: 'Keine Termine an diesem Tag',
     noEventsDayDesc: 'Tippe auf +, um einen hinzuzufügen.',
     eventsOn: 'Termine am {date}',

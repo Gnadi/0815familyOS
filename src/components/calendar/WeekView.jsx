@@ -5,6 +5,7 @@ import { dayKey, getWeekDays, groupEventsByDay, NO_EVENTS } from '../../utils/da
 import useCategories from '../../hooks/useCategories';
 import useT from '../../hooks/useT';
 import DayAgenda from './DayAgenda';
+import TodayButton from './TodayButton';
 
 export default function WeekView({ anchor, selected, onAnchorChange, onSelect, events, onEventClick }) {
   const { get: getCat } = useCategories();
@@ -19,7 +20,8 @@ export default function WeekView({ anchor, selected, onAnchorChange, onSelect, e
     <div>
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-slate-900">{monthLabel}</h3>
-        <div className="flex gap-1">
+        <div className="flex items-center gap-1">
+          <TodayButton selected={selected} onJump={onAnchorChange} />
           <button
             onClick={() => onAnchorChange(subWeeks(anchor, 1))}
             className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
