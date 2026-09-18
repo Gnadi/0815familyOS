@@ -16,6 +16,7 @@ import {
   PALETTE_COLORS,
 } from '../../constants/eventCategories';
 import RecurrenceField from '../common/RecurrenceField';
+import { eventEnd } from '../../utils/eventTime';
 
 function toDateInput(d) {
   return format(d, 'yyyy-MM-dd');
@@ -310,6 +311,12 @@ export default function EventFormModal({
   // Everything the family adds on top is still editable and stored separately.
   const isSubscribed = Boolean(initial?.source === 'subscription');
 
+  // Events that came from a calendar know when they end. There is no end field
+  // to edit -- the form only creates single-time events -- so it is shown as
+  // the calendar delivered it, next to the start.
+  const endsAt = eventEnd(initial);
+  const endsOnLaterDay = endsAt && toDateInput(endsAt) !== toDateInput(initial.date);
+
   return (
     <Modal open={open} onClose={onClose} title={isEdit ? t('events.modalEdit') : t('events.modalNew')}>
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -327,7 +334,7 @@ export default function EventFormModal({
           autoFocus={!isSubscribed}
           disabled={isSubscribed}
         />
-        <div className="grid grid-cols-2 gap-3">
+        <div className={`grid gap-3 ${endsAt ? 'grid-cols-3' : 'grid-cols-2'}`}>
           <Input
             label={t('events.dateLabel')}
             type="date"
@@ -337,14 +344,36 @@ export default function EventFormModal({
             disabled={isSubscribed}
           />
           <Input
-            label={t('events.timeLabel')}
+            label={endsAt ? t('events.startTimeLabel') : t('events.timeLabel')}
             type="time"
             value={time}
             onChange={(e) => setTime(e.target.value)}
             required
             disabled={isSubscribed}
           />
+          {endsAt && (
+            <Input
+              label={t('events.endTimeLabel')}
+              type="time"
+              value={toTimeInput(endsAt)}
+              readOnly
+              disabled
+            />
+          )}
         </div>
+        {endsOnLaterDay && (
+          <p className="-mt-2 text-xs text-slate-500">
+            {t('events.endsOnDate', { date: format(endsAt, 'PPP') })}
+          </p>
+        )}
+        {initial?.location && (
+          <Input
+            label={t('events.locationLabel')}
+            value={initial.location}
+            readOnly
+            disabled
+          />
+        )}
 
         {/* Kids */}
         {(familyKids.length > 0 || userDoc?.familyId) && (

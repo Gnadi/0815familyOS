@@ -63,14 +63,16 @@ export function searchTokens(query) {
 }
 
 // The fields a user can reasonably expect to search on. `subscriptionLabel` is
-// what makes a synced event findable by its calendar; category and kid names
-// are ids on the event, so they need the caller's lookups to become text.
+// what makes a synced event findable by its calendar, `location` finds the
+// afternoon at the airport by the airport; category and kid names are ids on
+// the event, so they need the caller's lookups to become text.
 function searchableFields(event, context) {
   const fields = [
     event.title,
     event.description,
     event.responsibleParent,
     event.subscriptionLabel,
+    event.location,
   ];
   if (context?.categoryLabel) fields.push(context.categoryLabel(event.category));
   if (context?.kidName) {

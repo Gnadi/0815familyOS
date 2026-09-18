@@ -9,6 +9,7 @@ import useCategories from '../../hooks/useCategories';
 import useT from '../../hooks/useT';
 import { tLabel } from '../../i18n/labels';
 import { expandEventsInRange } from '../../utils/recurrence';
+import { formatEventEnd } from '../../utils/eventTime';
 
 export default function WeeklyPreview() {
   const { userDoc } = useAuth();
@@ -52,6 +53,7 @@ export default function WeeklyPreview() {
           <ul className="divide-y divide-slate-100">
             {next.map((ev) => {
               const cat = getCat(ev.category);
+              const endLabel = formatEventEnd(ev, 'p');
               return (
                 <li key={ev.id} className="flex items-center gap-3 px-4 py-3">
                   <div
@@ -65,7 +67,10 @@ export default function WeeklyPreview() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-semibold text-slate-900">{formatRelativeDay(ev.date, t)}</p>
-                    <p className="text-xs text-slate-500">{format(ev.date, 'p')}</p>
+                    <p className="text-xs text-slate-500">
+                      {format(ev.date, 'p')}
+                      {endLabel ? ` – ${endLabel}` : ''}
+                    </p>
                   </div>
                 </li>
               );

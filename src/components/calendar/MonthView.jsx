@@ -1,12 +1,11 @@
 import { useMemo } from 'react';
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, isSameDay, isSameMonth } from 'date-fns';
 import { addMonths, dayKey, getMonthGrid, groupEventsByDay, NO_EVENTS, subMonths } from '../../utils/date';
 import useCategories from '../../hooks/useCategories';
 import useT from '../../hooks/useT';
-import EventCard from './EventCard';
+import DayAgenda from './DayAgenda';
 import TodayButton from './TodayButton';
-import EmptyState from '../common/EmptyState';
 
 export default function MonthView({ anchor, selected, onAnchorChange, onSelect, events, onEventClick }) {
   const { get: getCat } = useCategories();
@@ -86,22 +85,12 @@ export default function MonthView({ anchor, selected, onAnchorChange, onSelect, 
       </div>
 
       <div className="mt-6">
-        <h3 className="text-base font-semibold text-slate-900">
-          {t('calendar.eventsOn', { date: format(selected, 'MMMM d') })}
-        </h3>
-        <div className="mt-3 space-y-3">
-          {dayEvents.length === 0 ? (
-            <EmptyState
-              icon={Calendar}
-              title={t('calendar.noEventsDay')}
-              description={t('calendar.noEventsDayDesc')}
-            />
-          ) : (
-            dayEvents.map((ev) => (
-              <EventCard key={ev.id} event={ev} onClick={() => onEventClick(ev)} />
-            ))
-          )}
-        </div>
+        <DayAgenda
+          day={selected}
+          events={dayEvents}
+          onEventClick={onEventClick}
+          title={t('calendar.eventsOn', { date: format(selected, 'MMMM d') })}
+        />
       </div>
     </div>
   );

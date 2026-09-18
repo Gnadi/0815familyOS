@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Download, RefreshCw } from 'lucide-react';
+import { CalendarClock, Download, List, RefreshCw } from 'lucide-react';
 import TopBar from '../components/layout/TopBar';
 import ViewToggle from '../components/calendar/ViewToggle';
 import FilterChips from '../components/calendar/FilterChips';
@@ -13,6 +13,7 @@ import EventFormModal from '../components/calendar/EventFormModal';
 import useAuth from '../hooks/useAuth';
 import useT from '../hooks/useT';
 import useEvents from '../hooks/useEvents';
+import useUIPreferences from '../hooks/useUIPreferences';
 import useFamilyMembers from '../hooks/useFamilyMembers';
 import useCategories from '../hooks/useCategories';
 import { tLabel } from '../i18n/labels';
@@ -30,6 +31,7 @@ export default function CalendarPage() {
   const { user, userDoc, family } = useAuth();
   const { t } = useT();
   const { events, loading, error, feedErrors, feedReports } = useEvents(userDoc?.familyId);
+  const { showDayTimeline, setShowDayTimeline } = useUIPreferences();
   const members = useFamilyMembers();
   const { get: getCategory } = useCategories();
   const { setCreateDefaultDate } = useOutletContext() || {};
@@ -214,6 +216,23 @@ export default function CalendarPage() {
     </button>
   ) : null;
 
+  // Switches the selected day between the list of cards and the hour grid. It
+  // belongs next to the other calendar-wide actions rather than inside the day
+  // itself, and the icon names what a tap gets you, not what is on screen.
+  const timelineButton = (
+    <button
+      onClick={() => setShowDayTimeline(!showDayTimeline)}
+      aria-pressed={showDayTimeline}
+      aria-label={showDayTimeline ? t('calendar.switchToList') : t('calendar.switchToTimeline')}
+      title={showDayTimeline ? t('calendar.switchToList') : t('calendar.switchToTimeline')}
+      className={`rounded-full p-2 hover:bg-slate-100 ${
+        showDayTimeline ? 'bg-brand-50 text-brand-600' : 'text-slate-600'
+      }`}
+    >
+      {showDayTimeline ? <List size={18} /> : <CalendarClock size={18} />}
+    </button>
+  );
+
   const exportButton = (
     <button
       onClick={handleExport}
@@ -225,8 +244,11 @@ export default function CalendarPage() {
     </button>
   );
 
+  // The hour grid shows one day; search results span many, so the switch has
+  // nothing to act on while a search is open.
   const topBarActions = (
     <>
+      {!isSearching && timelineButton}
       {syncButton}
       {exportButton}
     </>

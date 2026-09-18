@@ -1,5 +1,5 @@
 // Minimal ICS (iCalendar / RFC 5545) parser. We only consume what myFAOS
-// needs: VEVENT with SUMMARY, DESCRIPTION, DTSTART, DTEND, UID, EXDATE and
+// needs: VEVENT with SUMMARY, DESCRIPTION, DTSTART, DTEND/DURATION, UID, EXDATE and
 // (limited) RRULE → mapped to our { freq, interval, until, byDay, count }
 // recurrence shape. Time zones are read as local-floating; UTC ("Z" suffix) is
 // honoured.
@@ -60,6 +60,46 @@ function parseICalDate(value, params = {}) {
   }
   // Local-floating (or specified TZID we don't honour) — treat as local time.
   return new Date(+Y, +M - 1, +D, +h, +m, +s);
+}
+
+// Is this property written in the DATE form (an all-day event)? Either the
+// value is a bare YYYYMMDD or the property says so with VALUE=DATE.
+function isDateOnly(prop) {
+  if (!prop) return false;
+  if (String(prop.params?.VALUE || '').toUpperCase() === 'DATE') return true;
+  return /^\d{8}$/.test(String(prop.value || '').trim());
+}
+
+// DURATION, which feeds write instead of DTEND (Google does it for events
+// created from a template): P[n]W or P[n]DT[n]H[n]M[n]S. A VEVENT's length is
+// always positive, so a negative or empty duration is no duration at all.
+function parseDuration(value) {
+  const match = /^P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/
+    .exec(String(value || '').trim().toUpperCase());
+  if (!match) return null;
+  const [, w, d, h, min, s] = match;
+  if (!w && !d && !h && !min && !s) return null;
+  const seconds = (+w || 0) * 604800 + (+d || 0) * 86400
+    + (+h || 0) * 3600 + (+min || 0) * 60 + (+s || 0);
+  return seconds > 0 ? seconds * 1000 : null;
+}
+
+// When the event ends, from DTEND or DURATION.
+//
+// All-day events are deliberately left without one: their DATE form carries no
+// clock time and we land them on a synthetic 09:00, so a DTEND of the next day
+// would render every birthday as "09:00 - 09:00" instead of saying nothing.
+function parseEventEnd(current, startDate) {
+  if (isDateOnly(current.DTSTART)) return null;
+  if (current.DTEND) {
+    const end = parseICalDate(current.DTEND.value, current.DTEND.params);
+    return end && end > startDate ? end : null;
+  }
+  if (current.DURATION) {
+    const ms = parseDuration(current.DURATION.value);
+    return ms ? new Date(startDate.getTime() + ms) : null;
+  }
+  return null;
 }
 
 function parseRRule(value) {
@@ -164,6 +204,7 @@ export function parseICS(text) {
             title: unescapeText(current.SUMMARY.value),
             description: current.DESCRIPTION ? unescapeText(current.DESCRIPTION.value) : '',
             date: startDate,
+            endDate: parseEventEnd(current, startDate),
             recurrence,
             location: current.LOCATION ? unescapeText(current.LOCATION.value) : '',
           });
