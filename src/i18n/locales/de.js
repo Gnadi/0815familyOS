@@ -728,6 +728,7 @@ export default {
     nextWeek: 'Nächste Woche',
     prevMonth: 'Vorheriger Monat',
     nextMonth: 'Nächster Monat',
+    jumpToToday: 'Zu heute springen',
     noEventsDay: 'Keine Termine an diesem Tag',
     noEventsDayDesc: 'Tippe auf +, um einen hinzuzufügen.',
     eventsOn: 'Termine am {date}',

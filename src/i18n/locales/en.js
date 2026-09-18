@@ -730,6 +730,7 @@ export default {
     nextWeek: 'Next week',
     prevMonth: 'Previous month',
     nextMonth: 'Next month',
+    jumpToToday: 'Jump to today',
     noEventsDay: 'No events for this day',
     noEventsDayDesc: 'Tap the + button to add one.',
     eventsOn: 'Events on {date}',
