@@ -89,9 +89,12 @@ export const BUILTIN_CATEGORIES = [
   { id: 'sports', label: 'Sports', labelKey: 'cat.sports', color: 'emerald' },
 ];
 
-function resolve({ id, label, color }, builtin = false) {
+// `labelKey` is carried through: without it tLabel() falls back to the English
+// `label` and the built-in categories stay untranslated everywhere they are
+// shown, even though cat.* exists in every locale.
+function resolve({ id, label, labelKey, color }, builtin = false) {
   const palette = COLOR_PALETTE[color] || COLOR_PALETTE.slate;
-  return { id, label, color, builtin, ...palette };
+  return { id, label, labelKey, color, builtin, ...palette };
 }
 
 export const BUILTIN_LIST = BUILTIN_CATEGORIES.map((c) => resolve(c, true));

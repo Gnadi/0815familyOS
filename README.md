@@ -10,6 +10,8 @@ modules (Document Vault, Gift Planner, Task Manager).
 - **Frontend:** React 18 + Vite
 - **Styling:** Tailwind CSS, Inter (Google Fonts)
 - **Backend:** Firebase — Authentication (Email/Password + Google) and Firestore
+- **Voice assistant:** browser speech recognition + a pluggable chatbot
+  (Gemini / OpenAI / Anthropic) behind `api/assistant.js`
 - **Image storage:** Cloudinary env vars reserved for future features
 - **Routing:** react-router-dom
 - **Date math:** date-fns
@@ -197,6 +199,34 @@ the catalogue as it stood before the migration — so new entries are correctly
 recognised as new. The logic is pure, in `src/utils/quickAccess.js`, and
 covered by `tests/unit/quickAccess.spec.js`.
 
+## Voice assistant (working module)
+
+Say a sentence, get entries: *"Zahnarzt für Anna am Dienstag um 15 Uhr"*
+becomes a calendar event, *"Milch und Windeln auf die Einkaufsliste"* two
+shopping items. The microphone sits next to "Add event or task" on the
+Dashboard, and in Settings once a chatbot is connected.
+
+- Speech → text happens **in the browser** (Web Speech API), so no audio
+  leaves the device. Firefox has no such API; there the sheet offers a text
+  field that runs the identical pipeline.
+- The text goes to `api/assistant.js`, which asks the configured chatbot —
+  **Gemini, OpenAI/ChatGPT, Anthropic, or anything OpenAI-compatible** — which
+  of the app's functions to call. Provider API keys stay on the server; the
+  endpoint accepts only requests carrying a valid Firebase ID token.
+- Every proposal is re-validated client-side against the family's own
+  categories, children and members (`src/utils/assistantPlan.js`), then shown
+  for confirmation. Nothing is written until it is confirmed, and the write
+  itself goes through the ordinary services, so the Firestore rules still
+  apply.
+- Only the sentence plus the family's first names, category labels and the
+  current date are sent to the provider. Never uids, addresses or existing
+  entries.
+
+Setup (one API key and `FIREBASE_PROJECT_ID`), how to add further actions, how
+to swap in another chatbot, and the alternatives that were considered
+(Custom GPT actions, Siri Shortcuts, a WhatsApp bot, self-hosted models) are in
+**[docs/assistant-integration.md](docs/assistant-integration.md)**.
+
 ## Out of scope (future work)
 
 Per the MVP spec, these are intentionally **not** implemented:
@@ -204,7 +234,6 @@ Per the MVP spec, these are intentionally **not** implemented:
 - Gift Planner logic
 - Document Vault uploads
 - Notifications / email delivery of invites (links work; email does not)
-- AI features
 - Payments
 
 The Dashboard's `WorkloadBalance`, `HealthAlerts`, and `QuickAccess`

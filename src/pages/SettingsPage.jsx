@@ -15,6 +15,7 @@ import { renameResponsibleParent } from '../services/events';
 import { DISPLAY_NAME_MAX, normalizeDisplayName } from '../utils/displayName';
 import InviteShareCard from '../components/invites/InviteShareCard';
 import { exportFamilyData } from '../utils/exportFamily';
+import AssistantSection from '../components/settings/AssistantSection';
 import CalendarImportSection from '../components/settings/CalendarImportSection';
 import CalendarFeedSection from '../components/settings/CalendarFeedSection';
 
@@ -416,6 +417,8 @@ export default function SettingsPage() {
             </form>
           </section>
         )}
+
+        {family && <AssistantSection />}
 
         {family && <CalendarImportSection />}
 

@@ -13,6 +13,7 @@ import { TASK_PRIORITY_MAP } from '../../constants/taskCategories';
 import { expandEventsInRange } from '../../utils/recurrence';
 import { formatEventEnd } from '../../utils/eventTime';
 import QuickAddModal from './QuickAddModal';
+import VoiceAssistantButton from '../assistant/VoiceAssistantButton';
 
 const PRIORITY_WEIGHT = { urgent: 0, high: 1, normal: 2, low: 3 };
 
@@ -155,15 +156,18 @@ export default function DailyPreview() {
           </div>
         )}
 
-        <div className="px-4 pb-4 pt-2">
+        <div className="flex gap-2 px-4 pb-4 pt-2">
           <button
             type="button"
             onClick={() => setShowAdd(true)}
-            className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 py-2.5 text-sm font-semibold text-brand-600 transition hover:bg-slate-50"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 py-2.5 text-sm font-semibold text-brand-600 transition hover:bg-slate-50"
           >
             <Plus size={16} />
             {t('dashboard.addEventOrTask')}
           </button>
+          {/* Dictate instead of filling the form in: same two entries, one
+              sentence. */}
+          <VoiceAssistantButton className="flex-1" />
         </div>
       </div>
 
