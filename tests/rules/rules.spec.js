@@ -20,9 +20,11 @@ import {
   doc,
   getDoc,
   getDocs,
+  query,
   setDoc,
   updateDoc,
   deleteDoc,
+  where,
 } from 'firebase/firestore';
 
 const FAMILY = 'fam1';
@@ -33,6 +35,9 @@ const GOOD = 'GoodToken0123456789ab';
 const REVOKED = 'RevokedToken0123456789';
 const EXPIRED = 'ExpiredToken0123456789';
 const OTHER_FAM_TOKEN = 'OtherFamToken012345678';
+
+const PAIRING = 'PairingToken0123456789';
+const OTHER_FAM_PAIRING = 'OtherPairing012345678';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -48,6 +53,20 @@ function invite(overrides = {}) {
     revokedAt: null,
     expiresAt: new Date(Date.now() + 7 * DAY),
     createdAt: new Date(),
+    ...overrides,
+  };
+}
+
+function pairing(overrides = {}) {
+  return {
+    familyId: FAMILY,
+    userId: MEMBER,
+    label: 'Gemini on my phone',
+    locale: 'de',
+    revoked: false,
+    createdAt: new Date(),
+    lastUsedAt: null,
+    useCount: 0,
     ...overrides,
   };
 }
@@ -89,6 +108,11 @@ beforeEach(async () => {
     await setDoc(doc(db, 'invites', REVOKED), invite({ revoked: true }));
     await setDoc(doc(db, 'invites', EXPIRED), invite({ expiresAt: new Date(Date.now() - DAY) }));
     await setDoc(doc(db, 'invites', OTHER_FAM_TOKEN), invite({ familyId: OTHER_FAMILY }));
+    await setDoc(doc(db, 'agentTokens', PAIRING), pairing());
+    await setDoc(
+      doc(db, 'agentTokens', OTHER_FAM_PAIRING),
+      pairing({ familyId: OTHER_FAMILY, userId: 'stranger' }),
+    );
   });
 });
 
@@ -364,5 +388,80 @@ describe('trackers', () => {
       updateDoc(doc(asOutsider(), 'trackerEntries', 'entry1'), { note: 'tampered' }),
     );
     await assertFails(deleteDoc(doc(asOutsider(), 'trackerEntries', 'entry1')));
+  });
+});
+
+// Pairing tokens for the voice interface (/api/mcp, /api/agent). The token is
+// the document id, and holding one lets a chatbot add entries to a family —
+// so the blast radius of a rules mistake here is the same as for invites.
+describe('agentTokens', () => {
+  const mint = (db, overrides = {}) =>
+    setDoc(doc(db, 'agentTokens', 'NewPairingToken12345'), pairing(overrides));
+
+  it('lets a member mint a token for their own family', async () => {
+    await assertSucceeds(mint(asMember()));
+  });
+
+  it('denies minting a token pointed at another family', async () => {
+    await assertFails(mint(asMember(), { familyId: OTHER_FAMILY }));
+    await assertFails(mint(asOutsider(), { familyId: FAMILY, userId: OUTSIDER }));
+  });
+
+  it('denies minting a token in someone else\'s name', async () => {
+    await assertFails(mint(asMember(), { userId: 'stranger' }));
+  });
+
+  // A token that starts out revoked could be flipped live later by the
+  // revoke-only update rule, which is meant to be a one-way door.
+  it('denies minting a token that is already revoked', async () => {
+    await assertFails(mint(asMember(), { revoked: true }));
+  });
+
+  it('lets a member see and enumerate their own family\'s tokens', async () => {
+    await assertSucceeds(getDoc(doc(asMember(), 'agentTokens', PAIRING)));
+    await assertSucceeds(
+      getDocs(query(collection(asMember(), 'agentTokens'), where('familyId', '==', FAMILY))),
+    );
+  });
+
+  it('denies reading another family\'s token, even knowing its id', async () => {
+    await assertFails(getDoc(doc(asMember(), 'agentTokens', OTHER_FAM_PAIRING)));
+    await assertFails(getDoc(doc(asOutsider(), 'agentTokens', PAIRING)));
+    await assertFails(getDoc(doc(asAnon(), 'agentTokens', PAIRING)));
+  });
+
+  it('denies enumerating the collection, or another family\'s slice of it', async () => {
+    await assertFails(getDocs(collection(asMember(), 'agentTokens')));
+    await assertFails(
+      getDocs(query(collection(asMember(), 'agentTokens'), where('familyId', '==', OTHER_FAMILY))),
+    );
+  });
+
+  it('lets a member revoke, and only revoke', async () => {
+    await assertSucceeds(
+      updateDoc(doc(asMember(), 'agentTokens', PAIRING), { revoked: true, revokedAt: new Date() }),
+    );
+  });
+
+  it('denies un-revoking, re-pointing or relabelling a token', async () => {
+    await assertFails(updateDoc(doc(asMember(), 'agentTokens', PAIRING), { revoked: false }));
+    await assertFails(
+      updateDoc(doc(asMember(), 'agentTokens', PAIRING), {
+        revoked: true,
+        familyId: OTHER_FAMILY,
+      }),
+    );
+    await assertFails(
+      updateDoc(doc(asMember(), 'agentTokens', PAIRING), { revoked: true, label: 'renamed' }),
+    );
+  });
+
+  it('denies an outsider revoking or deleting a token', async () => {
+    await assertFails(updateDoc(doc(asOutsider(), 'agentTokens', PAIRING), { revoked: true }));
+    await assertFails(deleteDoc(doc(asOutsider(), 'agentTokens', PAIRING)));
+  });
+
+  it('lets a member delete their family\'s token', async () => {
+    await assertSucceeds(deleteDoc(doc(asMember(), 'agentTokens', PAIRING)));
   });
 });

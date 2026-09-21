@@ -16,6 +16,7 @@ import { DISPLAY_NAME_MAX, normalizeDisplayName } from '../utils/displayName';
 import InviteShareCard from '../components/invites/InviteShareCard';
 import { exportFamilyData } from '../utils/exportFamily';
 import AssistantSection from '../components/settings/AssistantSection';
+import VoiceShortcutSection from '../components/settings/VoiceShortcutSection';
 import CalendarImportSection from '../components/settings/CalendarImportSection';
 import CalendarFeedSection from '../components/settings/CalendarFeedSection';
 
@@ -30,7 +31,7 @@ const THEME_LABEL_KEYS = {
 const SKIN_LABEL_KEYS = { material: 'settings.skinMaterial', ios: 'settings.skinIos' };
 
 export default function SettingsPage() {
-  const { user, userDoc, family, signOut } = useAuth();
+  const { user, userDoc, family, isDemo, signOut } = useAuth();
   const { theme, setTheme, mode, setMode, skin, setSkin, showLabels, setShowLabels, quickAccess, setQuickAccess } = useUIPreferences();
   const { t, tn, locale, setLocale } = useT();
   const [newKidName, setNewKidName] = useState('');
@@ -419,6 +420,9 @@ export default function SettingsPage() {
         )}
 
         {family && <AssistantSection />}
+
+        {/* Pairing tokens talk to a real backend; the demo has none. */}
+        {family && !isDemo && <VoiceShortcutSection />}
 
         {family && <CalendarImportSection />}
 

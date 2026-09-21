@@ -167,7 +167,7 @@ export default function DailyPreview() {
           </button>
           {/* Dictate instead of filling the form in: same two entries, one
               sentence. */}
-          <VoiceAssistantButton className="flex-1" />
+          <VoiceAssistantButton className="flex-1" autoOpen />
         </div>
       </div>
 

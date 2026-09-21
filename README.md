@@ -222,9 +222,33 @@ Dashboard, and in Settings once a chatbot is connected.
   current date are sent to the provider. Never uids, addresses or existing
   entries.
 
-Setup (one API key and `FIREBASE_PROJECT_ID`), how to add further actions, how
-to swap in another chatbot, and the alternatives that were considered
-(Custom GPT actions, Siri Shortcuts, a WhatsApp bot, self-hosted models) are in
+### From a chatbot or a phone shortcut
+
+The same three actions are also reachable from outside the app, so an entry can
+be made without opening it:
+
+- `POST /api/mcp` — a **Model Context Protocol server**. Paste its URL into
+  ChatGPT's or Claude's custom connectors, Gemini's Connected Apps or
+  `~/.gemini/settings.json`, and the chatbot gets three tools carrying this
+  family's own categories, children and adults in their schemas.
+- `POST /api/agent` — one sentence in, entries created, with a short spoken
+  confirmation back. For Siri Shortcuts, Tasker, n8n or curl. `GET /api/openapi`
+  describes it for tools that want a schema (e.g. ChatGPT custom GPT Actions).
+
+Both authenticate with a **pairing token** minted in `Settings → Voice
+shortcuts`, which may only *create* an event, task or shopping item in the one
+family it belongs to — never read, change or delete. They write through the
+Firestore REST API with a service account (`FIREBASE_SERVICE_ACCOUNT`), taking
+`familyId` from the token document and never from the request.
+
+The launcher icon also carries a *Voice input* shortcut into
+`/dashboard?assistant=1`, which opens the app with the microphone already
+listening — the setup-free option when a voice assistant cannot be wired up
+directly.
+
+Setup per chatbot, the security model, how to add further actions, and an
+honest account of which front ends are reachable in which region (notably: why
+"Hey Google" has no self-serve path in the EEA today) are in
 **[docs/assistant-integration.md](docs/assistant-integration.md)**.
 
 ## Out of scope (future work)

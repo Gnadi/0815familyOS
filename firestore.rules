@@ -270,5 +270,46 @@ service cloud.firestore {
       allow update, delete: if request.auth != null
         && request.auth.uid in familyMembers(resource.data.familyId);
     }
+
+    // Pairing tokens for the voice interface (/api/agent, /api/mcp).
+    //
+    // The document ID *is* the token — a 128-bit CSPRNG value, exactly like an
+    // invite link (src/utils/inviteToken.js). The server reads it with a
+    // service account, so these rules only govern the app's own management UI:
+    // a member may mint tokens for their family, see the family's tokens in
+    // order to revoke them, and delete them. `list` is allowed because the
+    // membership check below is evaluated per document, so a query for another
+    // family's tokens is rejected rather than answered.
+    //
+    // A token only ever authorises creating an event, task or shopping item in
+    // its own family — that limit lives in the endpoints, which offer nothing
+    // else, not here.
+    match /agentTokens/{token} {
+      function familyMembers(fid) {
+        return get(/databases/$(database)/documents/families/$(fid)).data.memberIds;
+      }
+      allow read: if request.auth != null
+        && request.auth.uid in familyMembers(resource.data.familyId);
+
+      allow create: if request.auth != null
+        && request.auth.uid in familyMembers(request.resource.data.familyId)
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.familyId is string
+        && request.resource.data.label is string
+        && request.resource.data.label.size() <= 60
+        && request.resource.data.revoked == false;
+
+      // Revoke only: familyId and userId are immutable, so a token can never
+      // be re-pointed at another family. `lastUsedAt`/`useCount` are written by
+      // the server with its own credentials, not from here.
+      allow update: if request.auth != null
+        && request.auth.uid in familyMembers(resource.data.familyId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['revoked', 'revokedAt'])
+        && request.resource.data.revoked == true;
+
+      allow delete: if request.auth != null
+        && request.auth.uid in familyMembers(resource.data.familyId);
+    }
   }
 }

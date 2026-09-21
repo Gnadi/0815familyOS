@@ -64,5 +64,20 @@
       "form_factor": "narrow",
       "label": "Task board with weekly capacity"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Voice input",
+      "short_name": "Speak",
+      "description": "Dictate an event, task or shopping item",
+      "url": "/dashboard?assistant=1",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }

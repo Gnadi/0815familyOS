@@ -1,38 +1,39 @@
-# Connecting a chatbot (Gemini, ChatGPT, …) for voice input
+# Voice input and chatbot integration
 
-Goal: say *"Zahnarzt für Anna am Dienstag um 15 Uhr"* into the app and have the
-event land in the family calendar — plus tasks and shopping items from the same
-sentence.
+Two ways into myFAOS without typing:
 
-This document describes what is implemented, how to configure it, and which
-other routes were considered (and when they would be the better choice).
+**A. The app's own microphone** — open myFAOS, speak one sentence, confirm.
+Implemented and self-contained: [Part A](#part-a--the-apps-own-microphone).
+
+**B. From a chatbot or a phone shortcut** — say it to Gemini, ChatGPT, Claude
+or Siri and the entry appears in myFAOS without the app being open.
+Implemented as an MCP server plus a REST endpoint: [Part B](#part-b--from-a-chatbot-or-a-phone-shortcut).
+
+Which front ends can actually reach it today — including why "Hey Google" is
+the hardest one in Europe — is [Part C](#part-c--what-works-where).
 
 ---
 
-## 1. What is implemented
+# Part A — the app's own microphone
 
 ```
  ┌─────────────────────────── browser ────────────────────────────┐
  │  mic  ──►  Web Speech API  ──►  transcript (text)              │
  │            (browser's own recognizer, no audio leaves it)      │
- │                                     │                          │
  │                                     ▼                          │
  │                        POST /api/assistant                     │
- │                        { transcript, context }                 │
  │                        Authorization: Bearer <Firebase ID token>│
  └─────────────────────────────────────┬──────────────────────────┘
                                        ▼
  ┌────────────────── Vercel function (api/assistant.js) ──────────┐
- │  verify ID token ─► build function/tool schema ─► call provider│
+ │  verify ID token ─► build tool schema ─► call the chatbot      │
  │      (Gemini | OpenAI | Anthropic | any OpenAI-compatible)     │
- │  provider answers with function calls, not prose               │
  └─────────────────────────────────────┬──────────────────────────┘
                                        ▼
  ┌─────────────────────────── browser ────────────────────────────┐
  │  validate + clamp proposals   (src/utils/assistantPlan.js)     │
  │  show them for confirmation   (VoiceAssistantModal)            │
- │  write with the user's own credentials                         │
- │      createEvent / createTask / createShoppingItem             │
+ │  write with the user's own credentials → Firestore rules apply │
  └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -40,41 +41,21 @@ Three decisions carry this design:
 
 **Speech recognition stays in the browser.** The Web Speech API is free, needs
 no key, and no audio ever reaches our servers — only the text does. The price
-is browser support (see [limits](#7-limits-and-known-gaps)); every screen
+is browser support (see [limits](#limits-and-known-gaps)); every screen
 therefore also offers a text field, which runs the identical path.
 
 **The model only ever proposes.** It is asked to answer with *function calls*
 (`create_event`, `create_task`, `add_shopping_item`) rather than prose, and its
 answer is re-validated against the family's real categories, children and
 members before anything is shown. Nothing is written until the review sheet is
-confirmed: a misheard word in a shared family calendar is worse than one extra
-tap.
+confirmed.
 
 **Writes stay client-side.** The endpoint never touches Firestore, so it needs
-no service-account key, and every document still goes through the same service
+no service-account key, and every document goes through the same service
 functions the forms use — the Firestore rules and demo mode keep working
 unchanged.
 
-### Files
-
-| Path | Role |
-| --- | --- |
-| `api/assistant.js` | The endpoint. `GET` = configuration status, `POST` = interpret a sentence. |
-| `api/_assistant/schema.js` | Which actions exist, their JSON schema, the system prompt, context sanitising. |
-| `api/_assistant/providers.js` | One adapter per chatbot API (request + response shape). |
-| `api/_assistant/auth.js` | Firebase ID-token verification (RS256, no Admin SDK) and a burst brake. |
-| `src/hooks/useSpeechRecognition.js` | Web Speech API wrapper, language-aware, with error states. |
-| `src/utils/assistantPlan.js` | Validates/normalises proposals, then builds service payloads. Pure, unit-tested. |
-| `src/services/assistant.js` | Calls the endpoint, then writes the confirmed plan. |
-| `src/components/assistant/` | The sheet (`VoiceAssistantModal`) and its trigger button. |
-| `src/components/settings/AssistantSection.jsx` | Shows whether a chatbot is connected. |
-
-Tests: `tests/unit/assistantPlan.spec.js`, `tests/unit/assistantProviders.spec.js`,
-`tests/unit/assistantEndpoint.spec.js`.
-
----
-
-## 2. Configuration
+### Configuration
 
 Server-side variables only — **never** prefixed with `VITE_`, because Vite
 inlines those into the client bundle for anyone to read.
@@ -87,22 +68,22 @@ inlines those into the client bundle for anyone to read.
 | `FIREBASE_PROJECT_ID` | yes | Project the ID tokens must belong to. Falls back to `VITE_FIREBASE_PROJECT_ID`. |
 | `ASSISTANT_PROVIDER` | no | `gemini` \| `openai` \| `anthropic`. Default: whichever key is set. |
 | `ASSISTANT_MODEL` | no | Overrides the default model (`gemini-2.5-flash`, `gpt-4o-mini`, `claude-haiku-4-5-20251001`). |
-| `ASSISTANT_BASE_URL` | no | Different endpoint for the chosen dialect — see [other providers](#5-plugging-in-a-different-chatbot). |
+| `ASSISTANT_BASE_URL` | no | Different endpoint for the chosen dialect (Groq, OpenRouter, Azure, a local Ollama). |
 | `ASSISTANT_ALLOW_ANONYMOUS` | no | `true` disables ID-token checking. **Local development only.** |
 
-### Vercel
+`Settings → Voice assistant` shows `Connected: gemini (gemini-2.5-flash)` once
+it works, and names the missing variable when it does not.
 
-Project → Settings → Environment Variables → add the key(s) + `FIREBASE_PROJECT_ID`
-→ redeploy. `Settings → Sprachassistent` in the app then shows
-`Verbunden: gemini (gemini-2.5-flash)`; if not, it names exactly which variable
-is missing.
+One sentence costs roughly 1–2k input tokens, so a fraction of a cent with the
+small default models. Put the real ceiling on the provider's own key (a spend
+limit): the in-function rate limit is best-effort, because serverless instances
+share no memory.
 
 ### Locally
 
 `vite dev` normally does not serve `api/*` at all. `vite.config.js` contains a
 small dev middleware that runs those handlers in-process with a Vercel-shaped
-`req`/`res`, and loads non-`VITE_` variables from `.env` into `process.env`, so
-this is enough:
+`req`/`res`, and loads non-`VITE_` variables from `.env`, so this is enough:
 
 ```bash
 # .env
@@ -111,44 +92,218 @@ FIREBASE_PROJECT_ID=my-faos-project
 npm run dev
 ```
 
-Signed in, the microphone works as in production. For a quick test without a
-Firebase project, `ASSISTANT_ALLOW_ANONYMOUS=true` plus demo mode works too.
+### What the chatbot is told
 
-### Cost
-
-One sentence is roughly 1–2k input tokens (schema + prompt + roster) and a
-handful of output tokens. With the small default models that is a fraction of a
-cent per sentence — a family's month of daily use stays in the low cents. The
-hard ceiling belongs on the provider's own key (spend limit), because the
-in-function rate limit is best-effort only: serverless instances share no
-memory.
+Deliberately thin — the sentence, plus what is needed to resolve it: today's
+date, weekday, local time and time zone; the UI language; category ids and
+labels; the **first names** of children and adults. Not sent: uids, email
+addresses, existing events, anything from other families.
+`sanitizeContext()` in `api/_assistant/schema.js` enforces the shape and caps
+the sizes, so a manipulated client cannot use the context to stuff the prompt.
 
 ---
 
-## 3. What the chatbot is told
+# Part B — from a chatbot or a phone shortcut
 
-Deliberately thin — the sentence, plus what is needed to resolve it:
+Here the app is not open and nobody can confirm anything, so the shape is
+different: a **pairing token** identifies the family, and the entry is written
+server-side straight away.
 
-* today's date, weekday, local time and time zone (so "next Tuesday" works),
-* the UI language,
-* category **ids and labels** (event + task),
-* the **first names** of children and adults in this family.
+```
+  "Erstelle Termin für Friseur Carlo am Freitag um 16:00"
+                 │
+     ┌───────────┴────────────┐
+     ▼                        ▼
+ chatbot that speaks MCP    anything that can POST
+ (Gemini, ChatGPT,          (Siri Shortcut, Tasker,
+  Claude, Gemini CLI)        n8n, curl)
+     │  fills the arguments      │  sends the raw sentence
+     │  itself — no second       │  — the configured chatbot
+     │  model needed             │    parses it here
+     ▼                            ▼
+   POST /api/mcp              POST /api/agent
+   Authorization: Bearer <pairing token>
+                 │
+                 ▼
+   resolve token → familyId + userId   (agentTokens/{token})
+   validate against that family        (src/utils/assistantPlan.js)
+   write via the Firestore REST API    (service account)
+                 │
+                 ▼
+   { "reply": "„Friseur Carlo\" am Fr., 25. September um 16:00 eingetragen." }
+```
 
-Not sent: uids, email addresses, existing events, tasks, documents, anything
-from other families. `sanitizeContext()` in `api/_assistant/schema.js` enforces
-the shape and caps the sizes, so a manipulated client cannot use the context to
-stuff the prompt.
+### Endpoints
 
-The same summary is shown to the user under the microphone, because they are
-the ones deciding whether that is acceptable.
+| Endpoint | For | Auth |
+| --- | --- | --- |
+| `POST /api/mcp` | chatbots (MCP: Gemini Connected Apps, ChatGPT connectors, Claude, Gemini CLI) | `Authorization: Bearer <token>` or `?token=` |
+| `POST /api/agent` | shortcuts, automations, webhooks, curl | same |
+| `GET /api/openapi` | tools that want a schema (ChatGPT custom GPT Actions, n8n, Make) | — |
+| `GET /api/agent` | configuration check | — |
+
+`/api/mcp` exposes three tools — `create_event`, `create_task`,
+`add_shopping_item` — with **this family's own categories, children and adults
+baked into their JSON schemas**, so the chatbot picks `kids: ["Anna"]` from a
+list rather than guessing. It offers nothing that reads, changes or deletes.
+
+`/api/agent` takes the sentence verbatim and runs it through the same
+interpretation Part A uses:
+
+```bash
+curl -X POST https://myfaos.app/api/agent \
+  -H "Authorization: Bearer $FAOS_TOKEN" \
+  -H "content-type: application/json" \
+  -d '{"text":"Friseur Carlo am Freitag um 16:00","lang":"de"}'
+```
+
+`reply` is one short sentence meant to be read out loud, in the language the
+pairing token was created with.
+
+### Setup
+
+1. **Service account.** Firebase console → Project settings → Service accounts
+   → *Generate new private key*. Put the JSON (raw or base64) into
+   `FIREBASE_SERVICE_ACCOUNT` on Vercel. Without it these two endpoints return
+   503 and say so, because a caller from outside the browser has no Firebase
+   session and the server has to do the writing.
+2. **Pairing token.** In the app: `Settings → Voice shortcuts → Create pairing
+   token`. Give it the name of the thing you are connecting ("Gemini on my
+   phone"). Copy its URL with the button next to it.
+3. **Paste it** into the front end — the recipes below.
+
+A token carries no expiry; revoke it in the same screen and it stops working
+immediately. "Last used" tells you whether your shortcut ever actually arrived.
+
+### Recipes
+
+**ChatGPT (connector).** Settings → Connectors → add a custom connector →
+paste `https://myfaos.app/api/mcp?token=…`. Then, in voice mode: *"Add a
+calendar entry in myFAOS: Friseur Carlo on Friday at 16:00."*
+
+**ChatGPT (custom GPT action).** Create a GPT → Actions → *Import from URL* →
+`https://myfaos.app/api/openapi` → Authentication: API key, type Bearer, paste
+the token. Works in the mobile app including voice.
+
+**Claude.** Settings → Connectors → Add custom connector → the same
+`/api/mcp?token=…` URL.
+
+**Gemini app (Connected Apps).** gemini.google.com → Settings → Connected Apps
+→ *Add a custom app* → the `/api/mcp?token=…` URL. **Check
+[Part C](#part-c--what-works-where) first: this is the one front end that is
+not available in the EEA, Switzerland or the UK as of September 2026.**
+
+**Gemini CLI / AI Studio.** In `~/.gemini/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "myfaos": {
+      "httpUrl": "https://myfaos.app/api/mcp",
+      "headers": { "Authorization": "Bearer PASTE_TOKEN_HERE" }
+    }
+  }
+}
+```
+
+**Siri Shortcut (iPhone, iPad, Mac, Watch).** Shortcuts app → new shortcut:
+
+1. *Dictate Text* (language: German) →
+2. *Get contents of URL* → `https://myfaos.app/api/agent`, method POST,
+   headers `Authorization: Bearer …` and `content-type: application/json`,
+   request body JSON with `text` = the *Dictated Text* variable →
+3. *Get dictionary value* `reply` → *Speak text*.
+
+Name it "FAOS" and it answers to *"Hey Siri, FAOS"*.
+
+**Android without an app store.** Two paths, both using `/api/agent`:
+*HTTP Shortcuts* or *Tasker* (a task with *Get Voice* → *HTTP Request*), each
+of which exposes a home-screen shortcut that Assistant can launch by name
+("Hey Google, öffne FAOS Termin").
+
+**Home-screen shortcut, no tools at all.** myFAOS installs as a PWA and its
+launcher icon carries a *Voice input* shortcut (long-press the icon) pointing
+at `/dashboard?assistant=1`, which opens the app with the microphone already
+listening. `"Hey Google, öffne myFAOS"` plus one tap gets you there too. Not as
+slick as a native voice action, but it needs no setup, no token and no API key.
+
+**n8n / Make / Zapier.** Any HTTP-request node against `/api/agent`, or import
+`/api/openapi`.
+
+### Security model
+
+* A pairing token may **create an event, a task or a shopping item in exactly
+  one family**. It cannot read, change or delete anything, because the
+  endpoints offer no such operation.
+* The token is the document id in `agentTokens` — 128 bits of CSPRNG, the same
+  construction invite links use. `firestore.rules` lets family members mint,
+  see and revoke their own family's tokens and nothing else.
+* `familyId` and `userId` always come from the token's document. A `familyId`
+  in the request body is ignored — there is a test for exactly that, because
+  the service account bypasses `firestore.rules` and this is the only thing
+  holding the family boundary.
+* Rate limit per token, best-effort (see the note in Part A).
+* Treat a token like a password: whoever holds it can add entries to your
+  family. A token in a URL (`?token=…`) is convenient for clients that accept
+  nothing else, but it also lands in proxy logs — prefer the header where the
+  client allows it.
 
 ---
 
-## 4. Adding another action
+# Part C — what works where
 
-The assistant can currently create events, tasks and shopping items. Trackers,
-meals, gifts and vault documents are not wired up. Each addition is three small
-steps:
+The honest state of play, September 2026. Availability changes; the endpoints
+above do not.
+
+| Front end | Voice | Works in the EEA | How |
+| --- | --- | --- | --- |
+| **ChatGPT** connector or custom GPT action | yes (app voice mode) | **yes** | `/api/mcp` or `/api/openapi` |
+| **Claude** custom connector | yes (app voice) | **yes** | `/api/mcp` |
+| **Siri Shortcut** | yes, "Hey Siri" | **yes** | `/api/agent` |
+| **Gemini CLI / AI Studio** | typed | yes | `/api/mcp` |
+| **Gemini app** (Connected Apps / Spark) | yes | **no** — see below | `/api/mcp` |
+| **"Hey Google" directly to Assistant/Gemini** | yes | **no self-serve path** | — |
+| Android *Tasker* / *HTTP Shortcuts* + "Hey Google, öffne …" | yes, two steps | yes | `/api/agent` |
+| PWA launcher shortcut → `?assistant=1` | in-app mic | yes | nothing to set up |
+| Alexa custom skill (German, free-text slot) | yes, "Alexa, sage FAOS …" | yes | would need a small skill (not built) |
+| n8n / Make / webhook | — | yes | `/api/agent` |
+
+**Why "Hey Google, … in FAOS" cannot be wired up directly right now:**
+
+1. Google shut down **Conversational Actions** — third-party apps for Assistant
+   — in June 2023. There is no replacement a web app can register for.
+2. **IFTTT's Google Assistant trigger** used to be the classic bridge, but
+   Google deprecated the API that passed a *text ingredient* ("say a phrase
+   with a text ingredient") to IFTTT. A fixed phrase can still fire an applet;
+   the free text that carries "Friseur Carlo am Freitag um 16:00" cannot.
+   ([IFTTT's own note](https://ifttt.com/explore/google-assistant-changes),
+   [Google's deprecation thread](https://support.google.com/assistant/thread/175099237/deprecating-ifttt-api-that-allowed-google-assistant-to-pass-on-text-ingredients-to-ifttt))
+3. **Google Home automations** have no outbound-HTTP action.
+4. **Gemini's Connected Apps** — the modern, self-serve way to plug a custom
+   MCP server into the Gemini app, which is exactly what this repo now
+   provides — requires a personal Google account and is gated by region:
+   Gemini Spark rolled out to 160+ countries but **excludes the EEA,
+   Switzerland, the UK** and a handful of others, with custom MCP connections
+   gated more narrowly still.
+   ([rollout report](https://ppc.land/gemini-spark-blocks-eu-and-uk-users-as-google-adds-160-countries/),
+   [Google's Connected Apps help](https://support.google.com/gemini/answer/17209137))
+5. Gemini on **Android** can call *native* app functions (the AppFunctions
+   API), which needs a real Android app — a different project from a PWA.
+
+So: for an Austrian or German household today, **ChatGPT or Claude as the voice
+front end** is the one-sentence-and-done path, a **Siri Shortcut** is the best
+"Hey <wake word>" experience on Apple hardware, and on Android the launcher
+shortcut into the app's own microphone is the friction-free one. The moment
+Google opens Connected Apps in the EEA, pasting the `/api/mcp` URL is the whole
+migration.
+
+---
+
+## Adding another action
+
+The assistant can create events, tasks and shopping items. Trackers, meals,
+gifts and vault documents are not wired up. Each addition is three small steps,
+and it lands in Part A and Part B at once:
 
 1. **`api/_assistant/schema.js`** — add a tool declaration (name, description,
    JSON-schema parameters) to `buildToolDeclarations()` and its name to
@@ -157,66 +312,58 @@ steps:
    `normalizeAssistantActions()` plus a `planTo…Payload()`, and cover it in
    `tests/unit/assistantPlan.spec.js`. This is where "the model may not be
    trusted" is enforced.
-3. **`src/services/assistant.js`** + **`VoiceAssistantModal`** — call the
-   existing service in `runAction()`, and give the new kind a label, an icon
-   and its editable fields in `PlanFields`.
+3. **Two writers** — `runAction()` in `src/services/assistant.js` (in-app) and
+   `WRITERS` in `api/_assistant/create.js` (server-side), plus the fields and
+   icon in `PlanFields`.
 
-Tracker entries are the natural next one: they need a tracker + child lookup,
-which is the only genuinely new piece (resolving a spoken tracker name onto an
-existing tracker id).
+Tracker entries are the natural next one: they need a spoken tracker name
+resolved onto an existing tracker id, which is the only genuinely new piece.
 
----
+## Files
 
-## 5. Plugging in a different chatbot
+| Path | Role |
+| --- | --- |
+| `api/assistant.js` | Part A: interpret a sentence for the signed-in app. |
+| `api/agent.js` | Part B: interpret **and create**, for shortcuts and webhooks. |
+| `api/mcp.js` | Part B: MCP server (JSON-RPC over Streamable HTTP). |
+| `api/openapi.js` | OpenAPI 3.1 description of `/api/agent`. |
+| `api/_assistant/schema.js` | The action catalogue: tool schemas, system prompt, context sanitising. |
+| `api/_assistant/providers.js` | One adapter per chatbot API. |
+| `api/_assistant/auth.js` | Firebase ID-token verification + the rate limiter. |
+| `api/_assistant/pairing.js` | Pairing tokens: the credential for Part B. |
+| `api/_assistant/googleAuth.js` | Service-account JWT → Google access token. |
+| `api/_assistant/firestore.js` | The slice of the Firestore REST API used for writes. |
+| `api/_assistant/family.js` | One family's children, adults and categories. |
+| `api/_assistant/create.js` | Validated actions → Firestore documents. |
+| `src/utils/assistantPlan.js` | Shared validation. Pure, unit-tested, used by both parts. |
+| `src/hooks/useSpeechRecognition.js` | Web Speech API wrapper. |
+| `src/services/assistant.js` | Part A client: interpret, then write as the user. |
+| `src/services/agentTokens.js` | Mint, list and revoke pairing tokens. |
+| `src/components/assistant/` | The sheet and its trigger button. |
+| `src/components/settings/AssistantSection.jsx` | Is a chatbot connected? |
+| `src/components/settings/VoiceShortcutSection.jsx` | Pairing-token management. |
 
-**Anything speaking the OpenAI chat-completions dialect** needs no code:
+Tests: `assistantPlan`, `assistantProviders`, `assistantEndpoint`,
+`agentFirestore`, `agentEndpoints` under `tests/unit/`.
 
-```bash
-ASSISTANT_PROVIDER=openai
-ASSISTANT_BASE_URL=https://api.groq.com/openai/v1   # or OpenRouter, Together,
-OPENAI_API_KEY=...                                  # Azure, a local Ollama, …
-ASSISTANT_MODEL=llama-3.3-70b-versatile
-```
+## Limits and known gaps
 
-A *self-hosted* model (Ollama on a home server) is the option that keeps family
-data entirely in-house; quality of German date parsing drops with model size,
-so test with your own phrasings before relying on it.
-
-**A provider with its own dialect** needs one entry in each of the three maps
-in `api/_assistant/providers.js` plus a branch in `buildRequest()` and
-`parseResponse()` — roughly 30 lines, and `tests/unit/assistantProviders.spec.js`
-shows what to assert. The rest of the app does not know which provider answered.
-
----
-
-## 6. Routes not taken (and when they would win)
-
-| Route | How it works | Why not now |
-| --- | --- | --- |
-| **ChatGPT / Gemini as the front end** — a Custom GPT with Actions, a Gemini extension, or an MCP server | The family talks to the chatbot's own app; it calls a public, authenticated myFAOS API | Needs a public REST API plus per-user OAuth, and every family member needs a paid ChatGPT/Gemini account. Worth revisiting once an API for third parties exists anyway — the action schema in `_assistant/schema.js` is already the contract it would expose. |
-| **Siri Shortcut / Google Assistant / Alexa** | OS-level voice → a shortcut POSTs the transcript to the same endpoint | Very attractive on iOS ("Hey Siri, add to myFAOS"), and cheap to add *later*: the endpoint already accepts a plain transcript. Blocker is authentication — a Shortcut cannot hold a Firebase session, so it needs per-device API tokens, which is its own feature. |
-| **WhatsApp / Telegram bot** | Family sends a voice note to a bot; a webhook transcribes it (e.g. Whisper) and creates the entries | The best answer to "without opening the app at all", and it fixes browsers without speech recognition. Costs a messaging-platform integration, a transcription bill, and a second authentication story (phone number → family). |
-| **Cloud speech-to-text instead of the Web Speech API** | Record audio in the app, send it to Whisper/Google STT, then through the same pipeline | Would cover Firefox and give better accuracy on names, but audio (not just text) would leave the device, adds cost per second, and needs recording/upload handling. The current design leaves room for it: only `useSpeechRecognition` would change. |
-| **No model at all — a rule-based parser** | Regexes for "am Dienstag um 15 Uhr" | Free and private, but German phrasing is endless; it would fail exactly where a family is in a hurry. It stays useful as a *fallback*, not as the main path. |
-
----
-
-## 7. Limits and known gaps
-
-* **Browser support.** The Web Speech API is present in Chrome, Edge and Safari
-  (iOS 14.5+, prefixed); Firefox does not ship it. There the sheet shows a note
-  and the text field, which reaches the identical pipeline. Chrome performs
-  recognition in Google's cloud, Safari on-device where it can — that is the
-  browser's arrangement with its vendor, not ours, and worth knowing before
-  writing privacy copy.
-* **Demo mode** cannot use the assistant: the endpoint requires a verified
-  sign-in and the demo has no account to authenticate with. The sheet says so.
-* **The rate limit is per warm instance**, not global. Treat the provider's own
-  spend limit as the real ceiling.
-* **One sentence at a time.** There is no conversation: the model cannot ask a
-  follow-up and get an answer. If something is missing it says so and the
-  sentence is repeated. A multi-turn version would need the transcript history
-  in the request — the endpoint is stateless by design, so that is an additive
-  change.
+* **No confirmation step in Part B.** A chatbot writes straight into the
+  family's calendar. The protection is validation, not review: clamped dates,
+  ids matched against the real family, at most a handful of entries per call.
+  A wrong entry is edited or deleted in the app like any other.
+* **Browser support (Part A).** Chrome, Edge and Safari (iOS 14.5+, prefixed)
+  ship the Web Speech API; Firefox does not. Chrome recognises in Google's
+  cloud, Safari on-device where it can — the browser's arrangement with its
+  vendor, not ours.
+* **Demo mode** has neither assistant: there is no account to authenticate
+  with and no backend to write to.
+* **One sentence at a time.** Nothing here is a conversation: the model cannot
+  ask a follow-up and get an answer. The endpoints are stateless by design, so
+  adding history later is additive.
 * **All-day events** do not exist in the data model, so an event without a
-  spoken time gets 09:00 (visible and editable in the review sheet).
+  spoken time gets 09:00.
+* **MCP is served as JSON**, with a single SSE event for clients that only
+  accept `text/event-stream`. No session ids, no server-initiated streams, no
+  OAuth: authentication is the pairing token, which is what a family app needs
+  and what every client tested here accepts.
