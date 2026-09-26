@@ -2,17 +2,7 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { isDemoMode } from '../lib/demoMode';
 import { demoDocs } from '../services/demoStore';
-
-const COLLECTIONS = [
-  'events',
-  'tasks',
-  'gifts',
-  'documents',
-  'vaccinations',
-  'shoppingItems',
-  'trackers',
-  'trackerEntries',
-];
+import { FAMILY_COLLECTIONS } from '../constants/familyCollections';
 
 function toPlain(value) {
   if (value === null || value === undefined) return value;
@@ -41,7 +31,7 @@ export async function exportFamilyData({ family, user, userDoc }) {
   if (!familyId) throw new Error('No family to export.');
 
   const dumps = await Promise.all(
-    COLLECTIONS.map((name) => fetchCollection(name, familyId).then((rows) => [name, rows])),
+    FAMILY_COLLECTIONS.map((name) => fetchCollection(name, familyId).then((rows) => [name, rows])),
   );
 
   const payload = {
