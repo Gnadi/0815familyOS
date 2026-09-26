@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Check, ChevronDown, ChevronUp, Plus, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, Check, ChevronDown, ChevronUp, Plus, X } from 'lucide-react';
 import { format } from 'date-fns';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
@@ -7,6 +7,7 @@ import Button from '../common/Button';
 import useCategories from '../../hooks/useCategories';
 import useAuth from '../../hooks/useAuth';
 import useFamilyMembers from '../../hooks/useFamilyMembers';
+import useEvents from '../../hooks/useEvents';
 import useT from '../../hooks/useT';
 import { tLabel } from '../../i18n/labels';
 import { addFamilyCategory, deleteCategory, addKid } from '../../services/families';
@@ -16,13 +17,19 @@ import {
   PALETTE_COLORS,
 } from '../../constants/eventCategories';
 import RecurrenceField from '../common/RecurrenceField';
-import { eventEnd } from '../../utils/eventTime';
+import { eventDays, eventEnd, formatEventEnd } from '../../utils/eventTime';
+import { findConflicts } from '../../utils/eventConflicts';
+import { formatDate } from '../../utils/date';
 
 function toDateInput(d) {
   return format(d, 'yyyy-MM-dd');
 }
 function toTimeInput(d) {
   return format(d, 'HH:mm');
+}
+function fromDateInput(value) {
+  const [y, m, d] = value.split('-').map(Number);
+  return new Date(y, m - 1, d);
 }
 
 function NewCategoryForm({ onCreated, onCancel, familyId }) {
@@ -177,16 +184,25 @@ export default function EventFormModal({
   onDelete,
   initial,
   initialDate,
+  // 'HH:mm' for a new event, e.g. from a tap into the day timeline.
+  initialTime,
+  // Editing one occurrence of a series on its own: the series itself stays,
+  // so its repeat settings are not offered.
+  occurrence = false,
 }) {
   const { userDoc, family } = useAuth();
   const { list: categories } = useCategories();
   const familyMembers = useFamilyMembers();
-  const { t } = useT();
+  const { t, tn } = useT();
+  const { events: familyEvents } = useEvents(userDoc?.familyId);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(toDateInput(new Date()));
   const [time, setTime] = useState('09:00');
+  const [allDay, setAllDay] = useState(false);
+  // Last day of an all-day event, inclusive, or '' for a single day.
+  const [endDay, setEndDay] = useState('');
   const [category, setCategory] = useState(DEFAULT_CATEGORY);
   const [kids, setKids] = useState([]);
   const [responsibleParent, setResponsibleParent] = useState('');
@@ -208,7 +224,10 @@ export default function EventFormModal({
       setTitle(initial.title || '');
       setDescription(initial.description || '');
       setDate(toDateInput(initial.date));
-      setTime(toTimeInput(initial.date));
+      setTime(initial.allDay ? '09:00' : toTimeInput(initial.date));
+      setAllDay(Boolean(initial.allDay));
+      const span = initial.allDay ? eventDays(initial) : null;
+      setEndDay(span && span.last > span.first ? toDateInput(span.last) : '');
       setCategory(initial.category || DEFAULT_CATEGORY);
       setKids(initial.kids || []);
       setResponsibleParent(initial.responsibleParent || '');
@@ -218,7 +237,9 @@ export default function EventFormModal({
       setTitle('');
       setDescription('');
       setDate(toDateInput(initialDate || new Date()));
-      setTime('09:00');
+      setTime(initialTime || '09:00');
+      setAllDay(false);
+      setEndDay('');
       setCategory(DEFAULT_CATEGORY);
       setKids([]);
       setResponsibleParent('');
@@ -230,7 +251,7 @@ export default function EventFormModal({
     setAddingKid(false);
     setDeletingCategoryId(null);
     setError('');
-  }, [open, initial, initialDate]);
+  }, [open, initial, initialDate, initialTime]);
 
   async function handleDeleteCategory(cat) {
     if (!userDoc?.familyId) return;
@@ -269,16 +290,54 @@ export default function EventFormModal({
     setEffortLevel((prev) => (prev === level ? '' : level));
   }
 
+  function startDate() {
+    if (allDay) {
+      const day = fromDateInput(date);
+      // An all-day event's clock time means nothing, but a series' excluded
+      // dates are matched on it (imports land on 09:00). Keeping it stops a
+      // save from bringing cancelled occurrences back.
+      if (initial?.allDay) day.setHours(initial.date.getHours(), initial.date.getMinutes());
+      return day;
+    }
+    const [hh, mm] = time.split(':').map(Number);
+    const [y, m, d] = date.split('-').map(Number);
+    return new Date(y, m - 1, d, hh, mm);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!title.trim()) return setError(t('events.errTitle'));
-    const [hh, mm] = time.split(':').map(Number);
-    const [y, m, d] = date.split('-').map(Number);
-    const when = new Date(y, m - 1, d, hh, mm);
+    if (allDay && endDay && endDay < date) return setError(t('events.errEndBeforeStart'));
+    const when = startDate();
+    // An all-day event stores the day after its last one, the way .ics writes
+    // DTEND; a single day stores none. A timed event leaves its end alone
+    // (the form has no end time), unless it was all-day until now, whose end
+    // day means nothing as a time.
+    let endDate;
+    if (allDay) {
+      endDate = null;
+      if (endDay && endDay > date) {
+        endDate = fromDateInput(endDay);
+        endDate.setDate(endDate.getDate() + 1);
+      }
+    } else if (initial?.allDay) {
+      endDate = null;
+    }
     setError('');
     setSaving(true);
     try {
-      await onSubmit({ title, description, date: when, category, kids, responsibleParent, effortLevel, recurrence });
+      await onSubmit({
+        title,
+        description,
+        date: when,
+        ...(endDate !== undefined ? { endDate } : {}),
+        allDay,
+        category,
+        kids,
+        responsibleParent,
+        effortLevel,
+        recurrence: occurrence ? null : recurrence,
+      });
     } catch (err) {
       setError(err.message || t('events.errSaveEvent'));
     } finally {
@@ -290,9 +349,13 @@ export default function EventFormModal({
     if (!onDelete) return;
     // Every other delete in the app confirms first, and for a recurring event
     // this wipes the whole series — so say that out loud.
-    const ok = window.confirm(
-      recurrence?.freq ? t('events.confirmDeleteSeries') : t('events.confirmDelete'),
-    );
+    let message = t('events.confirmDelete');
+    if (occurrence) {
+      message = t('events.confirmDeleteOccurrence', { date: formatDate(initial.date, 'long') });
+    } else if (recurrence?.freq) {
+      message = t('events.confirmDeleteSeries');
+    }
+    const ok = window.confirm(message);
     if (!ok) return;
     setDeleting(true);
     try {
@@ -314,8 +377,26 @@ export default function EventFormModal({
   // Events that came from a calendar know when they end. There is no end field
   // to edit -- the form only creates single-time events -- so it is shown as
   // the calendar delivered it, next to the start.
-  const endsAt = eventEnd(initial);
+  const endsAt = allDay ? null : eventEnd(initial);
   const endsOnLaterDay = endsAt && toDateInput(endsAt) !== toDateInput(initial.date);
+
+  // Someone already booked at this time: the same child or the same parent.
+  // Worked out as the form changes, so the warning is there before saving.
+  const ignoreId = initial?.masterId || initial?.id || null;
+  const conflicts = useMemo(() => {
+    if (!open || !date || allDay) return [];
+    const start = startDate();
+    if (Number.isNaN(start.getTime())) return [];
+    // An existing event keeps its length when it is moved.
+    const end = endsAt ? new Date(start.getTime() + (endsAt - initial.date)) : null;
+    return findConflicts(
+      familyEvents,
+      { date: start, endDate: end, kids, responsibleParent },
+      { ignoreId },
+    );
+    // startDate() reads date, time and allDay, which are all listed.
+  }, [open, familyEvents, date, time, allDay, kids, responsibleParent, ignoreId, endsAt, initial]);
+  const kidName = (id) => familyKids.find((k) => k.id === id)?.name || '';
 
   return (
     <Modal open={open} onClose={onClose} title={isEdit ? t('events.modalEdit') : t('events.modalNew')}>
@@ -323,6 +404,11 @@ export default function EventFormModal({
         {isSubscribed && (
           <div className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">
             {t('events.subscribedWarning')}
+          </div>
+        )}
+        {occurrence && initial && (
+          <div className="rounded-xl bg-brand-50 px-3 py-2 text-xs text-brand-700">
+            {t('events.occurrenceNote', { date: formatDate(initial.date, 'long') })}
           </div>
         )}
         <Input
@@ -334,33 +420,64 @@ export default function EventFormModal({
           autoFocus={!isSubscribed}
           disabled={isSubscribed}
         />
-        <div className={`grid gap-3 ${endsAt ? 'grid-cols-3' : 'grid-cols-2'}`}>
-          <Input
-            label={t('events.dateLabel')}
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
+        <label className="flex items-center justify-between gap-3">
+          <span className="text-sm font-medium text-slate-700">{t('events.allDayLabel')}</span>
+          <input
+            type="checkbox"
+            checked={allDay}
+            onChange={(e) => setAllDay(e.target.checked)}
             disabled={isSubscribed}
+            className="h-5 w-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
           />
-          <Input
-            label={endsAt ? t('events.startTimeLabel') : t('events.timeLabel')}
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            required
-            disabled={isSubscribed}
-          />
-          {endsAt && (
+        </label>
+        {allDay ? (
+          <div className="grid grid-cols-2 gap-3">
             <Input
-              label={t('events.endTimeLabel')}
-              type="time"
-              value={toTimeInput(endsAt)}
-              readOnly
-              disabled
+              label={t('events.dateLabel')}
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+              disabled={isSubscribed}
             />
-          )}
-        </div>
+            <Input
+              label={`${t('events.endDateLabel')} (${t('common.optional')})`}
+              type="date"
+              value={endDay}
+              min={date}
+              onChange={(e) => setEndDay(e.target.value)}
+              disabled={isSubscribed}
+            />
+          </div>
+        ) : (
+          <div className={`grid gap-3 ${endsAt ? 'grid-cols-3' : 'grid-cols-2'}`}>
+            <Input
+              label={t('events.dateLabel')}
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+              disabled={isSubscribed}
+            />
+            <Input
+              label={endsAt ? t('events.startTimeLabel') : t('events.timeLabel')}
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              required
+              disabled={isSubscribed}
+            />
+            {endsAt && (
+              <Input
+                label={t('events.endTimeLabel')}
+                type="time"
+                value={toTimeInput(endsAt)}
+                readOnly
+                disabled
+              />
+            )}
+          </div>
+        )}
         {endsOnLaterDay && (
           <p className="-mt-2 text-xs text-slate-500">
             {t('events.endsOnDate', { date: format(endsAt, 'PPP') })}
@@ -552,7 +669,7 @@ export default function EventFormModal({
               </div>
             </div>
 
-            {!isSubscribed && (
+            {!isSubscribed && !occurrence && (
               <RecurrenceField value={recurrence} onChange={setRecurrence} />
             )}
           </>
@@ -580,6 +697,29 @@ export default function EventFormModal({
             placeholder={t('events.notesPlaceholder')}
           />
         </label>
+        {conflicts.length > 0 && (
+          <div className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800" role="status">
+            <p className="flex items-center gap-1.5 font-semibold">
+              <AlertTriangle size={14} className="flex-shrink-0" />
+              {tn('events.conflictTitle', conflicts.length)}
+            </p>
+            <ul className="mt-1 space-y-0.5">
+              {conflicts.slice(0, 3).map(({ event: ev, kids: shared, parent }) => {
+                const end = formatEventEnd(ev);
+                const who = [...shared.map(kidName), parent ? ev.responsibleParent : '']
+                  .filter(Boolean)
+                  .join(', ');
+                return (
+                  <li key={ev.id} className="break-words">
+                    {`${format(ev.date, 'HH:mm')}${end ? `–${end}` : ''} ${ev.title}`}
+                    {who && <span className="text-amber-700">{` · ${who}`}</span>}
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="mt-1 text-amber-700">{t('events.conflictHint')}</p>
+          </div>
+        )}
         {error && <p className="text-sm text-red-600">{error}</p>}
         <div className="flex gap-2 pt-2">
           {isEdit && onDelete && !isSubscribed && (

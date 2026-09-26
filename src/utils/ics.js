@@ -3,7 +3,7 @@
 // `event.date`. Output uses local-floating times (no TZID/UTC conversion) —
 // most consumer calendars import them at the user's local time.
 
-import { eventEnd } from './eventTime';
+import { eventDays, eventEnd, isAllDay } from './eventTime';
 
 function pad(n) {
   return String(n).padStart(2, '0');
@@ -19,6 +19,10 @@ function fmt(date) {
     pad(date.getMinutes()) +
     '00'
   );
+}
+
+function fmtDay(date) {
+  return date.getFullYear().toString() + pad(date.getMonth() + 1) + pad(date.getDate());
 }
 
 function escape(text) {
@@ -54,17 +58,24 @@ export function buildICS(events, { calendarName = 'myFAOS' } = {}) {
   events.forEach((evt) => {
     const start = evt.date instanceof Date ? evt.date : new Date(evt.date);
     if (Number.isNaN(start.getTime())) return;
-    // Events that came from a calendar know when they end, so the export hands
-    // that back instead of the flat hour we assume for everything else.
-    const end = eventEnd(evt) || new Date(start.getTime() + 60 * 60 * 1000);
     lines.push(
       'BEGIN:VEVENT',
       fold(`UID:${evt.id || `${stamp}-${Math.random().toString(36).slice(2)}`}@familyos`),
       `DTSTAMP:${stamp}`,
-      `DTSTART:${fmt(start)}`,
-      `DTEND:${fmt(end)}`,
-      fold(`SUMMARY:${escape(evt.title || 'Untitled')}`),
     );
+    if (isAllDay(evt)) {
+      // DATE form, with DTEND the day after the last one (it is exclusive).
+      const { first, last } = eventDays(evt);
+      const endDay = new Date(last);
+      endDay.setDate(endDay.getDate() + 1);
+      lines.push(`DTSTART;VALUE=DATE:${fmtDay(first)}`, `DTEND;VALUE=DATE:${fmtDay(endDay)}`);
+    } else {
+      // Events that came from a calendar know when they end, so the export
+      // hands that back instead of the flat hour we assume for everything else.
+      const end = eventEnd(evt) || new Date(start.getTime() + 60 * 60 * 1000);
+      lines.push(`DTSTART:${fmt(start)}`, `DTEND:${fmt(end)}`);
+    }
+    lines.push(fold(`SUMMARY:${escape(evt.title || 'Untitled')}`));
     if (evt.description) lines.push(fold(`DESCRIPTION:${escape(evt.description)}`));
     lines.push('END:VEVENT');
   });

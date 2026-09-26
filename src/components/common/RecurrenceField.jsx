@@ -14,8 +14,18 @@ export default function RecurrenceField({ value, onChange }) {
     else onChange(null);
   }
 
+  // Keeps what the form cannot show: the dates taken out of the series (a
+  // single occurrence moved or cancelled), and -- while the frequency stays
+  // the same -- an imported rule's weekdays and occurrence count. Dropping the
+  // excluded dates would bring a moved occurrence back next to its copy.
   function patch(fields) {
-    onChange({ freq, interval, until: until || null, ...fields });
+    const next = { freq, interval, until: until || null, ...fields };
+    if (value?.exdates?.length) next.exdates = value.exdates;
+    if (next.freq === value?.freq) {
+      if (value.byDay) next.byDay = value.byDay;
+      if (value.count) next.count = value.count;
+    }
+    onChange(next);
   }
 
   return (

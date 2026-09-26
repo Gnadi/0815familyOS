@@ -9,7 +9,7 @@ import useCategories from '../../hooks/useCategories';
 import useT from '../../hooks/useT';
 import { tLabel } from '../../i18n/labels';
 import { expandEventsInRange } from '../../utils/recurrence';
-import { formatEventEnd } from '../../utils/eventTime';
+import { formatEventEnd, isAllDay } from '../../utils/eventTime';
 
 export default function WeeklyPreview() {
   const { userDoc } = useAuth();
@@ -70,8 +70,9 @@ export default function WeeklyPreview() {
                   <div className="text-right">
                     <p className="text-sm font-semibold text-slate-900">{formatRelativeDay(ev.date, t)}</p>
                     <p className="text-xs text-slate-500">
-                      {format(ev.date, 'p')}
-                      {endLabel ? ` – ${endLabel}` : ''}
+                      {isAllDay(ev)
+                        ? t('calendar.allDay')
+                        : `${format(ev.date, 'p')}${endLabel ? ` – ${endLabel}` : ''}`}
                     </p>
                   </div>
                 </li>

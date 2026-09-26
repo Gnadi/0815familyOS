@@ -5,7 +5,16 @@ import useCategories from '../../hooks/useCategories';
 import useAuth from '../../hooks/useAuth';
 import useT from '../../hooks/useT';
 import { tLabel } from '../../i18n/labels';
-import { eventEnd, formatEventEnd, formatDuration } from '../../utils/eventTime';
+import {
+  eventDayCount,
+  eventDayIndex,
+  eventDays,
+  eventEnd,
+  formatEventEnd,
+  formatDuration,
+  isAllDay,
+} from '../../utils/eventTime';
+import { formatDate } from '../../utils/date';
 import { describeRecurrence } from '../../utils/recurrence';
 
 const EFFORT = {
@@ -36,7 +45,10 @@ function DetailRow({ icon: Icon, children }) {
 // month views show one day at a time, where the little external-link icon is
 // context enough; search results mix calendars, so there the source is spelled
 // out.
-export default function EventCard({ event, onClick, showSource = false }) {
+//
+// `day` is the day the card is shown under. It only matters for an event that
+// runs over several days, whose card then says which day of the run this is.
+export default function EventCard({ event, onClick, showSource = false, day = null }) {
   const { get } = useCategories();
   const { family } = useAuth();
   const { t, tn } = useT();
@@ -58,11 +70,35 @@ export default function EventCard({ event, onClick, showSource = false }) {
   const endLabel = formatEventEnd(event);
   const repeats = describeRecurrence(event.recurrence, t, tn);
 
+  const allDay = isAllDay(event);
+  const spanDays = eventDayCount(event);
+  const dayIndex = day && spanDays > 1 ? eventDayIndex(event, day) : 0;
+  const span = spanDays > 1 ? eventDays(event) : null;
+
+  // The time column. A one-day appointment shows its start and end; an all-day
+  // one says so instead of a made-up clock time; and a run over several days
+  // says which of its days this is, with the start only on the first and the
+  // end only on the last.
+  let timeTop;
+  let timeBottom;
+  if (allDay) {
+    timeTop = t('calendar.allDay');
+    timeBottom = dayIndex ? t('calendar.dayOfSpan', { i: dayIndex, n: spanDays }) : '';
+  } else if (dayIndex > 1) {
+    timeTop = dayIndex === spanDays
+      ? t('calendar.untilTime', { time: format(endsAt, 'HH:mm') })
+      : t('calendar.allDay');
+    timeBottom = t('calendar.dayOfSpan', { i: dayIndex, n: spanDays });
+  } else {
+    timeTop = format(event.date, 'HH:mm');
+    timeBottom = endLabel ? `– ${endLabel}` : format(event.date, 'a');
+  }
+
   // What the card cannot show without being opened: the place, the full notes
   // (the card truncates them to two lines), how long it runs, whether it
   // repeats and which calendar it came from.
   const hasDetails = Boolean(
-    event.location || endsAt || repeats || event.description || (isSynced && !showSource),
+    event.location || endsAt || span || repeats || event.description || (isSynced && !showSource),
   );
 
   const familyKids = family?.kids || [];
@@ -77,12 +113,10 @@ export default function EventCard({ event, onClick, showSource = false }) {
         className="flex w-full items-stretch gap-3 p-4 text-left hover:bg-slate-50"
       >
         <div className="w-16 flex-shrink-0 text-right">
-          <p className="text-sm font-semibold text-slate-900">
-            {format(event.date, 'HH:mm')}
+          <p className={`font-semibold text-slate-900 ${timeTop.length > 5 ? 'text-xs leading-5' : 'text-sm'}`}>
+            {timeTop}
           </p>
-          <p className="text-xs text-slate-400">
-            {endLabel ? `– ${endLabel}` : format(event.date, 'a')}
-          </p>
+          {timeBottom && <p className="text-xs text-slate-400">{timeBottom}</p>}
         </div>
         <div className={`w-1 flex-shrink-0 rounded-full ${barClass}`} />
         <div className="min-w-0 flex-1">
@@ -160,6 +194,14 @@ export default function EventCard({ event, onClick, showSource = false }) {
           </button>
           {open && (
             <div className="space-y-2 border-t border-slate-100 px-4 py-3">
+              {allDay && span && (
+                <DetailRow icon={Clock}>
+                  {`${formatDate(span.first, 'short')} – ${formatDate(span.last, 'short')}`}
+                  <span className="text-slate-400">
+                    {` · ${tn('calendar.spanDays', spanDays)}`}
+                  </span>
+                </DetailRow>
+              )}
               {endsAt && (
                 <DetailRow icon={Clock}>
                   {`${format(event.date, 'HH:mm')} – ${endLabel}`}

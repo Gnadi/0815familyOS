@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Calendar, CheckSquare, Plus, Sun } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
-import { dayKey, formatDate } from '../../utils/date';
+import { compareEventsInDay, dayKey, formatDate } from '../../utils/date';
 import useAuth from '../../hooks/useAuth';
 import useEvents from '../../hooks/useEvents';
 import useTasks from '../../hooks/useTasks';
@@ -11,7 +11,7 @@ import useT from '../../hooks/useT';
 import { tLabel } from '../../i18n/labels';
 import { TASK_PRIORITY_MAP } from '../../constants/taskCategories';
 import { expandEventsInRange } from '../../utils/recurrence';
-import { formatEventEnd } from '../../utils/eventTime';
+import { formatEventEnd, isAllDay } from '../../utils/eventTime';
 import QuickAddModal from './QuickAddModal';
 
 const PRIORITY_WEIGHT = { urgent: 0, high: 1, normal: 2, low: 3 };
@@ -40,7 +40,7 @@ export default function DailyPreview() {
       events,
       new Date(y, m, d),
       new Date(y, m, d, 23, 59, 59),
-    ).sort((a, b) => a.date - b.date);
+    ).sort(compareEventsInDay);
   }, [events, todayStamp]);
   const todayTasks = tasks
     .filter((task) => task.dueDate && isSameDay(task.dueDate, today) && task.status !== 'completed')
@@ -119,7 +119,9 @@ export default function DailyPreview() {
                           )}
                         </div>
                         <div className="mt-0.5 flex-shrink-0 text-right">
-                          <p className="text-xs font-medium text-slate-500">{format(ev.date, 'p')}</p>
+                          <p className="text-xs font-medium text-slate-500">
+                            {isAllDay(ev) ? t('calendar.allDay') : format(ev.date, 'p')}
+                          </p>
                           {endLabel && (
                             <p className="text-[11px] text-slate-400">{`– ${endLabel}`}</p>
                           )}

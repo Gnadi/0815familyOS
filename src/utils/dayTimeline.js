@@ -4,7 +4,7 @@
 // Kept free of React so the awkward parts (an event running past midnight, three
 // appointments overlapping, a feed event with no end at all) are testable.
 
-import { eventEnd } from './eventTime';
+import { eventEnd, isAllDay } from './eventTime';
 
 // Pixels per hour. The grid is read at a glance on a phone, so an hour has to
 // stay tall enough for a title to fit on one line.
@@ -42,6 +42,32 @@ export function eventSpan(event, day) {
     // drawn: a 5-minute event is drawn 30 minutes tall but is not one.
     hasEnd: Boolean(end),
   };
+}
+
+// Split a day's events into the ones that belong in the strip above the grid
+// -- all-day events, and the middle days of a longer run, which fill the whole
+// day and would otherwise paint the entire grid -- and the ones that sit at a
+// time.
+export function splitAllDay(events, day) {
+  const allDay = [];
+  const timed = [];
+  for (const event of events || []) {
+    if (isAllDay(event)) {
+      allDay.push(event);
+      continue;
+    }
+    const span = eventSpan(event, day);
+    if (span && span.hasEnd && span.startMin <= 0 && span.endMin >= 24 * 60) allDay.push(event);
+    else timed.push(event);
+  }
+  return { allDay, timed };
+}
+
+// The minute of the day a tap at `offsetPx` into the grid points at, rounded
+// down to the half hour so a new event starts on a sensible time.
+export function minuteAtOffset(offsetPx, fromHour, step = 30) {
+  const raw = fromHour * 60 + (Math.max(0, offsetPx) / HOUR_HEIGHT) * 60;
+  return Math.min(24 * 60 - step, Math.floor(raw / step) * step);
 }
 
 // The hours the grid spans: everything the day's events touch, and never fewer
