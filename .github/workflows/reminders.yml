@@ -1,0 +1,76 @@
+name: Reminders
+
+# Sends due reminders as Web Push notifications to devices where myFAOS is
+# closed (scripts/send-reminders.mjs). While the app is open it reminds on its
+# own, to the minute; this run covers everything else, every ten minutes.
+#
+# GitHub starts scheduled runs late under load and only from the default
+# branch, and disables schedules in a public repository after 60 days without
+# activity; re-enable it under Actions → Reminders if that happens.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Compute and log the reminders, but send and write nothing
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# A slow run must not overlap the next one and send the same reminder twice.
+concurrency:
+  group: reminders
+  cancel-in-progress: false
+
+jobs:
+  send:
+    name: Send due reminders
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      # Unconfigured (a fork, or before the keys are set up): stop quietly
+      # instead of failing every ten minutes.
+      - name: Check the configuration
+        id: config
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ vars.VAPID_SUBJECT }}
+        run: |
+          missing=""
+          [ -n "$FIREBASE_SERVICE_ACCOUNT" ] || missing="$missing secret:FIREBASE_SERVICE_ACCOUNT"
+          [ -n "$VAPID_PUBLIC_KEY" ] || missing="$missing variable:VAPID_PUBLIC_KEY"
+          [ -n "$VAPID_PRIVATE_KEY" ] || missing="$missing secret:VAPID_PRIVATE_KEY"
+          [ -n "$VAPID_SUBJECT" ] || missing="$missing variable:VAPID_SUBJECT"
+          if [ -n "$missing" ]; then
+            echo "::notice::Reminders are not configured, skipping. Missing:$missing (see README → Reminders)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.config.outputs.ready == 'true'
+        uses: actions/checkout@v5
+
+      - if: steps.config.outputs.ready == 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - if: steps.config.outputs.ready == 'true'
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Send
+        if: steps.config.outputs.ready == 'true'
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID || secrets.FIREBASE_PROJECT_ID }}
+          VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ vars.VAPID_SUBJECT }}
+        run: node scripts/send-reminders.mjs ${{ inputs.dry_run && '--dry-run' || '' }}

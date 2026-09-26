@@ -366,3 +366,37 @@ describe('trackers', () => {
     await assertFails(deleteDoc(doc(asOutsider(), 'trackerEntries', 'entry1')));
   });
 });
+
+// A push subscription (endpoint + keys) is enough to send a device
+// notifications, so only its owner may see or change it.
+describe('push subscriptions', () => {
+  const sub = (overrides = {}) => ({
+    endpoint: 'https://push.example.com/abc',
+    keys: { p256dh: 'p', auth: 'a' },
+    timeZone: 'Europe/Vienna',
+    locale: 'de',
+    ...overrides,
+  });
+  const ref = (db, uid = MEMBER) => doc(db, 'users', uid, 'pushSubscriptions', 'device1');
+
+  it('lets a member store, read, update and remove their own', async () => {
+    await assertSucceeds(setDoc(ref(asMember()), sub()));
+    await assertSucceeds(getDoc(ref(asMember())));
+    await assertSucceeds(updateDoc(ref(asMember()), { 'sent.x': 1 }));
+    await assertSucceeds(deleteDoc(ref(asMember())));
+  });
+
+  it("denies anyone else reading or writing a member's subscriptions", async () => {
+    await testEnv.withSecurityRulesDisabled((ctx) => setDoc(ref(ctx.firestore()), sub()));
+    await assertFails(getDoc(ref(asOutsider())));
+    await assertFails(getDocs(collection(asOutsider(), 'users', MEMBER, 'pushSubscriptions')));
+    await assertFails(setDoc(ref(asOutsider()), sub()));
+    await assertFails(deleteDoc(ref(asOutsider())));
+    await assertFails(getDoc(ref(asAnon())));
+  });
+
+  it('denies a subscription without an https endpoint', async () => {
+    await assertFails(setDoc(ref(asMember()), sub({ endpoint: 'http://push.example.com/abc' })));
+    await assertFails(setDoc(ref(asMember()), sub({ endpoint: null })));
+  });
+});

@@ -8,6 +8,7 @@
 
 const DEVICE_KEY = 'familyos:notifications';
 const SENT_KEY = 'familyos:remindersSent';
+const PUSH_ID_KEY = 'familyos:pushSubscription';
 const CHANGE_EVENT = 'familyos:notifications-change';
 
 function isStandalone() {
@@ -56,6 +57,26 @@ export function setDeviceEnabled(on) {
 export function onNotificationStateChange(cb) {
   window.addEventListener(CHANGE_EVENT, cb);
   return () => window.removeEventListener(CHANGE_EVENT, cb);
+}
+
+// The id of this device's stored push subscription (see
+// src/services/pushSubscriptions.js), or null when it has none.
+export function getStoredPushSubscriptionId() {
+  try {
+    return window.localStorage.getItem(PUSH_ID_KEY) || null;
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredPushSubscriptionId(id) {
+  try {
+    if (id) window.localStorage.setItem(PUSH_ID_KEY, id);
+    else window.localStorage.removeItem(PUSH_ID_KEY);
+  } catch {
+    // Without storage the app just re-subscribes on the next start.
+  }
+  window.dispatchEvent(new Event(CHANGE_EVENT));
 }
 
 export async function requestNotificationPermission() {

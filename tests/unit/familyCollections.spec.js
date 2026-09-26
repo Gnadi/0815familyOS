@@ -4,9 +4,9 @@ import { describe, expect, it } from 'vitest';
 import { FAMILY_COLLECTIONS } from '../../src/constants/familyCollections';
 
 // Collections in firestore.rules that are not family data: account and
-// membership plumbing, which the export writes separately (or, for invites,
-// deliberately leaves out).
-const NOT_FAMILY_DATA = ['users', 'families', 'invites'];
+// membership plumbing, which the export writes separately (or, for invites and
+// push subscriptions, deliberately leaves out).
+const NOT_FAMILY_DATA = ['users', 'families', 'invites', 'pushSubscriptions'];
 
 function ruleCollections() {
   const rules = readFileSync(resolve(__dirname, '../../firestore.rules'), 'utf8');

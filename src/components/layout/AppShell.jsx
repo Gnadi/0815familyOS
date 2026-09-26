@@ -12,6 +12,7 @@ import { createEvent } from '../../services/events';
 import { createTask } from '../../services/tasks';
 import { createGift } from '../../services/gifts';
 import ReminderScheduler from '../notifications/ReminderScheduler';
+import PushSubscriptionSync from '../notifications/PushSubscriptionSync';
 import useNotificationDevice from '../../hooks/useNotificationDevice';
 import {
   cleanupOrphanedSubscriptionEvents,
@@ -108,6 +109,7 @@ export default function AppShell() {
     <div className="min-h-screen bg-slate-50 pb-24">
       <DemoBanner />
       {notifications.active && userDoc?.familyId && <ReminderScheduler />}
+      <PushSubscriptionSync />
       <AddActionContext.Provider value={handleFab}>
         <Outlet context={{ setCreateDefaultDate, setVaultAdd, setHealthFabCallback, setTrackerFabCallback, setFoodFabCallback, setShoppingFabCallback }} />
       </AddActionContext.Provider>

@@ -13,8 +13,10 @@
 // when it is not: moving an event, logging a new dose or rolling a recurring
 // task forward all produce a new id, so the reminder is sent again.
 
-import { expandEventsInRange } from './recurrence';
-import { trackerStatus } from './tracker';
+// Explicit extensions: scripts/send-reminders.mjs imports this file straight
+// from Node, which (unlike Vite) does not resolve extensionless paths.
+import { expandEventsInRange } from './recurrence.js';
+import { trackerStatus } from './tracker.js';
 
 const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -258,4 +260,28 @@ export function reminderText(reminder, t, formatTime) {
     default:
       return { title: reminder.title || '', body: '' };
   }
+}
+
+// More reminders due at once than this (the first check after a night
+// offline, say) go out as one summary instead of a burst.
+export const MAX_SEPARATE_NOTIFICATIONS = 3;
+
+// The notifications to show for a set of due reminders: one each, or a single
+// summary when there are too many. Each carries the moment it stops being
+// worth showing, which the push sender turns into the message's TTL.
+export function notificationBatch(due, t, formatTime) {
+  const items = due.map((r) => ({
+    ...reminderText(r, t, formatTime),
+    tag: r.id,
+    url: r.url,
+    expiresAt: r.expiresAt,
+  }));
+  if (items.length <= MAX_SEPARATE_NOTIFICATIONS) return items;
+  return [{
+    title: t('notifications.summaryTitle', { count: items.length }),
+    body: items.map((x) => x.title).join(' · '),
+    tag: 'summary',
+    url: '/dashboard',
+    expiresAt: new Date(Math.max(...items.map((x) => x.expiresAt.getTime()))),
+  }];
 }

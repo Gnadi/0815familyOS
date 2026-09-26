@@ -6,6 +6,7 @@ import useNotificationDevice from '../../hooks/useNotificationDevice';
 import useT from '../../hooks/useT';
 import { updateUserDoc } from '../../services/users';
 import { showNotification } from '../../lib/notifications';
+import { pushSupported } from '../../services/pushSubscriptions';
 import {
   EVENT_LEAD_MINUTES,
   EVENT_SCOPES,
@@ -140,7 +141,9 @@ export default function NotificationSettingsSection() {
         <Toggle label={t('notifications.vaccinations')} checked={prefs.vaccinations} onChange={(v) => savePrefs({ vaccinations: v })} />
       </div>
 
-      <p className="mt-3 text-xs text-slate-500">{t('notifications.whileOpenHint')}</p>
+      <p className="mt-3 text-xs text-slate-500">
+        {t(pushSupported() ? 'notifications.pushHint' : 'notifications.whileOpenHint')}
+      </p>
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
     </section>
   );

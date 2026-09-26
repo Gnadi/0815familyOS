@@ -4,6 +4,7 @@ import {
   collectReminders,
   dueReminders,
   nextFireAt,
+  notificationBatch,
   normalizeNotificationPrefs,
   reminderText,
 } from '../../src/utils/reminders';
@@ -178,5 +179,26 @@ describe('reminderText', () => {
   it("puts the tracker's emoji in the title", () => {
     const text = reminderText({ kind: 'trackerDose', title: 'Ibuprofen', emoji: '💊', kidName: 'Anna' }, t, time);
     expect(text.title).toBe('💊 Ibuprofen');
+  });
+});
+
+describe('notificationBatch', () => {
+  const t = (key, vars) => `${key}${vars ? JSON.stringify(vars) : ''}`;
+  const time = () => '00:00';
+  const task = (i) => ({ id: `task:${i}`, kind: 'task', title: `Task ${i}`, url: '/tasks', expiresAt: at(23, 0), fireAt: at(8, 0) });
+
+  it('keeps a few reminders separate, tagged with their id', () => {
+    const batch = notificationBatch([task(1), task(2)], t, time);
+    expect(batch.map((n) => n.tag)).toEqual(['task:1', 'task:2']);
+    expect(batch[0]).toMatchObject({ title: 'Task 1', url: '/tasks' });
+  });
+
+  it('folds a burst into one summary that lasts as long as its longest reminder', () => {
+    const late = { ...task(4), expiresAt: at(23, 30) };
+    const [summary, ...rest] = notificationBatch([task(1), task(2), task(3), late], t, time);
+    expect(rest).toHaveLength(0);
+    expect(summary).toMatchObject({ tag: 'summary', title: 'notifications.summaryTitle{"count":4}' });
+    expect(summary.body).toBe('Task 1 · Task 2 · Task 3 · Task 4');
+    expect(summary.expiresAt).toEqual(at(23, 30));
   });
 });

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
+  getStoredPushSubscriptionId,
   isDeviceEnabled,
   notificationPermission,
   notificationSupport,
@@ -13,6 +14,8 @@ function read() {
     support: notificationSupport(),
     permission: notificationPermission(),
     enabledHere: isDeviceEnabled(),
+    pushSubscriptionId: getStoredPushSubscriptionId(),
+    ready: true,
   };
 }
 
@@ -20,8 +23,14 @@ function read() {
 // switched on here and allowed by the browser.
 export default function useNotificationDevice() {
   // Starts "off" so the pre-rendered HTML and the first client render agree;
-  // the real state is read after mount.
-  const [state, setState] = useState({ support: 'unsupported', permission: 'default', enabledHere: false });
+  // the real state is read after mount, and `ready` says when it has been.
+  const [state, setState] = useState({
+    support: 'unsupported',
+    permission: 'default',
+    enabledHere: false,
+    pushSubscriptionId: null,
+    ready: false,
+  });
 
   useEffect(() => {
     const refresh = () => setState(read());

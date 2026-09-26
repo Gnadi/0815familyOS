@@ -162,9 +162,25 @@ export function AuthProvider({ children }) {
   }, [family?.id, family?.encryptionKeyJwk]);
 
   const signOut = useCallback(async () => {
+    // Reminders belong to the member, not the device: without this, the next
+    // person to sign in here would keep receiving the previous one's pushes.
+    // It has to run while still signed in, since the rules only let a member
+    // delete their own subscription.
+    if (user?.uid && !demo) {
+      try {
+        const [{ removePushSubscription }, { setDeviceEnabled }] = await Promise.all([
+          import('../services/pushSubscriptions'),
+          import('../lib/notifications'),
+        ]);
+        setDeviceEnabled(false);
+        await removePushSubscription(user.uid);
+      } catch {
+        // Best effort: signing out must never fail over this.
+      }
+    }
     const { signOut: fbSignOut } = await import('../services/auth');
     return fbSignOut();
-  }, []);
+  }, [user?.uid, demo]);
 
   const value = useMemo(
     () => ({ user, userDoc, family, encryptionKey, loading, isDemo: demo, signOut }),
