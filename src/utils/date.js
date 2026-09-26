@@ -15,8 +15,13 @@ import {
 // Monday-start weeks (matches the mock's "M T W T F S S" header).
 const WEEK_OPTS = { weekStartsOn: 1 };
 
+// The Monday of the week `date` falls in.
+export function weekStart(date) {
+  return startOfWeek(date, WEEK_OPTS);
+}
+
 export function getWeekDays(anchor) {
-  const start = startOfWeek(anchor, WEEK_OPTS);
+  const start = weekStart(anchor);
   return Array.from({ length: 7 }, (_, i) => addDays(start, i));
 }
 
