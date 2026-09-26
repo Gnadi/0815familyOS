@@ -11,6 +11,8 @@ import { AddActionContext } from '../../context/AddActionContext';
 import { createEvent } from '../../services/events';
 import { createTask } from '../../services/tasks';
 import { createGift } from '../../services/gifts';
+import ReminderScheduler from '../notifications/ReminderScheduler';
+import useNotificationDevice from '../../hooks/useNotificationDevice';
 import {
   cleanupOrphanedSubscriptionEvents,
   migrateMirroredSubscriptionEvents,
@@ -31,6 +33,7 @@ export default function AppShell() {
   const isShoppingRoute = location.pathname.startsWith('/shopping');
 
   const [adding, setAdding] = useState(false);
+  const notifications = useNotificationDevice();
   const [createDefaultDate, setCreateDefaultDate] = useState(null);
 
   // DocumentVaultPage registers a callback to open its own upload modal
@@ -104,6 +107,7 @@ export default function AppShell() {
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
       <DemoBanner />
+      {notifications.active && userDoc?.familyId && <ReminderScheduler />}
       <AddActionContext.Provider value={handleFab}>
         <Outlet context={{ setCreateDefaultDate, setVaultAdd, setHealthFabCallback, setTrackerFabCallback, setFoodFabCallback, setShoppingFabCallback }} />
       </AddActionContext.Provider>

@@ -144,7 +144,7 @@ level can be started under Actions → npm audit → Run workflow.
 ## Data Model
 
 ```
-users/{uid}           { email, displayName, familyId | null, createdAt }
+users/{uid}           { email, displayName, familyId | null, notificationPrefs?, createdAt }
 families/{id}         { name, createdBy, memberIds[], encryptionKeyJwk,
                         activeInvites[], lastJoinToken?, createdAt }
 invites/{token}       { familyId, familyName, createdBy, createdByName,
@@ -259,13 +259,40 @@ the catalogue as it stood before the migration — so new entries are correctly
 recognised as new. The logic is pure, in `src/utils/quickAccess.js`, and
 covered by `tests/unit/quickAccess.spec.js`.
 
+## Reminders (first version)
+
+Settings → Reminders sends notifications for upcoming appointments (the
+member's own and unassigned ones, or all, 10–120 minutes ahead; all-day ones at
+08:00), the next possible dose of a tracker with a minimum gap, a daily tracker
+goal still open at 18:00, the member's tasks due today and vaccinations due
+today (both at 08:00).
+
+- **Per device, per member.** Whether a device shows notifications is a
+  switch stored in that browser (`familyos:notifications`); *what* to be
+  reminded of is `notificationPrefs` on the user document, so it follows the
+  member to every device.
+- **Delivery is on the device for now.** `ReminderScheduler` (mounted in
+  `AppShell` only while reminders are on) reads the data the app already
+  streams and shows each reminder through the service worker. It therefore
+  works while myFAOS is open or running in the background, not once the app
+  is fully closed; that needs Web Push and a server-side sender, the planned
+  next step. On iPhone and iPad, notifications need the app on the Home
+  Screen (iOS 16.4+).
+- **No repeats.** Each reminder has an id that changes only when its fact does
+  (the event moved, a new dose was logged), and sent ids are remembered in
+  `localStorage` until the reminder expires, shared across tabs.
+- The rules live in `src/utils/reminders.js`, pure and covered by
+  `tests/unit/reminders.spec.js`, so the server-side sender can reuse them.
+
 ## Out of scope (future work)
 
 Per the MVP spec, these are intentionally **not** implemented:
 
 - Gift Planner logic
 - Document Vault uploads
-- Notifications / email delivery of invites (links work; email does not)
+- Push notifications with the app closed (reminders currently need the app
+  open or in the background), and email delivery of invites (links work;
+  email does not)
 - AI features
 - Payments
 
