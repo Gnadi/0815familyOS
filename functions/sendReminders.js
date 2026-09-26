@@ -1,8 +1,10 @@
-// Sends due reminders as Web Push notifications to devices where myFAOS is
-// closed. Run every ten minutes by .github/workflows/reminders.yml.
+// The reminder sender: works out what is due for each device with a push
+// subscription and sends it. Run every five minutes by the scheduled Cloud
+// Function in ./index.js, and against the emulator by
+// tests/integration/sendReminders.spec.js.
 //
 // It applies exactly the rules the app uses while open (src/utils/
-// reminders.js), per member and per device:
+// reminders.js, copied into ./shared at deploy time), per member and device:
 //
 //   1. every stored push subscription (users/{uid}/pushSubscriptions/*),
 //   2. the member's document (family, name, reminder preferences),
@@ -11,23 +13,14 @@
 //   4. reminders computed in the device's own time zone ("08:00" is local)
 //      and written in its language, minus what the device already showed.
 //
-// Environment:
-//   FIREBASE_SERVICE_ACCOUNT  service-account JSON with Firestore access
-//   FIREBASE_PROJECT_ID       optional; defaults to the service account's
-//   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (mailto: or https: URL)
-//
-// `--dry-run` computes and logs everything but sends and writes nothing.
-// With FIRESTORE_EMULATOR_HOST set, it runs against the emulator and needs no
-// service account.
+// Deliberately free of firebase-admin and web-push imports: the caller hands
+// in the Firestore instance and the push function, so the tests and the
+// deployed function run the same code without two copies of the SDK meeting.
 
-import { pathToFileURL } from 'node:url';
-import { cert, initializeApp } from 'firebase-admin/app';
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
-import webpush from 'web-push';
-import en from '../src/i18n/locales/en.js';
-import de from '../src/i18n/locales/de.js';
-import { FREQS } from '../src/utils/recurrence.js';
-import { collectReminders, dueReminders, notificationBatch } from '../src/utils/reminders.js';
+import en from './shared/locales/en.js';
+import de from './shared/locales/de.js';
+import { FREQS } from './shared/recurrence.js';
+import { collectReminders, dueReminders, notificationBatch } from './shared/reminders.js';
 
 const HOUR_MS = 60 * 60 * 1000;
 // Queries reach this far either side of now. Wide enough for any time zone's
@@ -68,9 +61,10 @@ function validTimeZone(tz) {
 // ---------------------------------------------------------------- data
 
 // Firestore Timestamps to Dates, recursively, the way the app's services
-// hand data to reminders.js.
+// hand data to reminders.js. Duck-typed rather than `instanceof Timestamp`,
+// which would tie this file to one copy of the SDK.
 function plain(value) {
-  if (value instanceof Timestamp) return value.toDate();
+  if (value && typeof value.toDate === 'function') return value.toDate();
   if (Array.isArray(value)) return value.map(plain);
   if (value && typeof value === 'object') {
     return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, plain(v)]));
@@ -81,10 +75,10 @@ function plain(value) {
 const docs = (snap) => snap.docs.map((d) => ({ id: d.id, ...plain(d.data()) }));
 
 // Everything reminders.js looks at for one family, and nothing more: a
-// family's full history would cost a read per document, every ten minutes.
+// family's full history would cost a read per document, every five minutes.
 async function loadFamilyData(db, familyId, now) {
-  const from = Timestamp.fromMillis(now.getTime() - WINDOW_MS);
-  const to = Timestamp.fromMillis(now.getTime() + WINDOW_MS);
+  const from = new Date(now.getTime() - WINDOW_MS);
+  const to = new Date(now.getTime() + WINDOW_MS);
   const byFamily = (name) => db.collection(name).where('familyId', '==', familyId);
 
   const [familySnap, oneOff, recurring, tasks, vaccinations, trackers] = await Promise.all([
@@ -101,7 +95,7 @@ async function loadFamilyData(db, familyId, now) {
     kidIds: Array.isArray(t.kidIds) ? t.kidIds : t.kidId ? [t.kidId] : [],
   }));
   const longestGapMs = Math.max(0, ...trackerList.map((t) => Number(t.minIntervalHours) || 0)) * HOUR_MS;
-  const entriesFrom = Timestamp.fromMillis(now.getTime() - Math.max(WINDOW_MS, longestGapMs + TRACKER_GRACE_MS));
+  const entriesFrom = new Date(now.getTime() - Math.max(WINDOW_MS, longestGapMs + TRACKER_GRACE_MS));
   const trackerEntries = trackerList.length
     ? docs(await byFamily('trackerEntries').where('at', '>=', entriesFrom).get())
     : [];
@@ -233,40 +227,4 @@ export async function sendDueReminders({ db, sendPush, now = new Date(), dryRun 
     }
   }
   return stats;
-}
-
-async function main() {
-  const dryRun = process.argv.includes('--dry-run');
-  const emulator = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
-  const { FIREBASE_SERVICE_ACCOUNT, FIREBASE_PROJECT_ID, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT } = process.env;
-
-  if (!emulator && !FIREBASE_SERVICE_ACCOUNT) throw new Error('FIREBASE_SERVICE_ACCOUNT is not set.');
-  if (!dryRun && !(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY && VAPID_SUBJECT)) {
-    throw new Error('VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and VAPID_SUBJECT must be set.');
-  }
-
-  const account = FIREBASE_SERVICE_ACCOUNT ? JSON.parse(FIREBASE_SERVICE_ACCOUNT) : null;
-  initializeApp({
-    ...(account ? { credential: cert(account) } : {}),
-    projectId: FIREBASE_PROJECT_ID || account?.project_id || 'demo-faos',
-  });
-  const db = getFirestore();
-
-  if (!dryRun) webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
-  const sendPush = (subscription, payload, ttl) =>
-    webpush.sendNotification(subscription, payload, { TTL: ttl, urgency: 'high' });
-
-  const stats = await sendDueReminders({ db, sendPush, dryRun });
-  console.log(
-    `${dryRun ? '[dry run] ' : ''}${stats.devices} device(s) checked, ${stats.sent} sent, ` +
-      `${stats.removed} expired subscription(s) removed, ${stats.failed} failed.`,
-  );
-  if (stats.failed > 0 && stats.sent === 0) process.exitCode = 1;
-}
-
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().catch((err) => {
-    console.error(err);
-    process.exit(1);
-  });
 }

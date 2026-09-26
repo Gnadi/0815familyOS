@@ -21,10 +21,10 @@ const MAX_WAIT_MS = 15 * 60 * 1000;
 // listeners below cost nothing for everyone else -- and they are the same
 // queries the pages use, which Firestore serves from one shared listener.
 //
-// With the app closed, the push sender (scripts/send-reminders.mjs) takes
+// With the app closed, the push sender (functions/sendReminders.js) takes
 // over. The two share this device's `sent` record on its push subscription:
 // whatever one of them has shown, the other skips. While the app is open this
-// side wins on timing, since the sender only runs every ten minutes.
+// side wins on timing, since the sender only runs every five minutes.
 export default function ReminderScheduler() {
   const { user, userDoc, family, isDemo } = useAuth();
   const { pushSubscriptionId } = useNotificationDevice();

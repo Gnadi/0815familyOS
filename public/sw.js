@@ -84,7 +84,7 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
-// Reminders pushed while the app is closed (scripts/send-reminders.mjs). The
+// Reminders pushed while the app is closed (functions/sendReminders.js). The
 // payload is the finished notification: { title, body, tag, url }. Every push
 // must show something -- browsers revoke the subscription of a worker that
 // receives pushes silently -- hence the fallback title.

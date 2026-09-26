@@ -13,8 +13,9 @@
 // when it is not: moving an event, logging a new dose or rolling a recurring
 // task forward all produce a new id, so the reminder is sent again.
 
-// Explicit extensions: scripts/send-reminders.mjs imports this file straight
-// from Node, which (unlike Vite) does not resolve extensionless paths.
+// Explicit extensions: the reminder Cloud Function (functions/) runs a copy of
+// this file in plain Node, which (unlike Vite) does not resolve extensionless
+// paths.
 import { expandEventsInRange } from './recurrence.js';
 import { trackerStatus } from './tracker.js';
 

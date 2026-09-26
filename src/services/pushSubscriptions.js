@@ -1,5 +1,5 @@
 // Web Push: this device's subscription, stored where the reminder sender
-// (scripts/send-reminders.mjs, run by GitHub Actions) can find it.
+// (functions/sendReminders.js, a scheduled Cloud Function) can find it.
 //
 //   users/{uid}/pushSubscriptions/{id}
 //     { endpoint, keys: { p256dh, auth }, timeZone, locale, userAgent,

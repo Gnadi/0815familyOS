@@ -1,0 +1,6 @@
+node_modules
+# Copied from ../src before every deploy and test run (sync-shared.mjs).
+shared
+# Parameter values `firebase deploy` asks for and stores per project.
+.env.*
+*.local

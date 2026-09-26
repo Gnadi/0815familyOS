@@ -3,6 +3,24 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "runtime": "nodejs22",
+      "ignore": [
+        "node_modules",
+        ".gitignore",
+        ".env.*",
+        "*.local",
+        "*.log"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" ci --no-audit --no-fund",
+        "node \"$RESOURCE_DIR/sync-shared.mjs\""
+      ]
+    }
+  ],
   "emulators": {
     "firestore": {
       "port": 8080

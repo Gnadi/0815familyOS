@@ -275,18 +275,19 @@ today (both at 08:00).
   push subscription.
 - **Two senders, one set of rules.** While myFAOS is open or in the
   background, `ReminderScheduler` (mounted in `AppShell`) sends each reminder
-  on the minute. With the app closed, `scripts/send-reminders.mjs` sends it as
-  a Web Push, run every ten minutes by `.github/workflows/reminders.yml`. Both
-  use the pure rules in `src/utils/reminders.js`.
+  on the minute. With the app closed, the `sendReminders` Cloud Function
+  (`functions/`) sends it as a Web Push, every five minutes, from
+  `europe-west3` (Frankfurt). Both use the pure rules in
+  `src/utils/reminders.js`; the function gets a fresh copy of them at deploy
+  time (`functions/sync-shared.mjs`), since only `functions/` is uploaded.
 - **No repeats.** Each reminder has an id that changes only when its fact does
   (the event moved, a new dose was logged). Every push subscription keeps a
   `sent` record of what that device already showed, written by whichever side
   showed it, so a reminder is shown once per device.
-- **Limits.** Pushed reminders can arrive a few minutes late (the schedule
-  runs every ten minutes, and GitHub starts scheduled runs late under load).
-  Subscribed calendars are computed in the browser, so their events are only
-  reminded of while the app is open. On iPhone and iPad, notifications need
-  the app on the Home Screen (iOS 16.4+).
+- **Limits.** Pushed reminders can arrive up to five minutes late. Subscribed
+  calendars are computed in the browser, so their events are only reminded of
+  while the app is open. On iPhone and iPad, notifications need the app on the
+  Home Screen (iOS 16.4+).
 
 ```
 users/{uid}/pushSubscriptions/{id}
@@ -296,33 +297,38 @@ users/{uid}/pushSubscriptions/{id}
 
 The sender reads each family's data in narrow windows around now (events,
 tasks and vaccinations within ±40 hours, recurring event series, trackers and
-their recent entries), once per family per run, so a run costs a few dozen
-reads per family rather than its whole history.
+their recent entries), once per family per run: a few dozen reads per family,
+about 8,600 runs a month, inside the Blaze plan's free allowances for both
+function calls and reads at family scale. The logs (Cloud Console → Functions
+→ sendReminders → Logs) carry counts only, never names or ids.
 
 ### Setting up pushes
 
-Without this, reminders still work while the app is open; the workflow skips
-itself until everything is in place.
+Needs the Blaze plan (scheduled functions run on Cloud Scheduler). Without
+this setup, reminders still work while the app is open.
 
 1. Generate a key pair: `npx web-push generate-vapid-keys`.
-2. In the repository (Settings → Secrets and variables → Actions):
-
-   | Name | Type | Value |
-   | --- | --- | --- |
-   | `VAPID_PUBLIC_KEY` | Variable | The public key |
-   | `VAPID_PRIVATE_KEY` | Secret | The private key |
-   | `VAPID_SUBJECT` | Variable | A contact for push services, e.g. `mailto:you@example.com` |
-
-   `FIREBASE_SERVICE_ACCOUNT` and `FIREBASE_PROJECT_ID` are the ones the
-   Firestore deploy already uses, but the sender reads and writes data, so the
-   service account also needs **Cloud Datastore User**
-   (`roles/datastore.user`), added under IAM & Admin → IAM.
-3. Set `VITE_VAPID_PUBLIC_KEY` to the same public key in the hosting
+2. Store the private key as a secret:
+   `firebase functions:secrets:set VAPID_PRIVATE_KEY`
+3. Deploy the function:
+   ```bash
+   npx firebase-tools deploy --only functions --project <your-project-id>
+   ```
+   The first deploy asks for `VAPID_PUBLIC_KEY` (the public key) and
+   `VAPID_SUBJECT` (a contact for push services, e.g.
+   `mailto:you@example.com`) and keeps them in `functions/.env.<project>`,
+   which git ignores. It also enables the Google Cloud APIs the function
+   needs and may ask about a cleanup policy for old build images (accept it).
+   The predeploy hooks in `firebase.json` install the function's
+   dependencies and copy the shared rules; nothing to do by hand.
+4. Set `VITE_VAPID_PUBLIC_KEY` to the same public key in the hosting
    environment (Vercel → Project → Settings → Environment Variables) and
    redeploy, so the app can subscribe devices.
-4. Merge to `main`: the new indexes in `firestore.indexes.json` are deployed,
-   and the schedule starts. Actions → Reminders → Run workflow with *dry run*
-   shows what would be sent without sending it.
+5. Merge to `main` first, or together: the indexes the function's queries
+   need are in `firestore.indexes.json` and are deployed by CI on merge.
+
+Redeploy the function (step 3) after changing the reminder rules or texts.
+It is not deployed by CI.
 
 `npm run test:integration` runs the sender against the Firestore emulator.
 

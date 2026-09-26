@@ -1,0 +1,17 @@
+{
+  "name": "faos-functions",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "sync-shared": "node sync-shared.mjs"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.5.0",
+    "firebase-functions": "^7.4.0",
+    "web-push": "^3.6.7"
+  }
+}

@@ -1,5 +1,6 @@
-// The push sender (scripts/send-reminders.mjs) against the Firestore emulator.
-// Run with `npm run test:integration`, which starts the emulator around it.
+// The push sender (functions/sendReminders.js) against the Firestore emulator.
+// Run with `npm run test:integration`, which copies the shared rules into
+// functions/shared and starts the emulator around it.
 //
 // Pushes are encrypted exactly as web-push sends them and decrypted the way
 // the browser would, so what is asserted is what a phone would display.
@@ -10,7 +11,7 @@ import { deleteApp, initializeApp } from 'firebase-admin/app';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import webpush from 'web-push';
 import ece from 'http_ece';
-import { sendDueReminders } from '../../scripts/send-reminders.mjs';
+import { sendDueReminders } from '../../functions/sendReminders.js';
 
 const NOW = new Date('2026-09-26T12:25:00Z'); // 14:25 in Vienna, 08:25 in New York
 const ts = (iso) => Timestamp.fromDate(new Date(iso));
