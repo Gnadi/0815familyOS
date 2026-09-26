@@ -87,15 +87,17 @@ export default function EventCard({ event, onClick, showSource = false }) {
         <div className={`w-1 flex-shrink-0 rounded-full ${barClass}`} />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="flex min-w-0 items-center gap-1.5 truncate text-base font-semibold text-slate-900">
+            {/* Long titles wrap instead of being cut off with an ellipsis: the
+                card is the one place the whole name of an appointment shows. */}
+            <h3 className="flex min-w-0 items-start gap-1.5 text-base font-semibold leading-snug text-slate-900">
               {isSynced && (
                 <ExternalLink
                   size={12}
-                  className="flex-shrink-0 text-slate-400"
+                  className="mt-1.5 flex-shrink-0 text-slate-400"
                   aria-label={sourceLabel}
                 />
               )}
-              <span className="truncate">{event.title}</span>
+              <span className="min-w-0 break-words [overflow-wrap:anywhere]">{event.title}</span>
             </h3>
             {effort ? (
               <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${effort.badge}`}>

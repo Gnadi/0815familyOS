@@ -62,7 +62,9 @@ export default function WeeklyPreview() {
                     <Calendar size={18} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-slate-900">{ev.title}</p>
+                    <p className="line-clamp-2 break-words text-sm font-semibold text-slate-900" title={ev.title}>
+                      {ev.title}
+                    </p>
                     <p className={`mt-0.5 truncate text-xs ${cat.chipText}`}>{tLabel(t, cat)}</p>
                   </div>
                   <div className="text-right">
