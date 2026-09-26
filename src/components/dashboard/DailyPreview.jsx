@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Calendar, CheckSquare, Plus, Sun } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
-import { dayKey } from '../../utils/date';
+import { dayKey, formatDate } from '../../utils/date';
 import useAuth from '../../hooks/useAuth';
 import useEvents from '../../hooks/useEvents';
 import useTasks from '../../hooks/useTasks';
@@ -26,7 +26,7 @@ export default function DailyPreview() {
   const [showAdd, setShowAdd] = useState(false);
 
   const today = new Date();
-  const todayLabel = format(today, 'EEE, MMM d');
+  const todayLabel = formatDate(today, 'weekdayShort');
   const familyKids = family?.kids || [];
 
   // Keyed on the calendar day rather than recomputed on every render: expanding

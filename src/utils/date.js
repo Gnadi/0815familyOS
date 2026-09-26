@@ -4,6 +4,7 @@ import {
   endOfMonth,
   endOfWeek,
   format,
+  getDefaultOptions,
   isSameDay,
   isSameMonth,
   startOfDay,
@@ -15,9 +16,48 @@ import {
 // Monday-start weeks (matches the mock's "M T W T F S S" header).
 const WEEK_OPTS = { weekStartsOn: 1 };
 
+// The Monday of the week `date` falls in.
+export function weekStart(date) {
+  return startOfWeek(date, WEEK_OPTS);
+}
+
 export function getWeekDays(anchor) {
-  const start = startOfWeek(anchor, WEEK_OPTS);
+  const start = weekStart(anchor);
   return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+}
+
+// Heading for a week: "October 2026", or "Sep – Oct 2026" when the week spans
+// two months, or "Dec 2026 – Jan 2027" across a year boundary. 'LLL' is the
+// stand-alone short month, which German writes without the trailing dot
+// ("Sep – Okt 2026").
+export function formatWeekRange(days) {
+  const first = days[0];
+  const last = days[days.length - 1];
+  if (isSameMonth(first, last)) return format(first, 'LLLL yyyy');
+  if (first.getFullYear() === last.getFullYear()) {
+    return `${format(first, 'LLL')} – ${format(last, 'LLL yyyy')}`;
+  }
+  return `${format(first, 'LLL yyyy')} – ${format(last, 'LLL yyyy')}`;
+}
+
+// Date patterns whose word order differs by language: English puts the month
+// before the day ("Oct 2"), German the day first with a dot ("2. Okt.").
+// date-fns' global locale (set in I18nContext) translates the names; this
+// picks the order to match.
+const DATE_PATTERNS = {
+  short:           { en: 'MMM d',            de: 'd. MMM' },
+  long:            { en: 'MMMM d',           de: 'd. MMMM' },
+  weekdayShort:    { en: 'EEE, MMM d',       de: 'EEE, d. MMM' },
+  withYear:        { en: 'MMM d, yyyy',      de: 'd. MMM yyyy' },
+  dayMonthYear:    { en: 'dd MMM yyyy',      de: 'dd. MMM yyyy' },
+  weekdayWithYear: { en: 'EEEE, d MMM yyyy', de: 'EEEE, d. MMM yyyy' },
+  weekdayTime:     { en: 'EEE d MMM, HH:mm', de: 'EEE, d. MMM, HH:mm' },
+};
+
+// `style` is a key of DATE_PATTERNS.
+export function formatDate(date, style) {
+  const lang = getDefaultOptions().locale?.code?.startsWith('de') ? 'de' : 'en';
+  return format(date, DATE_PATTERNS[style][lang]);
 }
 
 export function getMonthGrid(anchor) {

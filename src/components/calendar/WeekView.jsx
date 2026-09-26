@@ -1,7 +1,14 @@
 import { useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { addWeeks, format, isSameDay, subWeeks } from 'date-fns';
-import { dayKey, getWeekDays, groupEventsByDay, NO_EVENTS } from '../../utils/date';
+import {
+  dayKey,
+  formatWeekRange,
+  getWeekDays,
+  groupEventsByDay,
+  NO_EVENTS,
+  weekStart,
+} from '../../utils/date';
 import useCategories from '../../hooks/useCategories';
 import useT from '../../hooks/useT';
 import DayAgenda from './DayAgenda';
@@ -14,7 +21,10 @@ export default function WeekView({ anchor, selected, onAnchorChange, onSelect, e
   // One pass over the events instead of one full scan per day cell.
   const byDay = useMemo(() => groupEventsByDay(events), [events]);
   const dayEvents = byDay.get(dayKey(selected)) || NO_EVENTS;
-  const monthLabel = format(anchor, 'MMMM yyyy');
+  const monthLabel = formatWeekRange(days);
+  // Paging to another week always lands on its Monday, not on the weekday that
+  // happened to be selected before.
+  const goToWeek = (d) => onAnchorChange(weekStart(d));
 
   return (
     <div>
@@ -23,14 +33,14 @@ export default function WeekView({ anchor, selected, onAnchorChange, onSelect, e
         <div className="flex items-center gap-1">
           <TodayButton selected={selected} onJump={onAnchorChange} />
           <button
-            onClick={() => onAnchorChange(subWeeks(anchor, 1))}
+            onClick={() => goToWeek(subWeeks(anchor, 1))}
             className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
             aria-label={t('calendar.prevWeek')}
           >
             <ChevronLeft size={18} />
           </button>
           <button
-            onClick={() => onAnchorChange(addWeeks(anchor, 1))}
+            onClick={() => goToWeek(addWeeks(anchor, 1))}
             className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
             aria-label={t('calendar.nextWeek')}
           >

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { format } from 'date-fns';
+import { formatDate } from '../../utils/date';
 import { UserPlus, X } from 'lucide-react';
 import Modal from '../common/Modal';
 import Button from '../common/Button';
@@ -122,7 +122,7 @@ export default function MealEntryModal({
   }
 
   const title = cell
-    ? `${t(getSlotLabelKey(cell.slot) || 'food.meal')} · ${format(cell.date, 'EEE, MMM d')}`
+    ? `${t(getSlotLabelKey(cell.slot) || 'food.meal')} · ${formatDate(cell.date, 'weekdayShort')}`
     : t('food.planMeal');
   const isEdit = Boolean(entry);
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { addDays, addWeeks, format, isSameDay, isToday, startOfWeek } from 'date-fns';
+import { formatDate } from '../../utils/date';
 import { BookOpen, ChevronLeft, ChevronRight, ExternalLink, Plus, ShoppingBasket } from 'lucide-react';
 import Spinner from '../common/Spinner';
 import AvatarStack from '../common/AvatarStack';
@@ -108,7 +109,7 @@ export default function WeekMealPlan({
         </button>
         <div className="text-center">
           <p className="text-lg font-bold tracking-tight text-slate-900">
-            {format(weekStart, 'MMM d')} – {format(addDays(weekStart, 6), 'MMM d')}
+            {formatDate(weekStart, 'short')} – {formatDate(addDays(weekStart, 6), 'short')}
           </p>
           <div className="flex items-center justify-center gap-3">
             <button
@@ -169,7 +170,7 @@ export default function WeekMealPlan({
                 <span
                   className={`text-sm font-semibold ${today ? 'text-brand-600' : 'text-slate-400'}`}
                 >
-                  {today ? t('common.today') : format(day, 'MMM d')}
+                  {today ? t('common.today') : formatDate(day, 'short')}
                 </span>
               </div>
               <div className="divide-y divide-slate-100">

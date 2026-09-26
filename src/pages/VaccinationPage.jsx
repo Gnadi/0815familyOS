@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { format } from 'date-fns';
+import { formatDate } from '../utils/date';
 import { jsPDF } from 'jspdf';
 import {
   CalendarCheck,
@@ -52,7 +53,7 @@ const PDF_STATUS_COLORS = {
 
 function fmtDate(date) {
   if (!date) return '';
-  return format(date instanceof Date ? date : new Date(date), 'MMM d, yyyy');
+  return formatDate(date instanceof Date ? date : new Date(date), 'withYear');
 }
 
 function toIso(date) {
@@ -77,7 +78,7 @@ function buildPdf({ kidName, compliance, nextUpdateDate, kidVaccines, t }) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.text(t('health.pdfRecord', { name: kidName }), margin, 27);
-  doc.text(t('health.pdfGenerated', { date: format(new Date(), 'MMM d, yyyy') }), W - margin, 27, { align: 'right' });
+  doc.text(t('health.pdfGenerated', { date: formatDate(new Date(), 'withYear') }), W - margin, 27, { align: 'right' });
 
   y = 52;
 
