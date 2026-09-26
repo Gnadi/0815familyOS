@@ -14,6 +14,12 @@
 // We store the master event/task with its original `date`/`dueDate`. Views
 // expand it virtually with `expandRecurringEvent(master, from, to)`.
 
+import { eventDays } from './eventTime';
+
+function startOfDay(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
 export const FREQS = ['daily', 'weekly', 'monthly', 'yearly'];
 
 export function isValidRecurrence(rec) {
@@ -266,7 +272,9 @@ export function expandEventsInRange(events, from, to) {
     if (!ev.date) continue;
     if (isValidRecurrence(ev.recurrence)) {
       out.push(...expandRecurringEvent(ev, from, to));
-    } else if (ev.date >= from && ev.date <= to) {
+    } else if (ev.date <= to && (ev.date >= from || eventDays(ev)?.last >= startOfDay(from))) {
+      // The second half keeps a holiday that began before the window but is
+      // still running inside it.
       out.push(ev);
     }
   }

@@ -12,6 +12,7 @@ import {
   startOfWeek,
   subMonths,
 } from 'date-fns';
+import { eventDays, isAllDay } from './eventTime';
 
 // Monday-start weeks (matches the mock's "M T W T F S S" header).
 const WEEK_OPTS = { weekStartsOn: 1 };
@@ -85,17 +86,37 @@ export function dayKey(date) {
 // occurrences, on every single render. One pass builds the whole lookup.
 export function groupEventsByDay(events) {
   const byDay = new Map();
-  for (const ev of events || []) {
-    const key = dayKey(ev?.date);
-    if (!key) continue;
+  const add = (key, ev) => {
     const bucket = byDay.get(key);
     if (bucket) bucket.push(ev);
     else byDay.set(key, [ev]);
+  };
+  for (const ev of events || []) {
+    const key = dayKey(ev?.date);
+    if (!key) continue;
+    // A holiday from Monday to Friday, or a night shift into the morning,
+    // belongs to every day it covers -- not only the one it starts on.
+    const span = eventDays(ev);
+    if (!span || span.first.getTime() === span.last.getTime()) {
+      add(key, ev);
+      continue;
+    }
+    for (let d = new Date(span.first); d <= span.last; d.setDate(d.getDate() + 1)) {
+      add(dayKey(d), ev);
+    }
   }
   for (const bucket of byDay.values()) {
-    bucket.sort((a, b) => a.date - b.date);
+    bucket.sort(compareEventsInDay);
   }
   return byDay;
+}
+
+// All-day events head the day; the rest follow in start order.
+export function compareEventsInDay(a, b) {
+  const allDayA = isAllDay(a);
+  const allDayB = isAllDay(b);
+  if (allDayA !== allDayB) return allDayA ? -1 : 1;
+  return a.date - b.date;
 }
 
 // Shared empty result so a day with no events keeps a stable array identity.

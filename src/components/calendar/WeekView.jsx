@@ -11,10 +11,19 @@ import {
 } from '../../utils/date';
 import useCategories from '../../hooks/useCategories';
 import useT from '../../hooks/useT';
+import useSwipe from '../../hooks/useSwipe';
 import DayAgenda from './DayAgenda';
 import TodayButton from './TodayButton';
 
-export default function WeekView({ anchor, selected, onAnchorChange, onSelect, events, onEventClick }) {
+export default function WeekView({
+  anchor,
+  selected,
+  onAnchorChange,
+  onSelect,
+  events,
+  onEventClick,
+  onCreateAt,
+}) {
   const { get: getCat } = useCategories();
   const { t } = useT();
   const days = getWeekDays(anchor);
@@ -25,9 +34,14 @@ export default function WeekView({ anchor, selected, onAnchorChange, onSelect, e
   // Paging to another week always lands on its Monday, not on the weekday that
   // happened to be selected before.
   const goToWeek = (d) => onAnchorChange(weekStart(d));
+  // Swiping left goes forward in time, as in every other calendar.
+  const swipe = useSwipe({
+    onLeft: () => goToWeek(addWeeks(anchor, 1)),
+    onRight: () => goToWeek(subWeeks(anchor, 1)),
+  });
 
   return (
-    <div>
+    <div {...swipe}>
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-slate-900">{monthLabel}</h3>
         <div className="flex items-center gap-1">
@@ -84,7 +98,12 @@ export default function WeekView({ anchor, selected, onAnchorChange, onSelect, e
       </div>
 
       <div className="mt-6">
-        <DayAgenda day={selected} events={dayEvents} onEventClick={onEventClick} />
+        <DayAgenda
+          day={selected}
+          events={dayEvents}
+          onEventClick={onEventClick}
+          onCreateAt={onCreateAt}
+        />
       </div>
     </div>
   );

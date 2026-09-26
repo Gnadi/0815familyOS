@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { format } from 'date-fns';
 import { useOutletContext } from 'react-router-dom';
 import { CalendarClock, Download, List, RefreshCw } from 'lucide-react';
 import TopBar from '../components/layout/TopBar';
@@ -10,6 +11,8 @@ import SearchResults from '../components/calendar/SearchResults';
 import WeekView from '../components/calendar/WeekView';
 import MonthView from '../components/calendar/MonthView';
 import EventFormModal from '../components/calendar/EventFormModal';
+import Modal from '../components/common/Modal';
+import Button from '../components/common/Button';
 import useAuth from '../hooks/useAuth';
 import useT from '../hooks/useT';
 import useEvents from '../hooks/useEvents';
@@ -17,9 +20,18 @@ import useUIPreferences from '../hooks/useUIPreferences';
 import useFamilyMembers from '../hooks/useFamilyMembers';
 import useCategories from '../hooks/useCategories';
 import { tLabel } from '../i18n/labels';
-import { createEvent, deleteEvent, saveFeedAnnotation, updateEvent } from '../services/events';
+import {
+  createEvent,
+  deleteEvent,
+  detachOccurrence,
+  excludeOccurrence,
+  saveFeedAnnotation,
+  updateEvent,
+} from '../services/events';
 import { downloadICS } from '../utils/ics';
-import { expandEventsInRange } from '../utils/recurrence';
+import { expandEventsInRange, isValidRecurrence } from '../utils/recurrence';
+import { eventEnd } from '../utils/eventTime';
+import { formatDate } from '../utils/date';
 import { EMPTY_SEARCH_RESULT, searchEvents } from '../utils/eventSearch';
 import { isFeedEvent } from '../utils/calendarSync';
 import { invalidateFeeds } from '../hooks/useEvents';
@@ -38,7 +50,13 @@ export default function CalendarPage() {
   const [view, setView] = useState('week');
   const [anchor, setAnchor] = useState(new Date());
   const [selected, setSelected] = useState(new Date());
-  const [editing, setEditing] = useState(null); // event object or 'new' or null
+  // What the form is open for, or null:
+  //   { mode: 'new', date }                     -- a new event (from the timeline)
+  //   { mode: 'event', event }                  -- an event, or a whole series
+  //   { mode: 'occurrence', event, master }     -- one date of a series on its own
+  const [editing, setEditing] = useState(null);
+  // A tapped occurrence of a series, waiting for "only this one or all?".
+  const [scopeFor, setScopeFor] = useState(null);
   const [activeFilters, setActiveFilters] = useState(new Set());
   const [syncing, setSyncing] = useState(false);
   const [search, setSearch] = useState('');
@@ -133,30 +151,60 @@ export default function CalendarPage() {
   }, [selected, setCreateDefaultDate]);
 
   function handleEventClick(ev) {
-    if (ev?.isRecurringInstance) {
-      const master = events.find((e) => e.id === ev.masterId) || ev;
-      setEditing(master);
-    } else {
-      setEditing(ev);
+    const master = ev?.masterId ? events.find((e) => e.id === ev.masterId) || ev : ev;
+    // A subscribed calendar's series cannot be split -- the feed owns it, and
+    // what the family adds on top applies to the whole series anyway.
+    if (ev?.masterId && isValidRecurrence(master.recurrence) && !isFeedEvent(master)) {
+      setScopeFor({ event: ev, master });
+      return;
     }
+    setEditing({ mode: 'event', event: master });
+  }
+
+  function chooseScope(scope) {
+    if (!scopeFor) return;
+    setEditing(scope === 'this'
+      ? { mode: 'occurrence', event: scopeFor.event, master: scopeFor.master }
+      : { mode: 'event', event: scopeFor.master });
+    setScopeFor(null);
+  }
+
+  function handleCreateAt(date) {
+    setSelected(date);
+    setEditing({ mode: 'new', date });
   }
 
   async function handleSubmit(values) {
-    if (editing && editing !== 'new') {
+    if (editing?.mode === 'occurrence') {
+      const { event: occ, master } = editing;
+      // The form does not edit the place or the end, so the detached event
+      // keeps the series' place and its length at the new time.
+      const end = eventEnd(occ);
+      const endDate = values.endDate !== undefined
+        ? values.endDate
+        : end && new Date(values.date.getTime() + (end - occ.date));
+      await detachOccurrence({
+        familyId: userDoc.familyId,
+        userId: user.uid,
+        master,
+        occurrenceDate: occ.date,
+        values: { ...values, endDate: endDate || null, location: occ.location },
+      });
+    } else if (editing?.mode === 'event') {
+      const target = editing.event;
       // A subscribed calendar is computed from its feed, so its title, time and
       // description cannot be written back. What the family adds on top is
       // stored as an overlay instead.
-      if (isFeedEvent(editing)) {
+      if (isFeedEvent(target)) {
         await saveFeedAnnotation({
           familyId: userDoc.familyId,
           userId: user.uid,
-          event: editing,
+          event: target,
           values,
         });
-        setEditing(null);
-        return;
+      } else {
+        await updateEvent(target.id, values);
       }
-      await updateEvent(editing.id, values);
     } else {
       await createEvent({
         familyId: userDoc.familyId,
@@ -168,9 +216,14 @@ export default function CalendarPage() {
   }
 
   async function handleDelete() {
-    // Feed events have no document to delete; the form hides the button.
-    if (!editing || editing === 'new' || isFeedEvent(editing)) return;
-    await deleteEvent(editing.id);
+    if (editing?.mode === 'occurrence') {
+      await excludeOccurrence(editing.master, editing.event.date);
+    } else if (editing?.mode === 'event' && !isFeedEvent(editing.event)) {
+      // Feed events have no document to delete; the form hides the button.
+      await deleteEvent(editing.event.id);
+    } else {
+      return;
+    }
     setEditing(null);
   }
 
@@ -286,6 +339,7 @@ export default function CalendarPage() {
             onSelect={setSelected}
             events={filteredEvents}
             onEventClick={handleEventClick}
+            onCreateAt={handleCreateAt}
           />
         ) : (
           <MonthView
@@ -298,17 +352,43 @@ export default function CalendarPage() {
             onSelect={setSelected}
             events={filteredEvents}
             onEventClick={handleEventClick}
+            onCreateAt={handleCreateAt}
           />
         )}
       </main>
 
       <EventFormModal
         open={Boolean(editing)}
-        initial={editing && editing !== 'new' ? editing : null}
+        initial={editing && editing.mode !== 'new' ? editing.event : null}
+        initialDate={editing?.mode === 'new' ? editing.date : undefined}
+        initialTime={editing?.mode === 'new' ? format(editing.date, 'HH:mm') : undefined}
+        occurrence={editing?.mode === 'occurrence'}
         onClose={() => setEditing(null)}
         onSubmit={handleSubmit}
-        onDelete={editing && editing !== 'new' ? handleDelete : undefined}
+        onDelete={editing && editing.mode !== 'new' ? handleDelete : undefined}
       />
+
+      <Modal
+        open={Boolean(scopeFor)}
+        onClose={() => setScopeFor(null)}
+        title={t('calendar.editScopeTitle')}
+      >
+        {scopeFor && (
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">
+              <span className="font-semibold text-slate-900">{scopeFor.event.title}</span>
+              {` · ${formatDate(scopeFor.event.date, 'weekdayShort')}`}
+            </p>
+            <p className="text-sm text-slate-600">{t('calendar.editScopeText')}</p>
+            <div className="flex flex-col gap-2">
+              <Button onClick={() => chooseScope('this')}>{t('calendar.editOnlyThis')}</Button>
+              <Button variant="secondary" onClick={() => chooseScope('all')}>
+                {t('calendar.editWholeSeries')}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </>
   );
 }

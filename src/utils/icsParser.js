@@ -86,11 +86,32 @@ function parseDuration(value) {
 
 // When the event ends, from DTEND or DURATION.
 //
-// All-day events are deliberately left without one: their DATE form carries no
-// clock time and we land them on a synthetic 09:00, so a DTEND of the next day
-// would render every birthday as "09:00 - 09:00" instead of saying nothing.
+// All-day events land on a synthetic 09:00 (their DATE form carries no clock
+// time) and are flagged `allDay`, so nothing renders that 09:00. Their end is
+// the exclusive end *day* at midnight, the way DTEND;VALUE=DATE writes it --
+// and only when it lies beyond the first day: a plain one-day birthday keeps no
+// end at all.
+function parseAllDayEnd(current, startDate) {
+  const firstDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  let end = null;
+  if (current.DTEND) {
+    const d = parseICalDate(current.DTEND.value, current.DTEND.params);
+    if (d) end = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  } else if (current.DURATION) {
+    const ms = parseDuration(current.DURATION.value);
+    if (ms) {
+      end = new Date(firstDay);
+      end.setDate(end.getDate() + Math.round(ms / 86400000));
+    }
+  }
+  if (!end) return null;
+  const nextDay = new Date(firstDay);
+  nextDay.setDate(nextDay.getDate() + 1);
+  return end > nextDay ? end : null;
+}
+
 function parseEventEnd(current, startDate) {
-  if (isDateOnly(current.DTSTART)) return null;
+  if (isDateOnly(current.DTSTART)) return parseAllDayEnd(current, startDate);
   if (current.DTEND) {
     const end = parseICalDate(current.DTEND.value, current.DTEND.params);
     return end && end > startDate ? end : null;
@@ -205,6 +226,7 @@ export function parseICS(text) {
             description: current.DESCRIPTION ? unescapeText(current.DESCRIPTION.value) : '',
             date: startDate,
             endDate: parseEventEnd(current, startDate),
+            allDay: isDateOnly(current.DTSTART),
             recurrence,
             location: current.LOCATION ? unescapeText(current.LOCATION.value) : '',
           });

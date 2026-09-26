@@ -12,12 +12,25 @@ import {
 } from '../../utils/date';
 import useCategories from '../../hooks/useCategories';
 import useT from '../../hooks/useT';
+import useSwipe from '../../hooks/useSwipe';
 import DayAgenda from './DayAgenda';
 import TodayButton from './TodayButton';
 
-export default function MonthView({ anchor, selected, onAnchorChange, onSelect, events, onEventClick }) {
+export default function MonthView({
+  anchor,
+  selected,
+  onAnchorChange,
+  onSelect,
+  events,
+  onEventClick,
+  onCreateAt,
+}) {
   const { get: getCat } = useCategories();
   const { t } = useT();
+  const swipe = useSwipe({
+    onLeft: () => onAnchorChange(addMonths(anchor, 1)),
+    onRight: () => onAnchorChange(subMonths(anchor, 1)),
+  });
   const grid = getMonthGrid(anchor);
   // One pass over the events instead of one full scan per grid cell (42 of
   // them), on every render.
@@ -26,7 +39,7 @@ export default function MonthView({ anchor, selected, onAnchorChange, onSelect, 
 
   return (
     <div>
-      <div className="rounded-2xl bg-white p-4 shadow-card">
+      <div className="rounded-2xl bg-white p-4 shadow-card" {...swipe}>
         {/* Same shape as the week view's header: month left, controls right. */}
         <div className="flex items-center justify-between">
           <h3 className="text-base font-semibold text-slate-900">
@@ -97,6 +110,7 @@ export default function MonthView({ anchor, selected, onAnchorChange, onSelect, 
           day={selected}
           events={dayEvents}
           onEventClick={onEventClick}
+          onCreateAt={onCreateAt}
           title={t('calendar.eventsOn', { date: formatDate(selected, 'long') })}
         />
       </div>

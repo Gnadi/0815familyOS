@@ -22,7 +22,7 @@ import {
   hasAnnotation,
   indexAnnotations,
 } from '../utils/calendarSync';
-import { DAY_CODES } from '../utils/recurrence';
+import { DAY_CODES, occurrenceKey } from '../utils/recurrence';
 import { loadAllFeeds } from './calendarFeeds';
 import { isDemoMode } from '../lib/demoMode';
 import { demoAdd, demoDelete, demoDocs, demoSubscribe, demoUpdate } from './demoStore';
@@ -90,6 +90,7 @@ function mapEventDoc(d) {
     // Imported events carry the DTEND of their VEVENT. The event form has no
     // end field, so an event created here simply has none.
     endDate: toJsDate(data.endDate),
+    allDay: Boolean(data.allDay),
     location: data.location || '',
     kids: data.kids || [],
     responsibleParent: data.responsibleParent || '',
@@ -139,8 +140,8 @@ export async function fetchCalendarOnce(familyId, subscriptions) {
   return [...own, ...applyAnnotations(events, indexAnnotations(all))];
 }
 
-export function createEvent({ familyId, userId, title, description, date, endDate, location, category, kids, responsibleParent, effortLevel, recurrence }) {
-  const payload = {
+function newEventPayload({ familyId, userId, title, description, date, endDate, allDay, location, category, kids, responsibleParent, effortLevel, recurrence }) {
+  return {
     familyId,
     userId,
     title: title.trim(),
@@ -148,6 +149,7 @@ export function createEvent({ familyId, userId, title, description, date, endDat
     category: normalizeCategory(category),
     date: dateVal(date),
     endDate: endDate ? dateVal(endDate) : null,
+    allDay: Boolean(allDay),
     location: location || '',
     kids: kids || [],
     responsibleParent: responsibleParent || '',
@@ -156,11 +158,50 @@ export function createEvent({ familyId, userId, title, description, date, endDat
     createdAt: nowVal(),
     updatedAt: nowVal(),
   };
+}
+
+export function createEvent(values) {
+  const payload = newEventPayload(values);
   if (isDemoMode()) return demoAdd('events', payload);
   return addDoc(eventsRef, payload);
 }
 
-export function updateEvent(id, { title, description, date, endDate, location, category, kids, responsibleParent, effortLevel, recurrence }) {
+// The series' recurrence with one more occurrence taken out of it.
+function withExcluded(master, occurrenceDate) {
+  const rec = normalizeRecurrence(master.recurrence);
+  const key = occurrenceKey(occurrenceDate);
+  return { ...rec, exdates: [...new Set([...(rec?.exdates || []), key])] };
+}
+
+// Cancel a single occurrence of a recurring event: it is listed among the
+// series' excluded dates (an EXDATE, in .ics terms) and the rest carries on.
+export function excludeOccurrence(master, occurrenceDate) {
+  const payload = { recurrence: withExcluded(master, occurrenceDate), updatedAt: nowVal() };
+  if (isDemoMode()) return demoUpdate('events', master.id, payload);
+  return updateDoc(doc(db, 'events', master.id), payload);
+}
+
+// Change a single occurrence: it leaves the series and becomes an event of its
+// own with the edited values. Both writes go in one batch, so a failure cannot
+// leave the occurrence twice in the calendar, or not at all.
+export async function detachOccurrence({ familyId, userId, master, occurrenceDate, values }) {
+  const payload = {
+    ...newEventPayload({ ...values, familyId, userId, recurrence: null }),
+    // Where it came from, for anything that later wants to group them again.
+    seriesId: master.id,
+  };
+  const masterPatch = { recurrence: withExcluded(master, occurrenceDate), updatedAt: nowVal() };
+  if (isDemoMode()) {
+    await demoAdd('events', payload);
+    return demoUpdate('events', master.id, masterPatch);
+  }
+  const batch = writeBatch(db);
+  batch.set(doc(eventsRef), payload);
+  batch.update(doc(db, 'events', master.id), masterPatch);
+  return batch.commit();
+}
+
+export function updateEvent(id, { title, description, date, endDate, allDay, location, category, kids, responsibleParent, effortLevel, recurrence }) {
   const payload = {
     title: title.trim(),
     description: description?.trim() || '',
@@ -176,6 +217,7 @@ export function updateEvent(id, { title, description, date, endDate, location, c
   // neither. Writing them anyway would erase the DTEND and LOCATION of an
   // imported event the first time anyone touched its category.
   if (endDate !== undefined) payload.endDate = endDate ? dateVal(endDate) : null;
+  if (allDay !== undefined) payload.allDay = Boolean(allDay);
   if (location !== undefined) payload.location = location || '';
   if (isDemoMode()) return demoUpdate('events', id, payload);
   return updateDoc(doc(db, 'events', id), payload);

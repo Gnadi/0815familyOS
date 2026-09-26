@@ -21,11 +21,67 @@ function dayOffset(start, end) {
   return day(end) - day(start);
 }
 
+// All-day events (an .ics DATE-form DTSTART, or the form's "all day" switch)
+// have no clock time: their `date` is only the day they fall on, and their
+// `endDate`, when set, is the exclusive end *day* at midnight, exactly as ICS
+// writes DTEND;VALUE=DATE. Nothing may render either as a time.
+export function isAllDay(event) {
+  return Boolean(event?.allDay);
+}
+
+function startOfDayOf(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+// The calendar days an event covers, as { first, last } at midnight. A timed
+// event that ends exactly at midnight does not reach into the next day; one
+// that ends at 00:30 does. `last` is capped so a broken end date cannot make a
+// single event fill years of calendar.
+export const MAX_SPAN_DAYS = 62;
+
+export function eventDays(event) {
+  const start = asDate(event?.date);
+  if (!start) return null;
+  const first = startOfDayOf(start);
+  let endExclusive = null;
+  if (isAllDay(event)) {
+    const end = asDate(event.endDate);
+    endExclusive = end && startOfDayOf(end) > first ? end : null;
+  } else {
+    endExclusive = eventEnd(event);
+  }
+  if (!endExclusive) return { first, last: first };
+  let last = startOfDayOf(new Date(endExclusive.getTime() - 1));
+  if (last < first) last = first;
+  const cap = new Date(first);
+  cap.setDate(cap.getDate() + MAX_SPAN_DAYS - 1);
+  if (last > cap) last = cap;
+  return { first, last };
+}
+
+// Number of calendar days an event covers (1 for a normal appointment).
+export function eventDayCount(event) {
+  const days = eventDays(event);
+  if (!days) return 0;
+  return dayOffset(days.first, days.last) + 1;
+}
+
+// Which day of its run `day` is (1-based), or 0 when the event does not cover it.
+export function eventDayIndex(event, day) {
+  const days = eventDays(event);
+  if (!days || !(day instanceof Date)) return 0;
+  const d = startOfDayOf(day);
+  if (d < days.first || d > days.last) return 0;
+  return dayOffset(days.first, d) + 1;
+}
+
 // The event's end, or null when it has none -- or when the one it carries is
 // not after its start. A stored end can fall behind like that when the start of
 // an imported event is moved in the form, which has no end field to move with
 // it; showing "14:00 - 10:30" would be worse than showing no end at all.
+// All-day events have no end *time*; `eventDays` covers their span.
 export function eventEnd(event) {
+  if (isAllDay(event)) return null;
   const start = asDate(event?.date);
   const end = asDate(event?.endDate);
   if (!start || !end) return null;

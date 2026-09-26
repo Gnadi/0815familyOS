@@ -32,9 +32,9 @@ const FRESH_MS = 30 * 60 * 1000;
 // working offline.
 const CACHE_PREFIX = 'faos.feed.';
 // Bumped when the cached event shape changes -- v1 entries predate `endDate`,
-// and serving them would keep a subscribed calendar end-less until the feed
-// happened to change upstream.
-const CACHE_VERSION = 2;
+// v2 entries `allDay`, and serving them would keep a subscribed calendar
+// without either until the feed happened to change upstream.
+const CACHE_VERSION = 3;
 
 function cacheKey(subscriptionId) {
   return `${CACHE_PREFIX}${subscriptionId}`;
@@ -110,6 +110,7 @@ function toFeedEvents(parsedEvents, subscription) {
     description: ev.description || '',
     date: ev.date,
     endDate: ev.endDate || null,
+    allDay: Boolean(ev.allDay),
     // The VEVENT's LOCATION. It was parsed all along and then dropped here, so
     // "Flughafen Hörsching" never reached the calendar.
     location: ev.location || '',
