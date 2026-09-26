@@ -17,6 +17,7 @@ import InviteShareCard from '../components/invites/InviteShareCard';
 import { exportFamilyData } from '../utils/exportFamily';
 import CalendarImportSection from '../components/settings/CalendarImportSection';
 import CalendarFeedSection from '../components/settings/CalendarFeedSection';
+import NotificationSettingsSection from '../components/settings/NotificationSettingsSection';
 
 // THEME/SKIN ids → settings.* translation keys for their human labels.
 const THEME_LABEL_KEYS = {
@@ -416,6 +417,8 @@ export default function SettingsPage() {
             </form>
           </section>
         )}
+
+        {family && <NotificationSettingsSection />}
 
         {family && <CalendarImportSection />}
 

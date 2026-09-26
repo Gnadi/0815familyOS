@@ -43,4 +43,4 @@ jobs:
           # Lower this to `moderate` or `low` to fail on the smaller findings
           # as well, once those are cleared.
           AUDIT_LEVEL: ${{ inputs.audit-level || 'high' }}
-        run: node .github/scripts/npm-audit.mjs .
+        run: node .github/scripts/npm-audit.mjs . functions

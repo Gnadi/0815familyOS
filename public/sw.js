@@ -83,3 +83,45 @@ self.addEventListener('fetch', (event) => {
     );
   }
 });
+
+// Reminders pushed while the app is closed (functions/sendReminders.js). The
+// payload is the finished notification: { title, body, tag, url }. Every push
+// must show something -- browsers revoke the subscription of a worker that
+// receives pushes silently -- hence the fallback title.
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = {};
+  }
+  event.waitUntil(
+    self.registration.showNotification(payload.title || 'myFAOS', {
+      body: payload.body || '',
+      tag: payload.tag,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      data: { url: payload.url || '/dashboard' },
+    }),
+  );
+});
+
+// Reminder notifications (see src/lib/notifications.js) carry the page they are
+// about in `data.url`. A tap brings an open myFAOS window to the front and
+// takes it there, or opens a new one when none is running.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || '/dashboard', self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      const open = windows.find((w) => new URL(w.url).origin === self.location.origin);
+      if (open) {
+        return open.focus().then((w) => {
+          const client = w || open;
+          return client.navigate ? client.navigate(target) : client;
+        });
+      }
+      return self.clients.openWindow(target);
+    }),
+  );
+});
