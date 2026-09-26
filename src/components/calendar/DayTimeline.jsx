@@ -62,6 +62,13 @@ export default function DayTimeline({ day, events, onEventClick }) {
             // from looking detached from the one beside it.
             const width = 100 / lanes;
             const tight = blockHeight < HOUR_HEIGHT * 0.75;
+            const showLocation = !tight && blockHeight >= HOUR_HEIGHT * 1.4 && event.location;
+            // Long titles wrap over as many lines as the block has room for
+            // (after the padding and the time/location rows) instead of being
+            // cut to one line with an ellipsis.
+            const titleLineHeight = tight ? 16 : 20;
+            const titleRoom = blockHeight - 8 - (tight ? 0 : 16) - (showLocation ? 18 : 0);
+            const titleLines = Math.max(1, Math.floor(titleRoom / titleLineHeight));
             return (
               <button
                 key={event.id}
@@ -76,7 +83,13 @@ export default function DayTimeline({ day, events, onEventClick }) {
                   clipped ? 'rounded-b-none' : ''
                 }`}
               >
-                <span className={`block truncate font-semibold ${tight ? 'text-xs' : 'text-sm'}`}>
+                <span
+                  style={{ WebkitLineClamp: titleLines }}
+                  className={`break-words font-semibold [-webkit-box-orient:vertical] [display:-webkit-box] overflow-hidden ${
+                    tight ? 'text-xs' : 'text-sm'
+                  }`}
+                  title={event.title}
+                >
                   {event.title}
                 </span>
                 {!tight && (
@@ -85,7 +98,7 @@ export default function DayTimeline({ day, events, onEventClick }) {
                     {endLabel ? ` – ${endLabel}` : ''}
                   </span>
                 )}
-                {!tight && blockHeight >= HOUR_HEIGHT * 1.4 && event.location && (
+                {showLocation && (
                   <span className="mt-0.5 flex items-center gap-1 truncate text-xs opacity-80">
                     <MapPin size={11} className="flex-shrink-0" />
                     <span className="truncate">{event.location}</span>

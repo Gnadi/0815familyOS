@@ -109,7 +109,9 @@ export default function DailyPreview() {
                           <Calendar size={15} />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-slate-900">{ev.title}</p>
+                          <p className="line-clamp-2 break-words text-sm font-medium text-slate-900" title={ev.title}>
+                            {ev.title}
+                          </p>
                           {meta ? (
                             <p className="mt-0.5 truncate text-xs text-slate-500">{meta}</p>
                           ) : (
