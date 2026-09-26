@@ -192,7 +192,9 @@ export async function sendDueReminders({ db, sendPush, now = new Date(), dryRun 
 
       const clock = new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone });
       const batch = notificationBatch(due, translator(locale), (d) => clock.format(d));
-      log(`${uid}/${sub.ref.id}: ${due.length} due, ${batch.length} to send (${timeZone}, ${locale})`);
+      // The logs of a public repository's workflow runs are public: never
+      // name a member, a device or anything about their day in them.
+      log(`device ${stats.devices}: ${due.length} due, ${batch.length} to send`);
       if (dryRun) continue;
 
       let gone = false;
@@ -213,7 +215,7 @@ export async function sendDueReminders({ db, sendPush, now = new Date(), dryRun 
             break;
           }
           stats.failed += 1;
-          log(`${uid}/${sub.ref.id}: push failed (${err?.statusCode ?? err?.message ?? err})`);
+          log(`device ${stats.devices}: push failed (${err?.statusCode ?? 'no status'})`);
         }
       }
 
