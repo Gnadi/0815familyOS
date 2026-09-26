@@ -25,6 +25,18 @@ export function getWeekDays(anchor) {
   return Array.from({ length: 7 }, (_, i) => addDays(start, i));
 }
 
+// Heading for a week: "October 2026", or "Sep – Oct 2026" when the week spans
+// two months, or "Dec 2026 – Jan 2027" across a year boundary.
+export function formatWeekRange(days) {
+  const first = days[0];
+  const last = days[days.length - 1];
+  if (isSameMonth(first, last)) return format(first, 'MMMM yyyy');
+  if (first.getFullYear() === last.getFullYear()) {
+    return `${format(first, 'MMM')} – ${format(last, 'MMM yyyy')}`;
+  }
+  return `${format(first, 'MMM yyyy')} – ${format(last, 'MMM yyyy')}`;
+}
+
 export function getMonthGrid(anchor) {
   const gridStart = startOfWeek(startOfMonth(anchor), WEEK_OPTS);
   const gridEnd = endOfWeek(endOfMonth(anchor), WEEK_OPTS);

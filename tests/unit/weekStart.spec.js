@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { weekStart } from '../../src/utils/date';
+import { formatWeekRange, getWeekDays, weekStart } from '../../src/utils/date';
 
 describe('weekStart', () => {
   it('returns the Monday of the week', () => {
@@ -13,5 +13,21 @@ describe('weekStart', () => {
   it('keeps a Sunday in the week that started the Monday before', () => {
     const d = weekStart(new Date(2026, 9, 4));
     expect(d.getDate()).toBe(28);
+  });
+});
+
+describe('formatWeekRange', () => {
+  const week = (y, m, d) => getWeekDays(new Date(y, m, d));
+
+  it('shows the full month when the week stays in one month', () => {
+    expect(formatWeekRange(week(2026, 9, 7))).toBe('October 2026');
+  });
+
+  it('shows both months when the week spans two', () => {
+    expect(formatWeekRange(week(2026, 9, 2))).toBe('Sep – Oct 2026');
+  });
+
+  it('shows both years across a year boundary', () => {
+    expect(formatWeekRange(week(2026, 11, 31))).toBe('Dec 2026 – Jan 2027');
   });
 });

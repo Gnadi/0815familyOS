@@ -1,7 +1,14 @@
 import { useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { addWeeks, format, isSameDay, subWeeks } from 'date-fns';
-import { dayKey, getWeekDays, groupEventsByDay, NO_EVENTS, weekStart } from '../../utils/date';
+import {
+  dayKey,
+  formatWeekRange,
+  getWeekDays,
+  groupEventsByDay,
+  NO_EVENTS,
+  weekStart,
+} from '../../utils/date';
 import useCategories from '../../hooks/useCategories';
 import useT from '../../hooks/useT';
 import DayAgenda from './DayAgenda';
@@ -14,7 +21,7 @@ export default function WeekView({ anchor, selected, onAnchorChange, onSelect, e
   // One pass over the events instead of one full scan per day cell.
   const byDay = useMemo(() => groupEventsByDay(events), [events]);
   const dayEvents = byDay.get(dayKey(selected)) || NO_EVENTS;
-  const monthLabel = format(anchor, 'MMMM yyyy');
+  const monthLabel = formatWeekRange(days);
   // Paging to another week always lands on its Monday, not on the weekday that
   // happened to be selected before.
   const goToWeek = (d) => onAnchorChange(weekStart(d));
