@@ -1,4 +1,5 @@
 import { format, isToday, isYesterday } from 'date-fns';
+import { formatDate } from '../../utils/date';
 import { Pencil, Plus } from 'lucide-react';
 import Modal from '../common/Modal';
 import Button from '../common/Button';
@@ -12,7 +13,7 @@ function dayLabel(day, t) {
   if (!day) return t('tracker.unknownDay');
   if (isToday(day)) return t('tracker.today');
   if (isYesterday(day)) return t('tracker.yesterday');
-  return format(day, 'EEEE, d MMM yyyy');
+  return formatDate(day, 'weekdayWithYear');
 }
 
 export default function TrackerDetailModal({
@@ -59,7 +60,7 @@ export default function TrackerDetailModal({
           </p>
           <p className="mt-1 text-sm font-medium">
             {status.lastAt
-              ? t('tracker.lastEntryAt', { date: format(status.lastAt, 'EEE d MMM, HH:mm') })
+              ? t('tracker.lastEntryAt', { date: formatDate(status.lastAt, 'weekdayTime') })
               : t('tracker.neverLogged')}
           </p>
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">

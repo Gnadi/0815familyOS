@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { format } from 'date-fns';
+import { formatDate } from '../../utils/date';
 import {
   CreditCard,
   Download,
@@ -104,7 +104,7 @@ export default function DocumentCard({ doc, onClick, encryptionKey }) {
           </span>
           {doc.date && (
             <span className="text-xs text-slate-400">
-              {format(doc.date, 'dd MMM yyyy')}
+              {formatDate(doc.date, 'dayMonthYear')}
             </span>
           )}
         </div>

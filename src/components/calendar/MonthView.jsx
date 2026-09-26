@@ -1,7 +1,15 @@
 import { useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, isSameDay, isSameMonth } from 'date-fns';
-import { addMonths, dayKey, getMonthGrid, groupEventsByDay, NO_EVENTS, subMonths } from '../../utils/date';
+import {
+  addMonths,
+  dayKey,
+  formatDate,
+  getMonthGrid,
+  groupEventsByDay,
+  NO_EVENTS,
+  subMonths,
+} from '../../utils/date';
 import useCategories from '../../hooks/useCategories';
 import useT from '../../hooks/useT';
 import DayAgenda from './DayAgenda';
@@ -89,7 +97,7 @@ export default function MonthView({ anchor, selected, onAnchorChange, onSelect, 
           day={selected}
           events={dayEvents}
           onEventClick={onEventClick}
-          title={t('calendar.eventsOn', { date: format(selected, 'MMMM d') })}
+          title={t('calendar.eventsOn', { date: formatDate(selected, 'long') })}
         />
       </div>
     </div>

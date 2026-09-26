@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { format } from 'date-fns';
+import { formatDate } from '../../utils/date';
 import { Download, Loader2, Trophy, User } from 'lucide-react';
 import { decryptBlob } from '../../utils/encryption';
 import useVaultCategories from '../../hooks/useVaultCategories';
@@ -83,7 +83,7 @@ export default function TrophyCard({ trophy, onClick, encryptionKey }) {
           </span>
           {trophy.date && (
             <span className="text-xs text-slate-400">
-              {format(trophy.date, 'dd MMM yyyy')}
+              {formatDate(trophy.date, 'dayMonthYear')}
             </span>
           )}
         </div>

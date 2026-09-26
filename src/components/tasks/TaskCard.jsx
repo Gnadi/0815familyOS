@@ -3,7 +3,7 @@ import { format, isBefore, isSameDay, startOfDay } from 'date-fns';
 import { useDraggable } from '@dnd-kit/core';
 import AvatarStack from '../common/AvatarStack';
 import { getTaskCategory, TASK_PRIORITY_MAP } from '../../constants/taskCategories';
-import { formatRelativeDay } from '../../utils/date';
+import { formatDate, formatRelativeDay } from '../../utils/date';
 import { describeRecurrence } from '../../utils/recurrence';
 import useT from '../../hooks/useT';
 import { tLabel } from '../../i18n/labels';
@@ -25,8 +25,8 @@ function formatDueLabel(task, t) {
   const today = startOfDay(new Date());
   const due = startOfDay(task.dueDate);
   if (isSameDay(due, today)) return t('common.today');
-  if (isBefore(due, today)) return t('tasks.overdue', { date: format(task.dueDate, 'MMM d') });
-  return format(task.dueDate, 'MMM d');
+  if (isBefore(due, today)) return t('tasks.overdue', { date: formatDate(task.dueDate, 'short') });
+  return formatDate(task.dueDate, 'short');
 }
 
 function TaskCardBody({ task, members, t, tn, dragging = false, overlay = false }) {
