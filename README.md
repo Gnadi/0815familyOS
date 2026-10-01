@@ -141,6 +141,13 @@ The threshold is `AUDIT_LEVEL` in the workflow; lower it to `moderate` or
 `low` once everything above that is cleared. A one-off run at a different
 level can be started under Actions → npm audit → Run workflow.
 
+`package.json` carries one `overrides` entry: `@firebase/firestore` pins
+`@grpc/grpc-js` to `~1.9.0`, which has no fix for GHSA-m9gg-hp2v-232j (fixed
+in 1.13.6), so the override lifts it to `^1.13.6`. Only Firestore's Node build
+uses gRPC — the browser talks WebChannel — so what it affects is the rules
+tests and the build, both of which pass with it. Remove it once a Firebase
+release depends on a fixed `@grpc/grpc-js` itself.
+
 ## Data Model
 
 ```
@@ -150,7 +157,18 @@ families/{id}         { name, createdBy, memberIds[], encryptionKeyJwk,
 invites/{token}       { familyId, familyName, createdBy, createdByName,
                         revoked, expiresAt, createdAt }   // doc id IS the token
 events/{id}           { familyId, userId, title, description?, date, createdAt, updatedAt }
+shoppingItems/{id}    { familyId, userId, title, quantity, icon, urgent, offer, ifConvenient,
+                        list: 'main' | 'fresh', forMeals, proposedFor?, done, completedAt,
+                        lastPurchase?, seeded? }
+shoppingProducts/{familyId}_{product}
+                      { familyId, userId, key, title, purchases: [{ id, at, planned? }],
+                        stillHaveAt?, fresh?, muted?, updatedAt }
 ```
+
+`families/{id}` additionally carries `household: { adults, shoppingMode,
+shoppingDay, mealsPerWeek }` for the smart shopping list, recipes an optional `servings`,
+and meal plan entries `shopped: { recipeId, at }` once their ingredients went
+on the list.
 
 ## Auth & Family Flow
 
@@ -258,6 +276,47 @@ list. Installs predating that key fall back to `LEGACY_QUICK_ACCESS_IDS` —
 the catalogue as it stood before the migration — so new entries are correctly
 recognised as new. The logic is pure, in `src/utils/quickAccess.js`, and
 covered by `tests/unit/quickAccess.spec.js`.
+
+## Smart Shopping (stage 1)
+
+The shopping list learns what the family buys and turns it into suggestions,
+and optionally into one reviewed list per week. The full concept, the
+decisions behind it and the later stages (supermarket offers via
+preisrunter.at, where to shop) are in
+[`docs/smart-shopping.md`](docs/smart-shopping.md).
+
+- **No extra input.** Checking an item off records a purchase in
+  `shoppingProducts` — one document per product and family, appended with
+  `arrayUnion` so it queues offline, and written separately from the item so a
+  failed log never fails the check-off. Re-opening an item within 15 minutes
+  takes the purchase back out (a mis-tap); items checked off before the log
+  existed are backfilled from their `completedAt` when they go back on the
+  list.
+- **Rhythm.** From three shopping trips on, the median interval says when a
+  product is due again (`src/utils/consumption.js`). Irregular products are
+  never predicted, "still have it" snoozes, and ignored suggestions go quiet.
+  Purchases made only for planned meals (`forMeals` items) build no rhythm.
+- **Household** (Settings → Household): number of adults, children weighted
+  by age from their birthdays, running list or weekly list, and the shopping
+  day. Recipes with `servings` are scaled to the household when planned meals
+  go on the list (`scaleIngredient` in `src/utils/ingredients.js`).
+- **Running list:** a *Due soon* section above the list.
+- **Weekly list:** the list splits into *Weekly shop* and *In between* (fresh
+  food for mid-week, guessed from the product and switchable per item); *Until
+  the shop* lists what runs out before the shopping day; and a reviewed
+  **weekly proposal** combines what runs out before the shop after next with
+  the ingredients of the meals planned for that week
+  (`planWeeklyProposal` in `src/utils/smartShopping.js`). Each planned meal
+  is offered once (`mealPlanEntries.shopped`), and what the proposal already
+  bought for a trip is not offered again for it (`shoppingItems.proposedFor`).
+  At its top, **meals this week**: how many meals the family cooks this week
+  (asked anew each week, last answer as default), filled from the family's
+  own recipes in rotation (`src/utils/mealSuggestions.js`, from 7 recipes
+  on), each suggestion swappable, removable or replaced by a hand-picked
+  recipe. Confirming puts new meals on free days of the week plan.
+
+The pure logic is covered by `tests/unit/smartShopping.spec.js`, the
+`shoppingProducts` rules by `tests/rules/rules.spec.js`.
 
 ## Out of scope (future work)
 

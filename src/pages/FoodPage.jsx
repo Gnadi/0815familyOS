@@ -14,9 +14,12 @@ import useRecipes from '../hooks/useRecipes';
 import useMealPlan from '../hooks/useMealPlan';
 import useShoppingItems from '../hooks/useShoppingItems';
 import { createRecipe, updateRecipe, deleteRecipe } from '../services/recipes';
-import { createMealEntry, updateMealEntry, deleteMealEntry } from '../services/mealPlan';
+import { createMealEntry, updateMealEntry, deleteMealEntry, markMealsShopped } from '../services/mealPlan';
 import { addCook, removeCook } from '../services/families';
 import { addShoppingItemsBulk, planShoppingAdditions } from '../services/shopping';
+import { householdPortions } from '../utils/household';
+import { decimalSeparatorFor } from '../utils/ingredients';
+import { mealPlanLines, plannedMeals } from '../utils/smartShopping';
 
 const TABS = [
   { id: 'plan', labelKey: 'food.tabWeekPlan' },
@@ -25,7 +28,7 @@ const TABS = [
 
 export default function FoodPage() {
   const { user, userDoc, family } = useAuth();
-  const { t } = useT();
+  const { t, locale } = useT();
   const familyId = userDoc?.familyId;
   const { setFoodFabCallback } = useOutletContext() || {};
 
@@ -94,25 +97,43 @@ export default function FoodPage() {
     }
   }
 
-  // Every ingredient planned for the seven days starting at shopWeekStart.
-  // Free-text entries have no recipe and therefore no ingredients.
+  // Every ingredient planned for the seven days starting at shopWeekStart,
+  // scaled from each recipe's servings to the household. Free-text entries
+  // have no recipe and therefore no ingredients.
+  const portions = householdPortions({
+    household: family?.household,
+    kids: family?.kids,
+    memberCount: family?.memberIds?.length,
+  }).total;
   const weekLines = useMemo(() => {
     if (!shopWeekStart) return [];
-    const byId = new Map(recipes.map((r) => [r.id, r]));
     const end = new Date(shopWeekStart);
     end.setDate(end.getDate() + 7);
-    return entries
-      .filter((e) => e.date && e.date >= shopWeekStart && e.date < end && e.recipeId)
-      .flatMap((e) => byId.get(e.recipeId)?.ingredients || []);
-  }, [shopWeekStart, entries, recipes]);
+    return mealPlanLines({
+      entries,
+      recipes,
+      from: shopWeekStart,
+      to: end,
+      portions,
+      decimalSeparator: decimalSeparatorFor(locale),
+    }).map((l) => l.line);
+  }, [shopWeekStart, entries, recipes, portions, locale]);
 
   async function handleAddIngredients(lines) {
     const plan = planShoppingAdditions({ lines, existingItems: shoppingItems });
-    return addShoppingItemsBulk({ familyId, userId: user.uid, plan });
+    return addShoppingItemsBulk({ familyId, userId: user.uid, plan, items: shoppingItems });
   }
 
+  // The week's meals count as shopped for afterwards, so the weekly proposal
+  // on the shopping list does not offer the same meals a second time.
   async function handleConfirmWeek(plan) {
-    await addShoppingItemsBulk({ familyId, userId: user.uid, plan });
+    const end = new Date(shopWeekStart);
+    end.setDate(end.getDate() + 7);
+    const meals = plannedMeals({ entries, recipes, from: shopWeekStart, to: end }).map((m) => m.entry);
+    await Promise.all([
+      addShoppingItemsBulk({ familyId, userId: user.uid, plan, items: shoppingItems }),
+      markMealsShopped(meals),
+    ]);
     setShopWeekStart(null);
   }
 

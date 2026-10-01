@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Footprints, BadgePercent, Hourglass, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { Footprints, BadgePercent, Hourglass, Image as ImageIcon, Trash2, Leaf, BellOff, Sparkles } from 'lucide-react';
 import Modal from '../common/Modal';
 import useT from '../../hooks/useT';
 import { PRODUCT_ICONS, guessProductIcon } from '../../utils/productIcons';
 import { deleteShoppingItem, updateShoppingItem } from '../../services/shopping';
+import { logProductWriteError, updateProductPreferences } from '../../services/shoppingProducts';
+import { predictProduct } from '../../utils/consumption';
+import { isFreshProduct } from '../../utils/smartShopping';
+import { rhythmText } from './rhythmText';
 
-export default function ShoppingItemModal({ item, onClose }) {
-  const { t } = useT();
+// `product` is what the smart list has learned about this item (may be null
+// before the first purchase); `weekly` enables the in-between list switch.
+export default function ShoppingItemModal({ item, product, weekly, familyId, userId, onClose }) {
+  const { t, tn } = useT();
   const [quantity, setQuantity] = useState('');
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
 
@@ -34,6 +40,57 @@ export default function ShoppingItemModal({ item, onClose }) {
     updateShoppingItem(item.id, { icon: value });
     setIconPickerOpen(false);
   }
+
+  // An open item shows the list it waits on; a "recently used" tile shows the
+  // list it would go back to (ShoppingPage's listFor).
+  const onFreshList = item.done ? isFreshProduct(item.title, product?.fresh) : item.list === 'fresh';
+
+  // Moving an item to or from the in-between list also teaches the product
+  // where it belongs, so the next time it is added it lands there by itself.
+  function toggleFresh() {
+    const fresh = !onFreshList;
+    updateShoppingItem(item.id, { list: fresh ? 'fresh' : 'main' });
+    updateProductPreferences({ familyId, userId, title: item.title, fresh }).catch(logProductWriteError);
+  }
+
+  function toggleMuted() {
+    updateProductPreferences({ familyId, userId, title: item.title, muted: !product?.muted }).catch(
+      logProductWriteError,
+    );
+  }
+
+  const prediction = predictProduct(product);
+  let learned;
+  if (prediction.status === 'predicted' || prediction.status === 'dormant') {
+    learned = rhythmText(prediction, { t, tn });
+  } else if (prediction.status === 'irregular') {
+    learned = t('shopping.learnedIrregular');
+  } else if (prediction.trips > 0) {
+    learned = tn('shopping.learnedLearning', prediction.trips);
+  } else if (product?.purchases?.some((p) => p.planned)) {
+    learned = t('shopping.learnedPlannedOnly');
+  } else {
+    learned = t('shopping.learnedNone');
+  }
+
+  const toggles = [
+    weekly && {
+      key: 'fresh',
+      label: t('shopping.listFresh'),
+      desc: t('shopping.listFreshDesc'),
+      icon: Leaf,
+      active: onFreshList,
+      onClick: toggleFresh,
+    },
+    {
+      key: 'muted',
+      label: t('shopping.muteSuggestions'),
+      desc: t('shopping.muteSuggestionsDesc'),
+      icon: BellOff,
+      active: Boolean(product?.muted),
+      onClick: toggleMuted,
+    },
+  ].filter(Boolean);
 
   async function handleDelete() {
     await deleteShoppingItem(item.id);
@@ -99,6 +156,32 @@ export default function ShoppingItemModal({ item, onClose }) {
                 </button>
               );
             })}
+          </div>
+        </section>
+
+        <section>
+          <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-slate-900">
+            <Sparkles size={15} className="text-brand-500" /> {t('shopping.learned')}
+          </h3>
+          <p className="mb-3 text-sm text-slate-600">{learned}</p>
+          <div className="space-y-2">
+            {toggles.map(({ key, label, desc, icon: Icon, active, onClick }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={onClick}
+                aria-pressed={active}
+                className={`flex w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-left transition-colors ${
+                  active ? 'bg-brand-500 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                <Icon size={16} className="shrink-0" />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">{label}</span>
+                  <span className={`block text-xs ${active ? 'text-white/80' : 'text-slate-500'}`}>{desc}</span>
+                </span>
+              </button>
+            ))}
           </div>
         </section>
 

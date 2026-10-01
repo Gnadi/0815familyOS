@@ -15,8 +15,15 @@ import { db } from '../lib/firebase';
 import { DEFAULT_SHOPPING_ITEMS } from '../constants/defaultShoppingItems';
 import { joinQuantities, normalizeTitle, parseIngredient } from '../utils/ingredients';
 import { guessProductIcon } from '../utils/productIcons';
+import { indexShoppingItems, resolveExisting } from '../utils/smartShopping';
 import { isDemoMode } from '../lib/demoMode';
 import { demoAdd, demoDelete, demoDocs, demoSubscribe, demoUpdate } from './demoStore';
+import {
+  logProductWriteError,
+  preparePurchase,
+  removePurchase,
+  writePurchase,
+} from './shoppingProducts';
 
 const itemsRef = collection(db, 'shoppingItems');
 
@@ -40,6 +47,16 @@ function mapItemDocs(docs) {
         urgent: Boolean(data.urgent),
         offer: Boolean(data.offer),
         ifConvenient: Boolean(data.ifConvenient),
+        // Which list the item waits on in weekly mode: the weekly shop, or
+        // "in between" for fresh food. Ignored by the running-list mode.
+        list: data.list === 'fresh' ? 'fresh' : 'main',
+        lastPurchase: data.lastPurchase || null,
+        // On the list only because planned meals need it; its purchase then
+        // builds no rhythm (utils/consumption.js ownPurchases).
+        forMeals: Boolean(data.forMeals),
+        // The weekly-shop trip (utils/smartShopping.js tripId) whose proposal
+        // put the item on the list.
+        proposedFor: data.proposedFor || null,
         createdAt: toDate(data.createdAt),
         completedAt: toDate(data.completedAt),
       };
@@ -58,7 +75,7 @@ export function subscribeShoppingItems(familyId, cb) {
   return onSnapshot(q, (snap) => cb(mapItemDocs(snap.docs)));
 }
 
-export function createShoppingItem({ familyId, userId, title, quantity, icon }) {
+export function createShoppingItem({ familyId, userId, title, quantity, icon, list }) {
   const payload = {
     familyId,
     userId,
@@ -68,6 +85,8 @@ export function createShoppingItem({ familyId, userId, title, quantity, icon }) 
     urgent: false,
     offer: false,
     ifConvenient: false,
+    list: list === 'fresh' ? 'fresh' : 'main',
+    forMeals: false,
     done: false,
     createdAt: nowVal(),
     updatedAt: nowVal(),
@@ -119,14 +138,91 @@ export async function seedDefaultShoppingItems({ familyId, userId, locale = 'en'
   await batch.commit();
 }
 
-export function setShoppingItemDone(id, done) {
-  const payload = {
-    done: Boolean(done),
-    completedAt: done ? nowVal() : null,
+function writeItem(id, patch) {
+  if (isDemoMode()) return demoUpdate('shoppingItems', id, patch);
+  return updateDoc(doc(db, 'shoppingItems', id), patch);
+}
+
+function productFor(products, productId) {
+  return (products || []).find((p) => p.id === productId) || null;
+}
+
+// Checking an item off is the family buying it, and the one signal the smart
+// list learns from — no extra input asked for. The entry is stored on the item
+// as well, so a mis-tap can be taken back out of the log (see reopen below).
+export function checkOffShoppingItem(item, { familyId, userId, products, now = new Date() }) {
+  const purchase = preparePurchase({ familyId, title: item.title, at: now, planned: item.forMeals });
+  if (purchase) {
+    writePurchase({
+      familyId,
+      userId,
+      title: item.title,
+      purchase,
+      product: productFor(products, purchase.productId),
+    }).catch(logProductWriteError);
+  }
+  return writeItem(item.id, {
+    done: true,
+    completedAt: nowVal(),
     updatedAt: nowVal(),
+    lastPurchase: purchase,
+  });
+}
+
+// Re-opening an item this soon after checking it off is a mis-tap, not a
+// purchase followed by running out again. A re-opened item is the family's
+// own choice again: no longer "for planned meals", nor from a proposal.
+export const UNDO_WINDOW_MS = 15 * 60 * 1000;
+
+// Seeded starter tiles are created already "done"; their completedAt is the
+// family's creation, not a purchase.
+const SEED_COMPLETION_SLACK_MS = 5 * 60 * 1000;
+
+function isSeedCompletion(item) {
+  if (!item.seeded) return false;
+  const created = item.createdAt?.getTime?.();
+  const completed = item.completedAt?.getTime?.();
+  return !created || !completed || Math.abs(completed - created) < SEED_COMPLETION_SLACK_MS;
+}
+
+// What putting `item` back on the list means for the purchase log:
+//  - checked off moments ago (and this is the tile tap, `allowUndo`): take the
+//    purchase back out;
+//  - checked off before the log existed: record that purchase now, at the
+//    last moment its date is still known — reopening clears completedAt.
+function settlePurchaseOnReopen(item, { familyId, userId, products, allowUndo, now }) {
+  const last = item.lastPurchase;
+  if (last?.entry) {
+    const at = toDate(last.entry.at);
+    if (allowUndo && at && now.getTime() - at.getTime() < UNDO_WINDOW_MS) {
+      removePurchase(last).catch(logProductWriteError);
+    }
+    return;
+  }
+  if (!item.completedAt || isSeedCompletion(item)) return;
+  const purchase = preparePurchase({ familyId, title: item.title, at: item.completedAt });
+  if (!purchase) return;
+  writePurchase({
+    familyId,
+    userId,
+    title: item.title,
+    purchase,
+    product: productFor(products, purchase.productId),
+  }).catch(logProductWriteError);
+}
+
+export function reopenShoppingItem(item, { familyId, userId, products, list, now = new Date() }) {
+  settlePurchaseOnReopen(item, { familyId, userId, products, allowUndo: true, now });
+  const patch = {
+    done: false,
+    completedAt: null,
+    updatedAt: nowVal(),
+    lastPurchase: null,
+    forMeals: false,
+    proposedFor: null,
   };
-  if (isDemoMode()) return demoUpdate('shoppingItems', id, payload);
-  return updateDoc(doc(db, 'shoppingItems', id), payload);
+  if (list) patch.list = list === 'fresh' ? 'fresh' : 'main';
+  return writeItem(item.id, patch);
 }
 
 export function updateShoppingItem(id, fields) {
@@ -137,6 +233,7 @@ export function updateShoppingItem(id, fields) {
   if (fields.urgent !== undefined) patch.urgent = Boolean(fields.urgent);
   if (fields.offer !== undefined) patch.offer = Boolean(fields.offer);
   if (fields.ifConvenient !== undefined) patch.ifConvenient = Boolean(fields.ifConvenient);
+  if (fields.list !== undefined) patch.list = fields.list === 'fresh' ? 'fresh' : 'main';
   if (isDemoMode()) return demoUpdate('shoppingItems', id, patch);
   return updateDoc(doc(db, 'shoppingItems', id), patch);
 }
@@ -154,23 +251,7 @@ export function deleteShoppingItem(id) {
 // `existingItems` comes from the useShoppingItems subscription the page
 // already holds — matching the repo's "hooks subscribe, services write" split.
 export function planShoppingAdditions({ lines, existingItems = [] }) {
-  const openByTitle = new Map();
-  const doneByTitle = new Map();
-  for (const item of existingItems) {
-    const key = normalizeTitle(item.title);
-    if (!key) continue;
-    if (item.done) {
-      // Several "recently used" tiles can share a title; the most recently
-      // completed one is the one the family last touched.
-      const current = doneByTitle.get(key);
-      const better =
-        !current ||
-        (item.completedAt?.getTime?.() || 0) > (current.completedAt?.getTime?.() || 0);
-      if (better) doneByTitle.set(key, item);
-    } else {
-      openByTitle.set(key, item);
-    }
-  }
+  const index = indexShoppingItems(existingItems);
 
   const byKey = new Map();
   for (const line of lines) {
@@ -186,27 +267,44 @@ export function planShoppingAdditions({ lines, existingItems = [] }) {
     }
   }
 
-  return [...byKey.values()].map((entry) => {
-    const quantity = joinQuantities(entry.quantities);
-    const open = openByTitle.get(entry.key);
-    if (open) {
-      return { ...entry, quantity, action: 'skip', existingId: open.id };
-    }
-    const done = doneByTitle.get(entry.key);
-    if (done) {
-      // Reactivating is what tapping a "recently used" tile does, and it keeps
-      // the icon and the urgent/offer/ifConvenient flags the family set. A
-      // parallel document would throw all of that away and leave a duplicate.
-      return { ...entry, quantity, action: 'reactivate', existingId: done.id };
-    }
-    return { ...entry, quantity, action: 'create', existingId: null };
-  });
+  // Reactivating is what tapping a "recently used" tile does, and it keeps the
+  // icon and the urgent/offer/ifConvenient flags the family set. A parallel
+  // document would throw all of that away and leave a duplicate.
+  return [...byKey.values()].map((entry) => ({
+    ...entry,
+    quantity: joinQuantities(entry.quantities),
+    forMeals: true,
+    ...resolveExisting(entry.key, index),
+  }));
 }
 
-export async function addShoppingItemsBulk({ familyId, userId, plan }) {
+// `items` and `products` are the page's current subscriptions; they let a
+// reactivation settle the purchase log like a tile tap does. `list` places
+// every added item on that list (weekly mode); omitted, items keep theirs.
+// `proposedFor` is the weekly-shop trip whose proposal adds the items. Each
+// plan entry's `forMeals` says whether only planned meals need it.
+export async function addShoppingItemsBulk({
+  familyId,
+  userId,
+  plan,
+  items = [],
+  products = [],
+  list,
+  proposedFor = null,
+}) {
   const creates = plan.filter((p) => p.action === 'create');
   const reactivates = plan.filter((p) => p.action === 'reactivate');
   const skipped = plan.filter((p) => p.action === 'skip').length;
+  const listField = list ? { list: list === 'fresh' ? 'fresh' : 'main' } : {};
+  const origin = (entry) => ({ forMeals: Boolean(entry.forMeals), proposedFor });
+  const createList = list === 'fresh' ? 'fresh' : 'main';
+  const reopenedAt = new Date();
+
+  const byId = new Map(items.map((item) => [item.id, item]));
+  for (const entry of reactivates) {
+    const item = byId.get(entry.existingId);
+    if (item) settlePurchaseOnReopen(item, { familyId, userId, products, allowUndo: false, now: reopenedAt });
+  }
 
   if (isDemoMode()) {
     for (const entry of creates) {
@@ -220,6 +318,8 @@ export async function addShoppingItemsBulk({ familyId, userId, plan }) {
         urgent: false,
         offer: false,
         ifConvenient: false,
+        list: createList,
+        ...origin(entry),
         done: false,
         createdAt: now,
         updatedAt: now,
@@ -233,6 +333,9 @@ export async function addShoppingItemsBulk({ familyId, userId, plan }) {
         done: false,
         completedAt: null,
         updatedAt: new Date(),
+        lastPurchase: null,
+        ...origin(entry),
+        ...listField,
       });
     }
     return { added: creates.length + reactivates.length, reactivated: reactivates.length, skipped };
@@ -250,6 +353,8 @@ export async function addShoppingItemsBulk({ familyId, userId, plan }) {
       urgent: false,
       offer: false,
       ifConvenient: false,
+      list: createList,
+      ...origin(entry),
       done: false,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -261,6 +366,9 @@ export async function addShoppingItemsBulk({ familyId, userId, plan }) {
       done: false,
       completedAt: null,
       updatedAt: serverTimestamp(),
+      lastPurchase: null,
+      ...origin(entry),
+      ...listField,
     });
   }
   if (creates.length || reactivates.length) await batch.commit();

@@ -18,6 +18,7 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
   const [title, setTitle] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [category, setCategory] = useState(DEFAULT_RECIPE_CATEGORY);
+  const [servings, setServings] = useState('');
   const [ingredients, setIngredients] = useState(['']);
   const [steps, setSteps] = useState(['']);
   const [notes, setNotes] = useState('');
@@ -31,6 +32,7 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
       setTitle(initial.title || '');
       setSourceUrl(initial.sourceUrl || '');
       setCategory(initial.category || DEFAULT_RECIPE_CATEGORY);
+      setServings(initial.servings ? String(initial.servings) : '');
       setIngredients(seedRows(initial.ingredients));
       setSteps(seedRows(initial.instructions));
       setNotes(initial.notes || '');
@@ -38,6 +40,7 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
       setTitle('');
       setSourceUrl('');
       setCategory(DEFAULT_RECIPE_CATEGORY);
+      setServings('');
       setIngredients(['']);
       setSteps(['']);
       setNotes('');
@@ -62,6 +65,7 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
         title,
         sourceUrl,
         category,
+        servings,
         ingredients: ingredients.map((s) => s.trim()).filter(Boolean),
         instructions: steps.map((s) => s.trim()).filter(Boolean),
         notes,
@@ -139,6 +143,24 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
             ))}
           </div>
         </div>
+
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-medium text-slate-700">
+            {t('food.servings')} <span className="font-normal text-slate-400">({t('common.optional')})</span>
+          </span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min="1"
+            max="100"
+            step="1"
+            value={servings}
+            onChange={(e) => setServings(e.target.value)}
+            placeholder="4"
+            className="w-28 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 placeholder:text-slate-400 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+          />
+          <span className="mt-1.5 block text-xs text-slate-500">{t('food.servingsHint')}</span>
+        </label>
 
         <div>
           <span className="mb-1.5 block text-sm font-medium text-slate-700">

@@ -1,44 +1,148 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Plus, ShoppingBasket, BadgePercent, Footprints, Hourglass } from 'lucide-react';
+import { addDays, isSameDay } from 'date-fns';
+import { Plus, ShoppingBasket, BadgePercent, Footprints, Hourglass, CalendarCheck, Sparkles } from 'lucide-react';
 import TopBar from '../components/layout/TopBar';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
 import ShoppingItemModal from '../components/shopping/ShoppingItemModal';
+import SuggestionList from '../components/shopping/SuggestionList';
+import WeeklyProposalModal from '../components/shopping/WeeklyProposalModal';
 import useAuth from '../hooks/useAuth';
 import useT from '../hooks/useT';
 import useLongPress from '../hooks/useLongPress';
 import useShoppingItems from '../hooks/useShoppingItems';
+import useShoppingProducts from '../hooks/useShoppingProducts';
+import useWeeklyProposal from '../hooks/useWeeklyProposal';
 import { guessProductIcon } from '../utils/productIcons';
+import { formatDate } from '../utils/date';
+import { normalizeHousehold } from '../utils/household';
+import { ownPurchases, predictProduct, tripsOf } from '../utils/consumption';
 import {
-  createShoppingItem,
-  setShoppingItemDone,
-} from '../services/shopping';
+  CONTINUOUS_HORIZON_DAYS,
+  indexShoppingItems,
+  isFreshProduct,
+  nextShoppingDate,
+  productKey,
+  shoppingSuggestions,
+} from '../utils/smartShopping';
+import { checkOffShoppingItem, createShoppingItem, reopenShoppingItem } from '../services/shopping';
+import { logProductWriteError, updateProductPreferences } from '../services/shoppingProducts';
 
 export default function ShoppingPage() {
-  const { user, userDoc } = useAuth();
-  const { t } = useT();
-  const { items, loading } = useShoppingItems(userDoc?.familyId);
+  const { user, userDoc, family } = useAuth();
+  const { t, tn, locale } = useT();
+  const familyId = userDoc?.familyId;
+  const userId = user?.uid;
+  const { items, loading } = useShoppingItems(familyId);
+  const { products } = useShoppingProducts(familyId);
   const { setShoppingFabCallback } = useOutletContext() || {};
   const [title, setTitle] = useState('');
   const [editingId, setEditingId] = useState(null);
+  const [proposalOpen, setProposalOpen] = useState(false);
   const inputRef = useRef(null);
+
+  const memberCount = family?.memberIds?.length || 1;
+  const household = normalizeHousehold(family?.household, memberCount);
+  const weekly = household.shoppingMode === 'weekly';
+
+  const { tripDate, proposal, proposalCount, menu, recipeCount, confirm } = useWeeklyProposal({
+    enabled: weekly,
+    familyId,
+    userId,
+    family,
+    items,
+    products,
+    locale,
+  });
+
+  const productsByKey = useMemo(() => new Map(products.map((p) => [p.key, p])), [products]);
+  const itemIndex = useMemo(() => indexShoppingItems(items), [items]);
+  const productFor = (itemTitle) => productsByKey.get(productKey(itemTitle)) || null;
 
   const toBuy = items.filter((i) => !i.done);
   const recent = items.filter((i) => i.done);
   const editingItem = items.find((i) => i.id === editingId) || null;
 
+  // Where a new item waits in weekly mode: fresh food on the in-between list,
+  // everything else on the weekly shop. The running list has one list only.
+  const listFor = (itemTitle) => {
+    if (!weekly) return undefined;
+    return isFreshProduct(itemTitle, productFor(itemTitle)?.fresh) ? 'fresh' : 'main';
+  };
+
+  const suggestions = useMemo(() => {
+    const now = new Date();
+    const until = weekly
+      ? nextShoppingDate(now, household.shoppingDay)
+      : addDays(now, CONTINUOUS_HORIZON_DAYS);
+    return shoppingSuggestions({ products, items, now, until });
+  }, [products, items, weekly, household.shoppingDay]);
+
+  // Until something has a rhythm, say that the list is learning — otherwise
+  // the smart part is invisible for the first weeks.
+  const learning = useMemo(() => {
+    const now = new Date();
+    if (products.some((p) => ['predicted', 'dormant'].includes(predictProduct(p, now).status))) return null;
+    return products.reduce((sum, p) => sum + tripsOf(ownPurchases(p.purchases)).length, 0);
+  }, [products]);
+
   async function handleAdd(e) {
     e.preventDefault();
-    if (!title.trim() || !userDoc?.familyId || !user?.uid) return;
+    if (!title.trim() || !familyId || !userId) return;
     await createShoppingItem({
-      familyId: userDoc.familyId,
-      userId: user.uid,
+      familyId,
+      userId,
       title,
       icon: guessProductIcon(title),
+      list: listFor(title),
     });
     setTitle('');
   }
+
+  function handleCheckOff(item) {
+    return checkOffShoppingItem(item, { familyId, userId, products });
+  }
+
+  function handleReopen(item) {
+    return reopenShoppingItem(item, { familyId, userId, products, list: listFor(item.title) });
+  }
+
+  // A suggestion brings back the product's "recently used" tile when there is
+  // one (keeping its icon and flags), else creates the item. In weekly mode it
+  // goes on the in-between list: it runs out before the weekly shop.
+  function handleAddSuggestion(product) {
+    const tile = itemIndex.doneByKey.get(product.key);
+    const list = weekly ? 'fresh' : undefined;
+    if (tile) return reopenShoppingItem(tile, { familyId, userId, products, list });
+    return createShoppingItem({
+      familyId,
+      userId,
+      title: product.title,
+      icon: guessProductIcon(product.title),
+      list,
+    });
+  }
+
+  function handleStillHave(product) {
+    updateProductPreferences({ familyId, userId, title: product.title, stillHave: true }).catch(
+      logProductWriteError,
+    );
+  }
+
+  async function handleConfirmProposal(chosen) {
+    await confirm(chosen);
+    setProposalOpen(false);
+  }
+
+  const iconFor = (product) => itemIndex.doneByKey.get(product.key)?.icon || '';
+
+  const dayLabel = (date) => {
+    const today = new Date();
+    if (isSameDay(date, today)) return t('common.today');
+    if (isSameDay(date, addDays(today, 1))) return t('common.tomorrow');
+    return formatDate(date, 'weekdayShort');
+  };
 
   // Wire the shared "+" in the nav bar to this page's add field so it adds a
   // grocery rather than opening the event form.
@@ -50,6 +154,8 @@ export default function ShoppingPage() {
     setShoppingFabCallback?.(() => focusInput);
     return () => setShoppingFabCallback?.(null);
   }, [setShoppingFabCallback, focusInput]);
+
+  const sectionProps = { onEdit: (item) => setEditingId(item.id), t };
 
   return (
     <>
@@ -76,52 +182,138 @@ export default function ShoppingPage() {
 
         {loading ? (
           <Spinner />
-        ) : items.length === 0 ? (
-          <EmptyState
-            icon={ShoppingBasket}
-            title={t('shopping.emptyTitle')}
-            description={t('shopping.emptyDesc')}
-          />
         ) : (
           <>
-            <Section
-              title={t('shopping.toBuy')}
-              count={toBuy.length}
-              empty={t('shopping.allChecked')}
-              items={toBuy}
-              variant="buy"
-              onToggle={(item) => setShoppingItemDone(item.id, true)}
-              onEdit={(item) => setEditingId(item.id)}
-              t={t}
+            {weekly && tripDate && (
+              <section className="rounded-2xl bg-white p-4 shadow-card">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-500/10 text-brand-600">
+                    <CalendarCheck size={22} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-slate-900">
+                      {t('shopping.nextShop', { day: dayLabel(tripDate) })}
+                    </span>
+                    <span className="block text-xs text-slate-500">
+                      {proposalCount > 0 ? tn('shopping.proposalCount', proposalCount) : t('shopping.proposalNone')}
+                    </span>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setProposalOpen(true)}
+                  className="mt-3 w-full rounded-full bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-600"
+                >
+                  {t('shopping.viewProposal')}
+                </button>
+              </section>
+            )}
+
+            <SuggestionList
+              title={weekly ? t('shopping.untilShop') : t('shopping.dueSoon')}
+              hint={weekly ? t('shopping.untilShopHint') : null}
+              suggestions={suggestions}
+              iconFor={iconFor}
+              onAdd={handleAddSuggestion}
+              onStillHave={handleStillHave}
             />
 
-            {recent.length > 0 && (
-              <Section
-                title={t('shopping.recentlyUsed')}
-                count={recent.length}
-                items={recent}
-                variant="recent"
-                onToggle={(item) => setShoppingItemDone(item.id, false)}
-                onEdit={(item) => setEditingId(item.id)}
-                t={t}
+            {learning !== null && (
+              <section className="flex gap-3 rounded-2xl border border-dashed border-slate-200 p-4">
+                <Sparkles size={18} className="mt-0.5 shrink-0 text-brand-500" />
+                <div>
+                  <p className="text-sm font-semibold text-slate-700">{t('shopping.learningTitle')}</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
+                    {learning > 0 ? tn('shopping.learningProgress', learning) : t('shopping.learningStart')}
+                  </p>
+                </div>
+              </section>
+            )}
+
+            {items.length === 0 ? (
+              <EmptyState
+                icon={ShoppingBasket}
+                title={t('shopping.emptyTitle')}
+                description={t('shopping.emptyDesc')}
               />
+            ) : (
+              <>
+                {weekly ? (
+                  <>
+                    <Section
+                      title={t('shopping.weeklyShop')}
+                      items={toBuy.filter((i) => i.list !== 'fresh')}
+                      empty={t('shopping.allChecked')}
+                      variant="buy"
+                      onToggle={handleCheckOff}
+                      {...sectionProps}
+                    />
+                    <Section
+                      title={t('shopping.inBetween')}
+                      items={toBuy.filter((i) => i.list === 'fresh')}
+                      empty={t('shopping.inBetweenEmpty')}
+                      variant="buy"
+                      onToggle={handleCheckOff}
+                      {...sectionProps}
+                    />
+                  </>
+                ) : (
+                  <Section
+                    title={t('shopping.toBuy')}
+                    items={toBuy}
+                    empty={t('shopping.allChecked')}
+                    variant="buy"
+                    onToggle={handleCheckOff}
+                    {...sectionProps}
+                  />
+                )}
+
+                {recent.length > 0 && (
+                  <Section
+                    title={t('shopping.recentlyUsed')}
+                    items={recent}
+                    variant="recent"
+                    onToggle={handleReopen}
+                    {...sectionProps}
+                  />
+                )}
+              </>
             )}
           </>
         )}
       </main>
 
-      <ShoppingItemModal item={editingItem} onClose={() => setEditingId(null)} />
+      <ShoppingItemModal
+        item={editingItem}
+        product={editingItem ? productFor(editingItem.title) : null}
+        weekly={weekly}
+        familyId={familyId}
+        userId={userId}
+        onClose={() => setEditingId(null)}
+      />
+
+      {weekly && tripDate && (
+        <WeeklyProposalModal
+          open={proposalOpen}
+          onClose={() => setProposalOpen(false)}
+          title={t('shopping.proposalTitle', { day: dayLabel(tripDate) })}
+          plan={proposal}
+          menu={menu}
+          recipeCount={recipeCount}
+          onConfirm={handleConfirmProposal}
+        />
+      )}
     </>
   );
 }
 
-function Section({ title, count, empty, items, variant, onToggle, onEdit, t }) {
+function Section({ title, empty, items, variant, onToggle, onEdit, t }) {
   return (
     <section>
       <div className="mb-3 flex items-center gap-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{title}</h2>
         <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-600">
-          {count}
+          {items.length}
         </span>
       </div>
       {items.length === 0 ? (

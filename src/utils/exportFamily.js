@@ -10,6 +10,7 @@ const COLLECTIONS = [
   'documents',
   'vaccinations',
   'shoppingItems',
+  'shoppingProducts',
   'trackers',
   'trackerEntries',
 ];

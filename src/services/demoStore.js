@@ -72,6 +72,18 @@ export function demoUpdate(name, id, patch) {
   return Promise.resolve();
 }
 
+// setDoc(ref, data, { merge: true }) under a caller-chosen id: creates the
+// document or merges into it. `patch` may be a function of the existing raw
+// document, which is how callers express arrayUnion / arrayRemove here.
+export function demoSet(name, id, patch) {
+  const col = ensure().collections.get(name);
+  const existing = col.get(id);
+  const fields = typeof patch === 'function' ? patch(existing) : patch;
+  col.set(id, { ...(existing || {}), ...fields });
+  notify(name);
+  return Promise.resolve();
+}
+
 export function demoDelete(name, id) {
   ensure().collections.get(name).delete(id);
   notify(name);

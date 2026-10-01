@@ -40,6 +40,15 @@ export function toList(value) {
   return arr.map((s) => String(s).trim()).filter(Boolean);
 }
 
+// How many portions the recipe as written makes; null when not given. Used to
+// scale planned meals to the household (utils/household.js).
+const MAX_SERVINGS = 100;
+
+export function normalizeServings(value) {
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 && n <= MAX_SERVINGS ? n : null;
+}
+
 function mapRecipeDocs(docs) {
   return docs
     .map((d) => {
@@ -52,6 +61,7 @@ function mapRecipeDocs(docs) {
         ingredients: toList(data.ingredients),
         instructions: toList(data.instructions),
         category: data.category || DEFAULT_RECIPE_CATEGORY,
+        servings: normalizeServings(data.servings),
         notes: data.notes || '',
         createdAt: toDate(data.createdAt),
         updatedAt: toDate(data.updatedAt),
@@ -76,6 +86,7 @@ export function createRecipe({
   ingredients,
   instructions,
   category,
+  servings,
   notes,
 }) {
   const payload = {
@@ -86,6 +97,7 @@ export function createRecipe({
     ingredients: toList(ingredients),
     instructions: toList(instructions),
     category: category || DEFAULT_RECIPE_CATEGORY,
+    servings: normalizeServings(servings),
     notes: (notes || '').trim(),
     createdAt: nowVal(),
     updatedAt: nowVal(),
@@ -94,13 +106,14 @@ export function createRecipe({
   return addDoc(recipesRef, payload);
 }
 
-export function updateRecipe(id, { title, sourceUrl, ingredients, instructions, category, notes }) {
+export function updateRecipe(id, { title, sourceUrl, ingredients, instructions, category, servings, notes }) {
   const payload = {
     title: title.trim(),
     sourceUrl: normalizeUrl(sourceUrl),
     ingredients: toList(ingredients),
     instructions: toList(instructions),
     category: category || DEFAULT_RECIPE_CATEGORY,
+    servings: normalizeServings(servings),
     notes: (notes || '').trim(),
     updatedAt: nowVal(),
   };

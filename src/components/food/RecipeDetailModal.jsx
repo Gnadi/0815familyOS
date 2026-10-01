@@ -22,7 +22,7 @@ export default function RecipeDetailModal({
   onStartCooking,
   onAddIngredients,
 }) {
-  const { t } = useT();
+  const { t, tn } = useT();
   const [status, setStatus] = useState(null); // { added, skipped } | { error }
   const [adding, setAdding] = useState(false);
 
@@ -111,6 +111,11 @@ export default function RecipeDetailModal({
           <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${cat.chipBg} ${cat.chipText}`}>
             {tLabel(t, cat)}
           </span>
+          {recipe.servings && (
+            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+              {tn('food.forServings', recipe.servings)}
+            </span>
+          )}
           {href && (
             <a
               href={href}

@@ -277,6 +277,13 @@ export async function updateKid(familyId, kidId, fields) {
   await writeFamily(familyId, { kids: list });
 }
 
+// Household settings for the smart shopping list (see utils/household.js).
+// The whole object is written rather than a dotted field path: demo mode's
+// family store merges shallowly, and both modes must end up identical.
+export function updateHousehold(familyId, current, patch) {
+  return writeFamily(familyId, { household: { ...(current || {}), ...patch } });
+}
+
 // Delete a category. Built-ins are hidden via `disabledBuiltins`; customs are
 // removed from `customCategories`. Any events still pointing at the deleted
 // category are reassigned to `general` so they never render as "unknown".
