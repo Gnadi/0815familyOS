@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { QUICK_ACCESS_ENTRIES } from '../../constants/quickAccessEntries';
 import useUIPreferences from '../../hooks/useUIPreferences';
+import useNavLayout from '../../hooks/useNavLayout';
 import useT from '../../hooks/useT';
 
 function Tile({ icon: Icon, label, bg, color, to }) {
@@ -33,11 +34,12 @@ function Row({ icon: Icon, label, color, bg, to }) {
 }
 
 export default function QuickAccess() {
-  const { skin, quickAccess } = useUIPreferences();
+  const { skin } = useUIPreferences();
+  const { quickAccess } = useNavLayout();
   const { t } = useT();
 
-  // The visible shortcuts (and their order) are a user preference edited in
-  // Settings → Quick Access.
+  // The visible shortcuts (and their order) are a family setting edited in
+  // Settings → Navigation.
   const entries = quickAccess
     .map((id) => QUICK_ACCESS_ENTRIES.find((e) => e.id === id))
     .filter(Boolean);
