@@ -26,6 +26,10 @@ export const routes = [
       { path: 'login', lazy: lazyDefault(() => import('./pages/LoginPage')) },
       { path: 'signup', lazy: lazyDefault(() => import('./pages/SignupPage')) },
       {
+        path: 'forgot-password',
+        lazy: lazyDefault(() => import('./pages/ForgotPasswordPage')),
+      },
+      {
         path: 'family-setup',
         lazy: lazyDefault(() => import('./routes/FamilySetupRoute')),
       },

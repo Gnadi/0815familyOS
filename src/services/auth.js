@@ -1,5 +1,6 @@
 import {
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut as fbSignOut,
@@ -16,6 +17,7 @@ import { normalizeDisplayName } from '../utils/displayName';
 // back to the English source strings.
 const codeKeys = {
   'auth/invalid-email': 'authErrors.invalidEmail',
+  'auth/missing-email': 'authErrors.invalidEmail',
   'auth/email-already-in-use': 'authErrors.emailInUse',
   'auth/weak-password': 'authErrors.weakPassword',
   'auth/wrong-password': 'authErrors.wrongCredentials',
@@ -61,6 +63,27 @@ export async function signInWithEmail({ email, password }) {
   const cred = await signInWithEmailAndPassword(requireAuth(), email, password);
   await ensureUserDoc(cred.user);
   return cred.user;
+}
+
+// Sends Firebase's password-reset email. The link opens Firebase's hosted
+// action page; after the new password is set it offers a "continue" button
+// back to our /login. `locale` localizes the email itself.
+//
+// With email enumeration protection (the Firebase default) this resolves even
+// for addresses without an account, so callers must show a neutral message.
+export async function requestPasswordReset({ email, locale }) {
+  const a = requireAuth();
+  if (locale) a.languageCode = locale;
+  const settings = { url: `${window.location.origin}/login` };
+  try {
+    await sendPasswordResetEmail(a, email, settings);
+  } catch (err) {
+    // The continue URL must be an authorized domain in the Firebase console
+    // (often not the case for preview deployments). The reset itself still
+    // works without it, so retry rather than fail the whole request.
+    if (err?.code !== 'auth/unauthorized-continue-uri') throw err;
+    await sendPasswordResetEmail(a, email);
+  }
 }
 
 export async function signInWithGoogle() {
