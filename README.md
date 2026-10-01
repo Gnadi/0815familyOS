@@ -159,7 +159,7 @@ shoppingProducts/{familyId}_{product}
 ```
 
 `families/{id}` additionally carries `household: { adults, shoppingMode,
-shoppingDay }` for the smart shopping list, recipes an optional `servings`,
+shoppingDay, mealsPerWeek }` for the smart shopping list, recipes an optional `servings`,
 and meal plan entries `shopped: { recipeId, at }` once their ingredients went
 on the list.
 
@@ -302,8 +302,11 @@ preisrunter.at, where to shop) are in
   (`planWeeklyProposal` in `src/utils/smartShopping.js`). Each planned meal
   is offered once (`mealPlanEntries.shopped`), and what the proposal already
   bought for a trip is not offered again for it (`shoppingItems.proposedFor`).
-  Without planned meals there are no recipe ingredients, only a hint to plan
-  meals or add recipes.
+  At its top, **meals this week**: how many meals the family cooks this week
+  (asked anew each week, last answer as default), filled from the family's
+  own recipes in rotation (`src/utils/mealSuggestions.js`, from 7 recipes
+  on), each suggestion swappable, removable or replaced by a hand-picked
+  recipe. Confirming puts new meals on free days of the week plan.
 
 The pure logic is covered by `tests/unit/smartShopping.spec.js`, the
 `shoppingProducts` rules by `tests/rules/rules.spec.js`.

@@ -9,6 +9,10 @@ export const DEFAULT_SHOPPING_MODE = 'continuous';
 // Date#getDay() numbering: 0 = Sunday … 6 = Saturday.
 export const DEFAULT_SHOPPING_DAY = 6;
 export const MAX_ADULTS = 12;
+// How many meals the family cooks in a week. Asked anew every week in the
+// weekly proposal; the last answer is remembered as the next week's default.
+export const DEFAULT_MEALS_PER_WEEK = 5;
+export const MAX_MEALS_PER_WEEK = 21;
 
 function isAdultCount(value) {
   return Number.isInteger(value) && value >= 1 && value <= MAX_ADULTS;
@@ -27,6 +31,10 @@ export function normalizeHousehold(raw, memberCount = 1) {
       Number.isInteger(h.shoppingDay) && h.shoppingDay >= 0 && h.shoppingDay <= 6
         ? h.shoppingDay
         : DEFAULT_SHOPPING_DAY,
+    mealsPerWeek:
+      Number.isInteger(h.mealsPerWeek) && h.mealsPerWeek >= 0 && h.mealsPerWeek <= MAX_MEALS_PER_WEEK
+        ? h.mealsPerWeek
+        : DEFAULT_MEALS_PER_WEEK,
   };
 }
 

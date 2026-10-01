@@ -275,11 +275,18 @@ export function buildSeed() {
         recipe('demo_recipe_curry', 'recipe2', 'dinner'),
         recipe('demo_recipe_veg', 'recipe3', 'dinner'),
         recipe('demo_recipe_pancakes', 'recipe4', 'breakfast'),
+        recipe('demo_recipe_lentils', 'recipe5', 'dinner'),
+        recipe('demo_recipe_fish', 'recipe6', 'dinner'),
+        recipe('demo_recipe_lasagne', 'recipe7', 'dinner'),
       ]),
     ],
     [
       'mealPlanEntries',
       new Map([
+        // A little history, so suggestions can rotate: what was cooked lately
+        // comes last, what has not been on the table for weeks comes first.
+        ['demo_meal_past_1', { familyId: DEMO_FAMILY_ID, userId: DEMO_UID, date: at(-6, 12), slot: 'dinner', recipeId: 'demo_recipe_fish', text: '', cookId: null, cookType: null, cookName: '', ...meta() }],
+        ['demo_meal_past_2', { familyId: DEMO_FAMILY_ID, userId: DEMO_UID, date: at(-24, 12), slot: 'dinner', recipeId: 'demo_recipe_lentils', text: '', cookId: null, cookType: null, cookName: '', ...meta() }],
         ['demo_meal_today', { familyId: DEMO_FAMILY_ID, userId: DEMO_UID, date: at(0, 12), slot: 'dinner', recipeId: 'demo_recipe_bolognese', text: '', cookId: null, cookType: null, cookName: '', ...meta() }],
         ['demo_meal_tomorrow', { familyId: DEMO_FAMILY_ID, userId: DEMO_UID, date: at(1, 12), slot: 'dinner', recipeId: null, text: t('demo.mealTomorrow'), cookId: null, cookType: null, cookName: '', ...meta() }],
         // In the week the next shop covers, so the weekly proposal lists them.

@@ -51,7 +51,20 @@ export function subscribeMealPlan(familyId, cb) {
   return onSnapshot(q, (snap) => cb(mapEntryDocs(snap.docs)));
 }
 
-export function createMealEntry({ familyId, userId, date, slot, recipeId, text, cookId, cookType, cookName }) {
+// `shopped` creates the meal already shopped for: the weekly proposal plans
+// meals and puts their ingredients on the list in the same step.
+export function createMealEntry({
+  familyId,
+  userId,
+  date,
+  slot,
+  recipeId,
+  text,
+  cookId,
+  cookType,
+  cookName,
+  shopped = false,
+}) {
   const payload = {
     familyId,
     userId,
@@ -65,6 +78,7 @@ export function createMealEntry({ familyId, userId, date, slot, recipeId, text, 
     createdAt: nowVal(),
     updatedAt: nowVal(),
   };
+  if (shopped && recipeId) payload.shopped = { recipeId, at: nowVal() };
   if (isDemoMode()) return demoAdd('mealPlanEntries', payload);
   return addDoc(entriesRef, payload);
 }

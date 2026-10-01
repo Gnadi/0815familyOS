@@ -7,6 +7,7 @@ import {
   normalizeHousehold,
 } from '../../src/utils/household';
 import { parseAmount, scaleIngredient } from '../../src/utils/ingredients';
+import { placeMeals, rankRecipes, suggestMeals } from '../../src/utils/mealSuggestions';
 import {
   dueProducts,
   indexShoppingItems,
@@ -126,6 +127,7 @@ describe('household', () => {
       adultsIsDefault: true,
       shoppingMode: 'continuous',
       shoppingDay: 6,
+      mealsPerWeek: 5,
     });
   });
 
@@ -141,6 +143,8 @@ describe('household', () => {
       shoppingMode: 'continuous',
       shoppingDay: 6,
     });
+    expect(normalizeHousehold({ mealsPerWeek: 0 }).mealsPerWeek).toBe(0);
+    expect(normalizeHousehold({ mealsPerWeek: 30 }).mealsPerWeek).toBe(5);
   });
 
   it('computes age in full years', () => {
@@ -402,5 +406,66 @@ describe('planWeeklyProposal', () => {
       now: NOW,
     });
     expect(plan.map((e) => e.key)).toEqual(['nudeln']);
+  });
+});
+
+describe('meal suggestions', () => {
+  const from = new Date(2026, 9, 3); // Saturday, the shopping day
+  const to = new Date(2026, 9, 10);
+  const recipe = (id, category = 'dinner') => ({ id, title: id, category });
+  const recipes = [
+    recipe('curry'),
+    recipe('pasta'),
+    recipe('soup'),
+    recipe('pancakes', 'breakfast'),
+    recipe('cake', 'dessert'),
+  ];
+  const planned = (recipeId, date, slot = 'dinner') => ({ id: `${recipeId}-${date.getDate()}`, recipeId, date, slot });
+
+  it('rotates: longest not planned first, recent ones last, no desserts', () => {
+    const entries = [
+      planned('curry', new Date(2026, 8, 29)), // 4 days before the week: recent
+      planned('pasta', new Date(2026, 7, 1)), // two months ago
+      planned('soup', new Date(2026, 8, 1)), // a month ago
+    ];
+    const ranked = rankRecipes({ recipes, entries, from, to, seed: '2026-10-03' });
+    expect(ranked.map((r) => r.recipe.id)).toEqual(['pancakes', 'pasta', 'soup', 'curry']);
+    expect(ranked.find((r) => r.recipe.id === 'curry').recent).toBe(true);
+    expect(ranked.find((r) => r.recipe.id === 'pancakes').lastPlanned).toBeNull();
+  });
+
+  it('counts a recipe planned soon after the week as recent too', () => {
+    const entries = [planned('pasta', new Date(2026, 9, 12))];
+    const ranked = rankRecipes({ recipes, entries, from, to });
+    expect(ranked[ranked.length - 1].recipe.id).toBe('pasta');
+  });
+
+  it('suggests the next recipes that are not planned or chosen yet', () => {
+    const ranked = rankRecipes({ recipes, entries: [], from, to, seed: 'x' });
+    const first = suggestMeals({ ranked, count: 2 });
+    expect(first).toHaveLength(2);
+    const next = suggestMeals({ ranked, exclude: new Set(first.map((r) => r.id)), count: 5 });
+    expect(next.map((r) => r.id)).not.toContain(first[0].id);
+    expect(next).toHaveLength(2); // four meals in total, the cake is no meal
+    expect(suggestMeals({ ranked, count: 0 })).toEqual([]);
+  });
+
+  it('places meals on the first free day in their slot', () => {
+    const entries = [planned('curry', new Date(2026, 9, 3)), planned('soup', new Date(2026, 9, 4))];
+    const placed = placeMeals({ recipes: [recipe('pasta'), recipe('pancakes', 'breakfast')], entries, from });
+    expect(placed.map((p) => [p.recipe.id, p.date.getDate(), p.slot])).toEqual([
+      ['pasta', 5, 'dinner'],
+      ['pancakes', 3, 'breakfast'],
+    ]);
+  });
+
+  it('leaves out what does not fit a fully planned week', () => {
+    const entries = [];
+    for (let i = 0; i < 7; i += 1) {
+      for (const slot of ['breakfast', 'lunch', 'dinner']) {
+        entries.push(planned('x', new Date(2026, 9, 3 + i), slot));
+      }
+    }
+    expect(placeMeals({ recipes: [recipe('pasta')], entries, from })).toEqual([]);
   });
 });

@@ -97,6 +97,7 @@ past weeks.
 | `adults` | Adults who eat at home | number of family members |
 | `shoppingMode` | `continuous` (one running list) or `weekly` | `continuous` |
 | `shoppingDay` | Day of the big weekly shop, `Date#getDay()` (0 = Sunday) | `6` (Saturday) |
+| `mealsPerWeek` | Meals cooked in a week — asked anew every week in the weekly proposal, the last answer is the next week's default | `5` |
 
 Children are already stored with birthdays, so their portion is derived from
 age instead of asked for:
@@ -131,10 +132,24 @@ they run out within two days. One tap adds them; "still have it" snoozes.
 - **Until the shop** suggests what runs out before the shopping day. Adding
   one puts it on *In between* — it is needed before the weekly shop, whatever
   kind of product it is.
+- **Meals this week**, at the top of the weekly proposal: how many meals the
+  family cooks this week (set anew each week). Meals already in the week plan
+  count; the rest is filled from the family's *own* recipes:
+  - **Rotating:** the recipe longest not planned comes first, one planned in
+    the two weeks before or after comes last; desserts, snacks and drinks are
+    no meals. Ties are broken per week, so equal recipes vary.
+  - **Only from 7 recipes on** — fewer cannot fill a week without repeating.
+    Below that nothing is suggested automatically; the family picks recipes
+    itself and the proposal suggests adding more.
+  - Each suggestion can be **swapped** or **removed**; any recipe can be
+    **chosen by hand**.
+  - On confirming, chosen recipes go on **free days of the week plan** (their
+    own slot first: breakfast recipes for breakfast, lunch for lunch, the rest
+    for dinner), already marked as shopped for, and can be moved there.
 - A **weekly proposal** for the next shopping day, reviewed before anything
   is written (the same review-first pattern as "add week to shopping list"):
   - everything predicted to run out before the shop after this one,
-  - every ingredient of the meals planned for that week, scaled,
+  - every ingredient of the week's meals (planned and newly chosen), scaled,
   - deduplicated against what is already on the list.
 
   It never offers the same thing twice:
@@ -147,18 +162,18 @@ they run out within two days. One tap adds them; "still have it" snoozes.
     (`proposedFor`). Once bought, they are not offered again for the same
     trip: the weekly shop bought enough for the week, even if milk's rhythm
     says it lasts three days.
-  - **No planned meals, no recipe ingredients.** The proposal then says so and
-    links to the week plan; with fewer than seven recipes it suggests adding
-    more, since a week of dinners cannot be planned with variety from fewer.
+  - **No meals, no recipe ingredients.** Ingredients only come from the
+    week's meals; with fewer than seven recipes the proposal suggests adding
+    more.
 
 ## 6. Stages
 
 | Stage | Content | Status |
 |-------|---------|--------|
-| **1 — Learn** | Household settings, purchase log, recipe servings & scaling, prediction, suggestions, weekly mode with fresh list and proposal | **implemented** |
+| **1 — Learn** | Household settings, purchase log, recipe servings & scaling, prediction, suggestions, weekly mode with fresh list and proposal, meals per week with suggestions from the family's recipes | **implemented** |
 | **2 — Offers** | Price provider behind our own serverless endpoint; generic → concrete product matching confirmed once per family ("our milk" / "any brand"); offer badges with price, shop and validity on the existing `offer` flag; stock-up suggestions for durable products on a real discount | planned |
 | **3 — Where to shop** | Family picks its shops (supermarkets and drugstores) and the max shops per trip; the list is grouped by shop; estimated savings | planned |
-| **4 — Ideas** | Suggest meals for unplanned days from the family's *own* recipes, varied (nothing cooked in the last weeks); "Chicken is on offer — you often cook chicken curry"; price alerts; dashboard widget; holiday mode | ideas |
+| **4 — Ideas** | Meal suggestions that also weigh offers ("chicken is on offer — you often cook chicken curry") and favourites; the same meal choice in the running-list mode; price alerts; dashboard widget; holiday mode | ideas |
 
 ### Where to shop (stage 3 algorithm)
 
