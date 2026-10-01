@@ -7,13 +7,14 @@ import {
   BOTTOM_NAV_ENTRIES,
   BOTTOM_NAV_MAX,
   BOTTOM_NAV_MIN,
+  BOTTOM_NAV_REQUIRED,
 } from '../../constants/bottomNavEntries';
 import { moveId, toggleId } from '../../utils/navLayout';
 
 // One editable list: enabled entries first (in their chosen order, with
 // up/down buttons), then the rest unticked. `renderIcon` lets each list keep
 // its own look — tinted squares for Quick Access, plain glyphs for the bar.
-function OrderedPicker({ entries, selected, onChange, min = 0, max = Infinity, renderIcon, toggleLabelKey }) {
+function OrderedPicker({ entries, selected, onChange, min = 0, max = Infinity, required = [], renderIcon, toggleLabelKey }) {
   const { t } = useT();
   const rows = [
     ...selected.map((id) => entries.find((e) => e.id === id)).filter(Boolean),
@@ -26,7 +27,9 @@ function OrderedPicker({ entries, selected, onChange, min = 0, max = Infinity, r
         const label = t(entry.labelKey);
         const enabled = selected.includes(entry.id);
         const position = selected.indexOf(entry.id);
-        const locked = enabled ? selected.length <= min : selected.length >= max;
+        const locked = enabled
+          ? selected.length <= min || required.includes(entry.id)
+          : selected.length >= max;
         return (
           <div key={entry.id} className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
             {renderIcon(entry)}
@@ -96,15 +99,13 @@ export default function NavLayoutSection() {
           <p className="mt-3 text-sm text-slate-600">
             {t('settings.bottomNavDesc', { min: BOTTOM_NAV_MIN, max: BOTTOM_NAV_MAX })}
           </p>
-          {!bottomNav.includes('settings') && (
-            <p className="mt-2 text-xs text-slate-500">{t('settings.bottomNavSettingsHint')}</p>
-          )}
           <OrderedPicker
             entries={BOTTOM_NAV_ENTRIES}
             selected={bottomNav}
             onChange={(next) => save(() => setBottomNav(next))}
             min={BOTTOM_NAV_MIN}
             max={BOTTOM_NAV_MAX}
+            required={BOTTOM_NAV_REQUIRED}
             toggleLabelKey="settings.toggleNavTab"
             renderIcon={({ Icon }) => (
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-slate-600">

@@ -9,12 +9,18 @@ import { resolveQuickAccess, sanitizeQuickAccess } from './quickAccess';
 // that is the device-local preference the app used before the layout became a
 // family setting, so nobody's existing shortcuts change under them.
 
-// Drops unknown ids and duplicates, then enforces the size limits. Returns
-// null for anything unusable so the caller falls back to the default.
-export function sanitizeBottomNav(list, { allIds, min, max }) {
+// Drops unknown ids and duplicates, appends any missing required tab and
+// enforces the size limits — trimming optional tabs from the end, never a
+// required one. Returns null for anything unusable so the caller falls back
+// to the default.
+export function sanitizeBottomNav(list, { allIds, min, max, required = [] }) {
   const clean = sanitizeQuickAccess(list, allIds);
-  if (!clean || clean.length < min) return null;
-  return clean.slice(0, max);
+  if (!clean) return null;
+  const withRequired = [...clean, ...required.filter((id) => !clean.includes(id))];
+  const optional = withRequired.filter((id) => !required.includes(id));
+  const kept = new Set(optional.slice(0, Math.max(0, max - required.length)));
+  const capped = withRequired.filter((id) => required.includes(id) || kept.has(id));
+  return capped.length < min ? null : capped;
 }
 
 export function resolveNavLayout({ stored, fallbackQuickAccess, quickAccess, bottomNav }) {

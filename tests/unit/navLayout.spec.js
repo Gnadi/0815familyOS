@@ -4,6 +4,7 @@ import {
   BOTTOM_NAV_ENTRIES,
   BOTTOM_NAV_IDS,
   BOTTOM_NAV_MAX,
+  BOTTOM_NAV_REQUIRED,
   DEFAULT_BOTTOM_NAV,
 } from '../../src/constants/bottomNavEntries';
 
@@ -25,6 +26,22 @@ describe('sanitizeBottomNav', () => {
 
   it('caps lists at the maximum', () => {
     expect(sanitizeBottomNav(['home', 'calendar', 'meals', 'settings'], BOTTOM)).toEqual(['home', 'calendar', 'meals']);
+  });
+});
+
+describe('sanitizeBottomNav with required tabs', () => {
+  const RULES = { ...BOTTOM, max: 3, required: ['home', 'settings'] };
+
+  it('keeps required tabs wherever they were placed', () => {
+    expect(sanitizeBottomNav(['settings', 'meals', 'home'], RULES)).toEqual(['settings', 'meals', 'home']);
+  });
+
+  it('appends required tabs that are missing', () => {
+    expect(sanitizeBottomNav(['meals'], RULES)).toEqual(['meals', 'home', 'settings']);
+  });
+
+  it('trims optional tabs, never required ones, to fit the maximum', () => {
+    expect(sanitizeBottomNav(['calendar', 'meals', 'home', 'settings'], RULES)).toEqual(['calendar', 'home', 'settings']);
   });
 });
 
@@ -69,5 +86,6 @@ describe('bottom nav catalogue', () => {
     expect(new Set(BOTTOM_NAV_IDS).size).toBe(BOTTOM_NAV_ENTRIES.length);
     expect(DEFAULT_BOTTOM_NAV.every((id) => BOTTOM_NAV_IDS.includes(id))).toBe(true);
     expect(DEFAULT_BOTTOM_NAV.length).toBeLessThanOrEqual(BOTTOM_NAV_MAX);
+    expect(BOTTOM_NAV_REQUIRED.every((id) => DEFAULT_BOTTOM_NAV.includes(id))).toBe(true);
   });
 });

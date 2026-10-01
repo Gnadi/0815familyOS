@@ -33,6 +33,10 @@ export const BOTTOM_NAV_IDS = BOTTOM_NAV_ENTRIES.map((e) => e.id);
 // The layout the bar had before it became configurable.
 export const DEFAULT_BOTTOM_NAV = ['home', 'calendar', 'meals', 'tasks', 'gifts', 'settings'];
 
+// Always in the bar (wherever the family puts them): Home is the way back to
+// the dashboard and Settings the only way into the configuration itself.
+export const BOTTOM_NAV_REQUIRED = ['home', 'settings'];
+
 // Fewer than two tabs is not navigation; more than six no longer fits a phone
 // width next to the Material "+" button.
 export const BOTTOM_NAV_MIN = 2;

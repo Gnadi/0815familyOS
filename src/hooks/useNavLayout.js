@@ -8,6 +8,7 @@ import {
   BOTTOM_NAV_IDS,
   BOTTOM_NAV_MAX,
   BOTTOM_NAV_MIN,
+  BOTTOM_NAV_REQUIRED,
   DEFAULT_BOTTOM_NAV,
 } from '../constants/bottomNavEntries';
 import { DEFAULT_QUICK_ACCESS, QUICK_ACCESS_IDS } from '../constants/quickAccessEntries';
@@ -16,6 +17,7 @@ const BOTTOM_NAV_RULES = {
   allIds: BOTTOM_NAV_IDS,
   min: BOTTOM_NAV_MIN,
   max: BOTTOM_NAV_MAX,
+  required: BOTTOM_NAV_REQUIRED,
   defaults: DEFAULT_BOTTOM_NAV,
 };
 const QUICK_ACCESS_RULES = { allIds: QUICK_ACCESS_IDS, defaults: DEFAULT_QUICK_ACCESS };
