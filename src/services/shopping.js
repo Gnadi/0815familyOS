@@ -51,6 +51,12 @@ function mapItemDocs(docs) {
         // "in between" for fresh food. Ignored by the running-list mode.
         list: data.list === 'fresh' ? 'fresh' : 'main',
         lastPurchase: data.lastPurchase || null,
+        // On the list only because planned meals need it; its purchase then
+        // builds no rhythm (utils/consumption.js ownPurchases).
+        forMeals: Boolean(data.forMeals),
+        // The weekly-shop trip (utils/smartShopping.js tripId) whose proposal
+        // put the item on the list.
+        proposedFor: data.proposedFor || null,
         createdAt: toDate(data.createdAt),
         completedAt: toDate(data.completedAt),
       };
@@ -80,6 +86,7 @@ export function createShoppingItem({ familyId, userId, title, quantity, icon, li
     offer: false,
     ifConvenient: false,
     list: list === 'fresh' ? 'fresh' : 'main',
+    forMeals: false,
     done: false,
     createdAt: nowVal(),
     updatedAt: nowVal(),
@@ -144,7 +151,7 @@ function productFor(products, productId) {
 // list learns from — no extra input asked for. The entry is stored on the item
 // as well, so a mis-tap can be taken back out of the log (see reopen below).
 export function checkOffShoppingItem(item, { familyId, userId, products, now = new Date() }) {
-  const purchase = preparePurchase({ familyId, title: item.title, at: now });
+  const purchase = preparePurchase({ familyId, title: item.title, at: now, planned: item.forMeals });
   if (purchase) {
     writePurchase({
       familyId,
@@ -163,7 +170,8 @@ export function checkOffShoppingItem(item, { familyId, userId, products, now = n
 }
 
 // Re-opening an item this soon after checking it off is a mis-tap, not a
-// purchase followed by running out again.
+// purchase followed by running out again. A re-opened item is the family's
+// own choice again: no longer "for planned meals", nor from a proposal.
 export const UNDO_WINDOW_MS = 15 * 60 * 1000;
 
 // Seeded starter tiles are created already "done"; their completedAt is the
@@ -205,7 +213,14 @@ function settlePurchaseOnReopen(item, { familyId, userId, products, allowUndo, n
 
 export function reopenShoppingItem(item, { familyId, userId, products, list, now = new Date() }) {
   settlePurchaseOnReopen(item, { familyId, userId, products, allowUndo: true, now });
-  const patch = { done: false, completedAt: null, updatedAt: nowVal(), lastPurchase: null };
+  const patch = {
+    done: false,
+    completedAt: null,
+    updatedAt: nowVal(),
+    lastPurchase: null,
+    forMeals: false,
+    proposedFor: null,
+  };
   if (list) patch.list = list === 'fresh' ? 'fresh' : 'main';
   return writeItem(item.id, patch);
 }
@@ -258,6 +273,7 @@ export function planShoppingAdditions({ lines, existingItems = [] }) {
   return [...byKey.values()].map((entry) => ({
     ...entry,
     quantity: joinQuantities(entry.quantities),
+    forMeals: true,
     ...resolveExisting(entry.key, index),
   }));
 }
@@ -265,11 +281,22 @@ export function planShoppingAdditions({ lines, existingItems = [] }) {
 // `items` and `products` are the page's current subscriptions; they let a
 // reactivation settle the purchase log like a tile tap does. `list` places
 // every added item on that list (weekly mode); omitted, items keep theirs.
-export async function addShoppingItemsBulk({ familyId, userId, plan, items = [], products = [], list }) {
+// `proposedFor` is the weekly-shop trip whose proposal adds the items. Each
+// plan entry's `forMeals` says whether only planned meals need it.
+export async function addShoppingItemsBulk({
+  familyId,
+  userId,
+  plan,
+  items = [],
+  products = [],
+  list,
+  proposedFor = null,
+}) {
   const creates = plan.filter((p) => p.action === 'create');
   const reactivates = plan.filter((p) => p.action === 'reactivate');
   const skipped = plan.filter((p) => p.action === 'skip').length;
   const listField = list ? { list: list === 'fresh' ? 'fresh' : 'main' } : {};
+  const origin = (entry) => ({ forMeals: Boolean(entry.forMeals), proposedFor });
   const createList = list === 'fresh' ? 'fresh' : 'main';
   const reopenedAt = new Date();
 
@@ -292,6 +319,7 @@ export async function addShoppingItemsBulk({ familyId, userId, plan, items = [],
         offer: false,
         ifConvenient: false,
         list: createList,
+        ...origin(entry),
         done: false,
         createdAt: now,
         updatedAt: now,
@@ -306,6 +334,7 @@ export async function addShoppingItemsBulk({ familyId, userId, plan, items = [],
         completedAt: null,
         updatedAt: new Date(),
         lastPurchase: null,
+        ...origin(entry),
         ...listField,
       });
     }
@@ -325,6 +354,7 @@ export async function addShoppingItemsBulk({ familyId, userId, plan, items = [],
       offer: false,
       ifConvenient: false,
       list: createList,
+      ...origin(entry),
       done: false,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -337,6 +367,7 @@ export async function addShoppingItemsBulk({ familyId, userId, plan, items = [],
       completedAt: null,
       updatedAt: serverTimestamp(),
       lastPurchase: null,
+      ...origin(entry),
       ...listField,
     });
   }

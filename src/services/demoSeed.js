@@ -273,6 +273,8 @@ export function buildSeed() {
       new Map([
         recipe('demo_recipe_bolognese', 'recipe1', 'dinner'),
         recipe('demo_recipe_curry', 'recipe2', 'dinner'),
+        recipe('demo_recipe_veg', 'recipe3', 'dinner'),
+        recipe('demo_recipe_pancakes', 'recipe4', 'breakfast'),
       ]),
     ],
     [
@@ -282,7 +284,8 @@ export function buildSeed() {
         ['demo_meal_tomorrow', { familyId: DEMO_FAMILY_ID, userId: DEMO_UID, date: at(1, 12), slot: 'dinner', recipeId: null, text: t('demo.mealTomorrow'), cookId: null, cookType: null, cookName: '', ...meta() }],
         // In the week the next shop covers, so the weekly proposal lists them.
         ['demo_meal_shopweek_1', { familyId: DEMO_FAMILY_ID, userId: DEMO_UID, date: at(3, 12), slot: 'dinner', recipeId: 'demo_recipe_curry', text: '', cookId: null, cookType: null, cookName: '', ...meta() }],
-        ['demo_meal_shopweek_2', { familyId: DEMO_FAMILY_ID, userId: DEMO_UID, date: at(5, 12), slot: 'dinner', recipeId: 'demo_recipe_bolognese', text: '', cookId: null, cookType: null, cookName: '', ...meta() }],
+        ['demo_meal_shopweek_2', { familyId: DEMO_FAMILY_ID, userId: DEMO_UID, date: at(4, 12), slot: 'breakfast', recipeId: 'demo_recipe_pancakes', text: '', cookId: null, cookType: null, cookName: '', ...meta() }],
+        ['demo_meal_shopweek_3', { familyId: DEMO_FAMILY_ID, userId: DEMO_UID, date: at(5, 12), slot: 'dinner', recipeId: 'demo_recipe_veg', text: '', cookId: null, cookType: null, cookName: '', ...meta() }],
       ]),
     ],
     [

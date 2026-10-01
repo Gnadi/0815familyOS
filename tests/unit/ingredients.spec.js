@@ -105,7 +105,7 @@ describe('planShoppingAdditions', () => {
   it('creates entries that are not on the list', () => {
     const plan = planShoppingAdditions({ lines: ['2 Eier'], existingItems: [] });
     expect(plan).toEqual([
-      { key: 'eier', title: 'Eier', quantities: ['2'], count: 1, quantity: '2', action: 'create', existingId: null },
+      { key: 'eier', title: 'Eier', quantities: ['2'], count: 1, quantity: '2', forMeals: true, action: 'create', existingId: null },
     ]);
   });
 

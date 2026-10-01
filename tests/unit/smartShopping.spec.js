@@ -11,12 +11,15 @@ import {
   dueProducts,
   indexShoppingItems,
   isFreshProduct,
+  isMealShopped,
   mealPlanLines,
   nextShoppingDate,
   planWeeklyProposal,
+  plannedMeals,
   productDocId,
   productKey,
   shoppingSuggestions,
+  tripId,
 } from '../../src/utils/smartShopping';
 
 const NOW = new Date(2026, 9, 1, 10, 0); // Thu 1 Oct 2026, 10:00
@@ -92,6 +95,18 @@ describe('predictProduct', () => {
 
   it('goes dormant when ignored for far longer than the rhythm', () => {
     expect(predictProduct(product('Milch', [40, 36, 32]), NOW).status).toBe('dormant');
+  });
+
+  it('builds no rhythm from purchases made only for planned meals', () => {
+    // Spaghetti bought every week because Bolognese was planned every week
+    // says nothing about next week, when something else may be cooked.
+    const planned = product('Spaghetti', [21, 14, 7]);
+    planned.purchases = planned.purchases.map((p) => ({ ...p, planned: true }));
+    expect(predictProduct(planned, NOW)).toMatchObject({ status: 'learning', trips: 0 });
+
+    const mixed = product('Milch', [12, 8, 4, 2]);
+    mixed.purchases[3].planned = true;
+    expect(predictProduct(mixed, NOW).lastBought).toEqual(daysAgo(4));
   });
 
   it('reads Firestore-like timestamps', () => {
@@ -290,6 +305,37 @@ describe('mealPlanLines', () => {
   });
 });
 
+describe('meals already shopped for', () => {
+  const recipes = [
+    { id: 'r1', title: 'Curry', ingredients: ['Reis'] },
+    { id: 'r2', title: 'Pasta', ingredients: ['Nudeln'] },
+  ];
+  const from = new Date(2026, 9, 3);
+  const to = new Date(2026, 9, 10);
+
+  it('counts as shopped only for the recipe it was shopped for', () => {
+    expect(isMealShopped({ recipeId: 'r1', shopped: { recipeId: 'r1' } })).toBe(true);
+    // The meal was changed to another recipe after shopping.
+    expect(isMealShopped({ recipeId: 'r2', shopped: { recipeId: 'r1' } })).toBe(false);
+    expect(isMealShopped({ recipeId: 'r1' })).toBe(false);
+  });
+
+  it('leaves shopped meals out of the proposal lines but still lists them', () => {
+    const entries = [
+      { id: 'm1', recipeId: 'r1', date: new Date(2026, 9, 4), shopped: { recipeId: 'r1' } },
+      { id: 'm2', recipeId: 'r2', date: new Date(2026, 9, 5) },
+    ];
+    expect(mealPlanLines({ entries, recipes, from, to, skipShopped: true })).toEqual([
+      { line: 'Nudeln', source: 'Pasta' },
+    ]);
+    expect(mealPlanLines({ entries, recipes, from, to })).toHaveLength(2);
+    expect(plannedMeals({ entries, recipes, from, to }).map((m) => [m.entry.id, m.shopped])).toEqual([
+      ['m1', true],
+      ['m2', false],
+    ]);
+  });
+});
+
 describe('planWeeklyProposal', () => {
   const tripDate = new Date(2026, 9, 3); // Saturday
 
@@ -317,6 +363,34 @@ describe('planWeeklyProposal', () => {
     expect(plan.find((e) => e.key === 'reis')).toBeUndefined();
     // Due items first.
     expect(plan[0].key).toBe('milch');
+  });
+
+  it('marks recipe-only entries as for meals, and due ones as not', () => {
+    const plan = planWeeklyProposal({
+      products: [product('Milch', [12, 8, 4])],
+      mealLines: [
+        { line: '200 ml Milch', source: 'Pancakes' },
+        { line: '500 g Mehl', source: 'Pancakes' },
+      ],
+      tripDate,
+      now: NOW,
+    });
+    expect(plan.find((e) => e.key === 'milch').forMeals).toBe(false);
+    expect(plan.find((e) => e.key === 'mehl').forMeals).toBe(true);
+  });
+
+  it('does not offer again what this trip\'s proposal already bought', () => {
+    // Milk lasts three days, but it was bought on the weekly shop that this
+    // proposal planned: enough for the week, not "due again on Tuesday".
+    const boughtToday = product('Milch', [8, 4, 0]);
+    const items = [{ id: 'tile', title: 'Milch', done: true, proposedFor: tripId(tripDate) }];
+    expect(planWeeklyProposal({ products: [boughtToday], items, tripDate, now: NOW })).toEqual([]);
+
+    // Bought for last week's trip: due again in this one.
+    const lastWeek = [{ ...items[0], proposedFor: tripId(new Date(2026, 8, 26)) }];
+    expect(
+      planWeeklyProposal({ products: [boughtToday], items: lastWeek, tripDate, now: NOW }).map((e) => e.key),
+    ).toEqual(['milch']);
   });
 
   it('includes what runs out before the shop after next', () => {

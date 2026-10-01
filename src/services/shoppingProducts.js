@@ -52,7 +52,7 @@ function mapProductDocs(docs) {
       key: data.key || '',
       title: data.title || data.key || '',
       purchases: (Array.isArray(data.purchases) ? data.purchases : [])
-        .map((p) => ({ id: p?.id || '', at: toDate(p?.at) }))
+        .map((p) => ({ id: p?.id || '', at: toDate(p?.at), planned: Boolean(p?.planned) }))
         .filter((p) => p.at),
       stillHaveAt: toDate(data.stillHaveAt),
       fresh: typeof data.fresh === 'boolean' ? data.fresh : null,
@@ -91,11 +91,19 @@ function writeProduct(id, fields) {
 }
 
 // Build the purchase entry synchronously, so the caller can store it on the
-// shopping item (for undo) without waiting for any write.
-export function preparePurchase({ familyId, title, at = new Date() }) {
+// shopping item (for undo) without waiting for any write. `planned` marks a
+// purchase made only for planned meals; it is kept but builds no rhythm.
+function entryOf({ id, at, planned }) {
+  return planned ? { id, at, planned: true } : { id, at };
+}
+
+export function preparePurchase({ familyId, title, at = new Date(), planned = false }) {
   const key = productKey(title);
   if (!familyId || !key) return null;
-  return { productId: productDocId(familyId, key), entry: { id: entryId(), at: stampVal(at) } };
+  return {
+    productId: productDocId(familyId, key),
+    entry: entryOf({ id: entryId(), at: stampVal(at), planned }),
+  };
 }
 
 // `product` is the family's current copy from the subscription, used only to
@@ -105,7 +113,12 @@ export function writePurchase({ familyId, userId, title, purchase, product }) {
   const known = product?.purchases || [];
   const trimmed =
     known.length >= TRIM_AT
-      ? [...known.slice(-(MAX_PURCHASES - 1)).map((p) => ({ id: p.id, at: stampVal(p.at) })), entry]
+      ? [
+          ...known
+            .slice(-(MAX_PURCHASES - 1))
+            .map((p) => entryOf({ id: p.id, at: stampVal(p.at), planned: p.planned })),
+          entry,
+        ]
       : null;
   const fields = baseFields({ familyId, userId, title });
 

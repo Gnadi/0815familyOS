@@ -44,6 +44,13 @@ export function nextShoppingDate(now, shoppingDay) {
   return addDays(day, (shoppingDay - day.getDay() + 7) % 7);
 }
 
+// A shopping trip as a stable id ("2026-10-03"), stored on the items the
+// weekly proposal for that trip put on the list.
+export function tripId(date) {
+  const d = new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 // How far ahead "due soon" looks in the running-list mode.
 export const CONTINUOUS_HORIZON_DAYS = 2;
 
@@ -101,16 +108,39 @@ export function shoppingSuggestions({ products, items, now = new Date(), until }
 
 // --- Meal plan ---------------------------------------------------------------
 
+// A planned meal whose ingredients already went on the list — through the
+// weekly proposal or "add week to shopping list". Remembered per recipe, so
+// swapping the meal for another recipe makes it count as unshopped again.
+export function isMealShopped(entry) {
+  return Boolean(entry?.recipeId && entry.shopped?.recipeId === entry.recipeId);
+}
+
+// Meals planned with a recipe in [from, to), oldest first.
+export function plannedMeals({ entries = [], recipes = [], from, to }) {
+  const byId = new Map(recipes.map((r) => [r.id, r]));
+  return entries
+    .filter((e) => e.recipeId && e.date && e.date >= from && e.date < to && byId.has(e.recipeId))
+    .map((entry) => ({ entry, recipe: byId.get(entry.recipeId), shopped: isMealShopped(entry) }))
+    .sort((a, b) => a.entry.date - b.entry.date);
+}
+
 // Ingredient lines of every recipe planned in [from, to), scaled from the
 // recipe's servings to the household's portions. A recipe without servings is
-// taken as written — there is nothing to scale from.
-export function mealPlanLines({ entries = [], recipes = [], from, to, portions, decimalSeparator }) {
-  const byId = new Map(recipes.map((r) => [r.id, r]));
+// taken as written — there is nothing to scale from. `skipShopped` leaves out
+// meals that were already shopped for, so the weekly proposal never offers
+// the same meal twice.
+export function mealPlanLines({
+  entries = [],
+  recipes = [],
+  from,
+  to,
+  portions,
+  decimalSeparator,
+  skipShopped = false,
+}) {
   const lines = [];
-  for (const entry of entries) {
-    if (!entry.recipeId || !entry.date || entry.date < from || entry.date >= to) continue;
-    const recipe = byId.get(entry.recipeId);
-    if (!recipe) continue;
+  for (const { recipe, shopped } of plannedMeals({ entries, recipes, from, to })) {
+    if (skipShopped && shopped) continue;
     const factor = recipe.servings && portions ? portions / recipe.servings : 1;
     for (const line of recipe.ingredients || []) {
       lines.push({
@@ -128,9 +158,18 @@ export function mealPlanLines({ entries = [], recipes = [], from, to, portions, 
 // after it, and what the meals planned for that week need. Each entry carries
 // why it is there (`reasons`), and the same `action` / `existingId` shape as
 // planShoppingAdditions so addShoppingItemsBulk can write it.
+//
+// A product this trip's proposal already put on the list is not offered again
+// for the same trip once bought: the weekly shop bought enough for the week,
+// even if its rhythm says it lasts three days. (Meals are kept from repeating
+// by `mealLines` leaving out shopped meals.)
 export function planWeeklyProposal({ products = [], items = [], mealLines = [], tripDate, now = new Date() }) {
   const until = addDays(tripDate, 7);
   const index = indexShoppingItems(items);
+  const trip = tripId(tripDate);
+  const handled = new Set(
+    items.filter((i) => i.proposedFor === trip).map((i) => productKey(i.title)),
+  );
   const byKey = new Map();
 
   const entryFor = (key, title) => {
@@ -153,6 +192,7 @@ export function planWeeklyProposal({ products = [], items = [], mealLines = [], 
   }
 
   for (const { product, prediction } of dueProducts({ products, now, until })) {
+    if (handled.has(product.key)) continue;
     const entry = entryFor(product.key, product.title || product.key);
     entry.due = prediction;
   }
@@ -173,6 +213,8 @@ export function planWeeklyProposal({ products = [], items = [], mealLines = [], 
         dueAt: entry.due?.dueAt || null,
         intervalDays: entry.due?.intervalDays || null,
         lastBought: entry.due?.lastBought || null,
+        // Bought only because a planned meal needs it: no rhythm from that.
+        forMeals: !entry.due,
         ...resolveExisting(entry.key, index),
       };
     })

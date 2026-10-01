@@ -74,6 +74,13 @@ Pure logic in `src/utils/consumption.js`, unit-tested:
 Units are deliberately not modelled, matching `src/utils/ingredients.js`:
 the time between purchases already reflects how much the family uses.
 
+**Purchases for planned meals build no rhythm.** An item that is on the list
+only because a planned meal needs it is marked `forMeals`; its purchase is
+logged as `planned` and ignored by the rhythm. A family does not eat the same
+every week: three weeks of Bolognese must not make spaghetti "due" in a week
+with no pasta planned. Recipe ingredients come from the meal plan, never from
+past weeks.
+
 ### Feedback loop
 
 - An item added by hand mid-week is a purchase earlier than predicted — the
@@ -130,6 +137,20 @@ they run out within two days. One tap adds them; "still have it" snoozes.
   - every ingredient of the meals planned for that week, scaled,
   - deduplicated against what is already on the list.
 
+  It never offers the same thing twice:
+  - **Each planned meal once.** Confirming the proposal — or "add week to
+    shopping list" in the meal plan — marks the week's meals as shopped
+    (`mealPlanEntries.shopped`, remembered with the recipe, so changing the
+    meal to another recipe makes it open again). Shopped meals are listed as
+    such instead of being offered again.
+  - **This trip's purchases once.** Items the proposal adds carry the trip
+    (`proposedFor`). Once bought, they are not offered again for the same
+    trip: the weekly shop bought enough for the week, even if milk's rhythm
+    says it lasts three days.
+  - **No planned meals, no recipe ingredients.** The proposal then says so and
+    links to the week plan; with fewer than seven recipes it suggests adding
+    more, since a week of dinners cannot be planned with variety from fewer.
+
 ## 6. Stages
 
 | Stage | Content | Status |
@@ -137,7 +158,7 @@ they run out within two days. One tap adds them; "still have it" snoozes.
 | **1 — Learn** | Household settings, purchase log, recipe servings & scaling, prediction, suggestions, weekly mode with fresh list and proposal | **implemented** |
 | **2 — Offers** | Price provider behind our own serverless endpoint; generic → concrete product matching confirmed once per family ("our milk" / "any brand"); offer badges with price, shop and validity on the existing `offer` flag; stock-up suggestions for durable products on a real discount | planned |
 | **3 — Where to shop** | Family picks its shops (supermarkets and drugstores) and the max shops per trip; the list is grouped by shop; estimated savings | planned |
-| **4 — Ideas** | "Chicken is on offer — you often cook chicken curry" from the family's *own* recipes; price alerts; dashboard widget; holiday mode | ideas |
+| **4 — Ideas** | Suggest meals for unplanned days from the family's *own* recipes, varied (nothing cooked in the last weeks); "Chicken is on offer — you often cook chicken curry"; price alerts; dashboard widget; holiday mode | ideas |
 
 ### Where to shop (stage 3 algorithm)
 

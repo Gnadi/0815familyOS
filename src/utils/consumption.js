@@ -52,6 +52,14 @@ function median(values) {
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
+// Purchases that say something about how fast the family uses a product.
+// A purchase marked `planned` was made only because a planned meal needed it
+// (see docs/smart-shopping.md): the family does not eat the same thing every
+// week, so the rhythm of the meal plan is not a rhythm of the product.
+export function ownPurchases(purchases) {
+  return (purchases || []).filter((p) => p && !p.planned);
+}
+
 // Purchase entries ({ at }) → one Date per trip, oldest first.
 export function tripsOf(purchases) {
   const times = (purchases || [])
@@ -75,7 +83,7 @@ export function tripsOf(purchases) {
 //   predicted  — dueAt is meaningful
 //   dormant    — was predicted, but ignored for so long it should stop asking
 export function predictProduct(product, now = new Date()) {
-  const trips = tripsOf(product?.purchases);
+  const trips = tripsOf(ownPurchases(product?.purchases));
   const lastBought = trips.length ? trips[trips.length - 1] : null;
   const base = { trips: trips.length, lastBought, intervalDays: null, dueAt: null };
   if (trips.length < MIN_TRIPS) return { ...base, status: 'learning' };

@@ -67,6 +67,8 @@ export default function ShoppingItemModal({ item, product, weekly, familyId, use
     learned = t('shopping.learnedIrregular');
   } else if (prediction.trips > 0) {
     learned = tn('shopping.learnedLearning', prediction.trips);
+  } else if (product?.purchases?.some((p) => p.planned)) {
+    learned = t('shopping.learnedPlannedOnly');
   } else {
     learned = t('shopping.learnedNone');
   }

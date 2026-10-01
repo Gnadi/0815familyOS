@@ -9,6 +9,7 @@ import {
   Timestamp,
   updateDoc,
   where,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { isDemoMode } from '../lib/demoMode';
@@ -84,4 +85,27 @@ export function updateMealEntry(id, { recipeId, text, cookId, cookType, cookName
 export function deleteMealEntry(id) {
   if (isDemoMode()) return demoDelete('mealPlanEntries', id);
   return deleteDoc(doc(db, 'mealPlanEntries', id));
+}
+
+// Remember that these meals' ingredients went on the shopping list, so the
+// weekly proposal does not offer the same meal twice (utils/smartShopping.js
+// isMealShopped). Stored with the recipe it was shopped for: changing the
+// meal to another recipe makes it unshopped again.
+export async function markMealsShopped(entries) {
+  const targets = (entries || []).filter((e) => e?.id && e.recipeId);
+  if (targets.length === 0) return;
+  if (isDemoMode()) {
+    for (const e of targets) {
+      await demoUpdate('mealPlanEntries', e.id, { shopped: { recipeId: e.recipeId, at: new Date() } });
+    }
+    return;
+  }
+  // A week of meals is far below the 500-operation batch limit.
+  const batch = writeBatch(db);
+  for (const e of targets) {
+    batch.update(doc(db, 'mealPlanEntries', e.id), {
+      shopped: { recipeId: e.recipeId, at: serverTimestamp() },
+    });
+  }
+  await batch.commit();
 }

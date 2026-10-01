@@ -19,7 +19,7 @@ import { guessProductIcon } from '../utils/productIcons';
 import { formatDate } from '../utils/date';
 import { decimalSeparatorFor } from '../utils/ingredients';
 import { householdPortions, normalizeHousehold } from '../utils/household';
-import { predictProduct, tripsOf } from '../utils/consumption';
+import { ownPurchases, predictProduct, tripsOf } from '../utils/consumption';
 import {
   CONTINUOUS_HORIZON_DAYS,
   indexShoppingItems,
@@ -27,8 +27,10 @@ import {
   mealPlanLines,
   nextShoppingDate,
   planWeeklyProposal,
+  plannedMeals,
   productKey,
   shoppingSuggestions,
+  tripId,
 } from '../utils/smartShopping';
 import {
   addShoppingItemsBulk,
@@ -37,6 +39,7 @@ import {
   reopenShoppingItem,
 } from '../services/shopping';
 import { logProductWriteError, updateProductPreferences } from '../services/shoppingProducts';
+import { markMealsShopped } from '../services/mealPlan';
 
 export default function ShoppingPage() {
   const { user, userDoc, family } = useAuth();
@@ -86,18 +89,25 @@ export default function ShoppingPage() {
   }, [products, items, weekly, household.shoppingDay]);
 
   const portions = householdPortions({ household: family?.household, kids: family?.kids, memberCount }).total;
-  const proposal = useMemo(() => {
-    if (!weekly || !tripKey) return [];
+  // The weekly proposal covers the week the next shop is for. Meals already
+  // shopped for are left out (and listed as such), so nothing is offered twice.
+  const { proposal, meals } = useMemo(() => {
+    if (!weekly || !tripKey) return { proposal: [], meals: [] };
     const from = new Date(tripKey);
+    const to = addDays(from, 7);
     const mealLines = mealPlanLines({
       entries: mealEntries,
       recipes,
       from,
-      to: addDays(from, 7),
+      to,
       portions,
       decimalSeparator: decimalSeparatorFor(locale),
+      skipShopped: true,
     });
-    return planWeeklyProposal({ products, items, mealLines, tripDate: from, now: new Date() });
+    return {
+      proposal: planWeeklyProposal({ products, items, mealLines, tripDate: from, now: new Date() }),
+      meals: plannedMeals({ entries: mealEntries, recipes, from, to }),
+    };
   }, [weekly, tripKey, mealEntries, recipes, portions, locale, products, items]);
   const proposalCount = proposal.filter((p) => p.action !== 'skip').length;
 
@@ -106,7 +116,7 @@ export default function ShoppingPage() {
   const learning = useMemo(() => {
     const now = new Date();
     if (products.some((p) => ['predicted', 'dormant'].includes(predictProduct(p, now).status))) return null;
-    return products.reduce((sum, p) => sum + tripsOf(p.purchases).length, 0);
+    return products.reduce((sum, p) => sum + tripsOf(ownPurchases(p.purchases)).length, 0);
   }, [products]);
 
   async function handleAdd(e) {
@@ -152,8 +162,22 @@ export default function ShoppingPage() {
     );
   }
 
+  // Confirming plans the shop for every meal of the week that was still open,
+  // so they are not offered again, and tags the items with the trip, so what
+  // was bought for it is not offered again for the same trip either.
   async function handleConfirmProposal(chosen) {
-    await addShoppingItemsBulk({ familyId, userId, plan: chosen, items, products, list: 'main' });
+    await Promise.all([
+      addShoppingItemsBulk({
+        familyId,
+        userId,
+        plan: chosen,
+        items,
+        products,
+        list: 'main',
+        proposedFor: tripId(new Date(tripKey)),
+      }),
+      markMealsShopped(meals.filter((m) => !m.shopped).map((m) => m.entry)),
+    ]);
     setProposalOpen(false);
   }
 
@@ -320,6 +344,8 @@ export default function ShoppingPage() {
           onClose={() => setProposalOpen(false)}
           title={t('shopping.proposalTitle', { day: dayLabel(tripDate) })}
           plan={proposal}
+          meals={meals}
+          recipeCount={recipes.length}
           onConfirm={handleConfirmProposal}
         />
       )}

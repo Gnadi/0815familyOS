@@ -1,15 +1,25 @@
 import { useEffect, useState } from 'react';
-import { ShoppingBasket } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { BookOpen, CalendarPlus, CheckCircle2, ShoppingBasket } from 'lucide-react';
 import Modal from '../common/Modal';
 import Button from '../common/Button';
 import useT from '../../hooks/useT';
+import { formatRelativeDay } from '../../utils/date';
 import { rhythmText } from './rhythmText';
+
+// Below this many recipes a week of dinners cannot be planned without
+// repeating, so the proposal suggests adding more.
+export const FEW_RECIPES = 7;
 
 // Review step for the weekly shop: everything the rhythm says runs out before
 // the shop after this one, plus what the planned meals need (see
 // planWeeklyProposal). Like WeekShoppingModal it never writes silently — what
 // is already on the list comes unchecked and labelled, the rest pre-checked.
-export default function WeeklyProposalModal({ open, onClose, title, plan, onConfirm }) {
+//
+// Ingredients only ever come from meals the family planned for that week, and
+// each meal only once (`meals` says which were already shopped for). Nothing
+// is invented from past weeks: families do not eat the same every week.
+export default function WeeklyProposalModal({ open, onClose, title, plan, meals = [], recipeCount = 0, onConfirm }) {
   const { t, tn } = useT();
   const [selected, setSelected] = useState(() => new Set());
   const [busy, setBusy] = useState(false);
@@ -65,10 +75,51 @@ export default function WeeklyProposalModal({ open, onClose, title, plan, onConf
     return parts.join(' · ');
   }
 
+  const shoppedMeals = meals.filter((m) => m.shopped);
+  const mealName = ({ entry, recipe }) => `${recipe.title} (${formatRelativeDay(entry.date, t)})`;
+
+  // What the family can do to get a fuller proposal, and what was already
+  // taken care of — so a short proposal never looks like a broken one.
+  const hints = (
+    <div className="space-y-2">
+      {shoppedMeals.length > 0 && (
+        <p className="flex gap-2 rounded-xl bg-slate-50 p-3 text-xs leading-relaxed text-slate-600">
+          <CheckCircle2 size={16} className="shrink-0 text-emerald-500" />
+          <span>{t('shopping.mealsShopped', { meals: shoppedMeals.map(mealName).join(', ') })}</span>
+        </p>
+      )}
+      {meals.length === 0 && (
+        <div className="flex gap-2 rounded-xl bg-slate-50 p-3 text-xs leading-relaxed text-slate-600">
+          <CalendarPlus size={16} className="shrink-0 text-brand-500" />
+          <span>
+            {t('shopping.noMealsPlanned')}{' '}
+            <Link to="/meals" className="font-semibold text-brand-600 hover:underline">
+              {t('shopping.toWeekPlan')}
+            </Link>
+          </span>
+        </div>
+      )}
+      {recipeCount < FEW_RECIPES && (
+        <div className="flex gap-2 rounded-xl bg-slate-50 p-3 text-xs leading-relaxed text-slate-600">
+          <BookOpen size={16} className="shrink-0 text-brand-500" />
+          <span>
+            {recipeCount === 0 ? t('shopping.noRecipes') : tn('shopping.fewRecipes', recipeCount)}{' '}
+            <Link to="/meals" className="font-semibold text-brand-600 hover:underline">
+              {t('shopping.toRecipes')}
+            </Link>
+          </span>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <Modal open={open} onClose={onClose} title={title}>
       {plan.length === 0 ? (
-        <p className="py-6 text-center text-sm text-slate-400">{t('shopping.proposalEmpty')}</p>
+        <div className="space-y-4">
+          <p className="py-4 text-center text-sm text-slate-400">{t('shopping.proposalEmpty')}</p>
+          {hints}
+        </div>
       ) : (
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-3">
@@ -125,6 +176,8 @@ export default function WeeklyProposalModal({ open, onClose, title, plan, onConf
               );
             })}
           </ul>
+
+          {hints}
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 

@@ -914,8 +914,18 @@ export default {
     viewProposal: 'Vorschlag ansehen',
     proposalTitle: 'Wocheneinkauf · {day}',
     proposalSubtitle: 'Was bis zum übernächsten Einkauf ausgeht und was die geplanten Gerichte brauchen.',
-    proposalEmpty:
-      'Noch nichts vorzuschlagen. Plant Gerichte im Wochenplan und hakt weiter ab, was ihr kauft — daraus lernt die Liste.',
+    proposalEmpty: 'Für diesen Einkauf gibt es gerade nichts vorzuschlagen.',
+    mealsShopped: 'Zutaten schon auf der Liste oder eingekauft: {meals}.',
+    noMealsPlanned:
+      'Für diese Woche sind noch keine Gerichte geplant. Plant sie im Wochenplan, dann kommen ihre Zutaten von selbst in den Vorschlag.',
+    toWeekPlan: 'Zum Wochenplan',
+    noRecipes:
+      'Ihr habt noch keine Rezepte. Mit euren Lieblingsgerichten lässt sich die Woche abwechslungsreich planen, und die Wochenliste wird vollständiger.',
+    fewRecipes_one:
+      'Ihr habt erst {count} Rezept. Mit mehr Rezepten lässt sich die Woche abwechslungsreich planen, und die Wochenliste wird vollständiger.',
+    fewRecipes_other:
+      'Ihr habt erst {count} Rezepte. Mit mehr Rezepten lässt sich die Woche abwechslungsreich planen, und die Wochenliste wird vollständiger.',
+    toRecipes: 'Rezepte anlegen',
     reasonDue: 'geht aus',
     reasonRecipe: 'für {recipes}',
     listFresh: 'Zwischendurch (frisch)',
@@ -927,6 +937,8 @@ export default {
     learnedLearning_one: 'Bisher {count}× gekauft — für einen Rhythmus braucht es 3 Käufe.',
     learnedLearning_other: 'Bisher {count}× gekauft — für einen Rhythmus braucht es 3 Käufe.',
     learnedIrregular: 'Unregelmäßig gekauft — kein Rhythmus für Vorschläge.',
+    learnedPlannedOnly:
+      'Bisher nur für geplante Gerichte gekauft. Daraus entsteht kein Rhythmus, denn ihr kocht nicht jede Woche dasselbe.',
   },
   invite: {
     createLink: 'Einladungslink erstellen',
@@ -1202,6 +1214,12 @@ export default {
     recipe2Title: 'Gemüsecurry',
     recipe2Ingredients: '300 g Reis\n400 ml Kokosmilch\n2 EL Currypaste\n1 Brokkoli\n3 Karotten\n1 Dose Kichererbsen',
     recipe2Steps: 'Reis kochen\nCurrypaste anbraten und Gemüse zugeben\nKokosmilch angießen und 15 Minuten köcheln lassen\nMit Reis servieren',
+    recipe3Title: 'Ofengemüse mit Feta',
+    recipe3Ingredients: '1 kg Kartoffeln\n2 Paprika\n1 Zucchini\n200 g Feta\n3 EL Olivenöl',
+    recipe3Steps: 'Backofen auf 200 °C vorheizen\nGemüse schneiden und mit Öl mischen\n30 Minuten backen\nFeta darüberbröseln und 10 Minuten weiterbacken',
+    recipe4Title: 'Palatschinken',
+    recipe4Ingredients: '250 g Mehl\n500 ml Milch\n3 Eier\n1 Prise Salz',
+    recipe4Steps: 'Alles zu einem glatten Teig verrühren\n10 Minuten quellen lassen\nDünn in einer Pfanne ausbacken',
     shopMilk: 'Hafermilch',
     shopJuice: 'Apfelsaft',
     shopCandles: 'Geburtstagskerzen',

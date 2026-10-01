@@ -14,12 +14,12 @@ import useRecipes from '../hooks/useRecipes';
 import useMealPlan from '../hooks/useMealPlan';
 import useShoppingItems from '../hooks/useShoppingItems';
 import { createRecipe, updateRecipe, deleteRecipe } from '../services/recipes';
-import { createMealEntry, updateMealEntry, deleteMealEntry } from '../services/mealPlan';
+import { createMealEntry, updateMealEntry, deleteMealEntry, markMealsShopped } from '../services/mealPlan';
 import { addCook, removeCook } from '../services/families';
 import { addShoppingItemsBulk, planShoppingAdditions } from '../services/shopping';
 import { householdPortions } from '../utils/household';
 import { decimalSeparatorFor } from '../utils/ingredients';
-import { mealPlanLines } from '../utils/smartShopping';
+import { mealPlanLines, plannedMeals } from '../utils/smartShopping';
 
 const TABS = [
   { id: 'plan', labelKey: 'food.tabWeekPlan' },
@@ -124,8 +124,16 @@ export default function FoodPage() {
     return addShoppingItemsBulk({ familyId, userId: user.uid, plan, items: shoppingItems });
   }
 
+  // The week's meals count as shopped for afterwards, so the weekly proposal
+  // on the shopping list does not offer the same meals a second time.
   async function handleConfirmWeek(plan) {
-    await addShoppingItemsBulk({ familyId, userId: user.uid, plan, items: shoppingItems });
+    const end = new Date(shopWeekStart);
+    end.setDate(end.getDate() + 7);
+    const meals = plannedMeals({ entries, recipes, from: shopWeekStart, to: end }).map((m) => m.entry);
+    await Promise.all([
+      addShoppingItemsBulk({ familyId, userId: user.uid, plan, items: shoppingItems }),
+      markMealsShopped(meals),
+    ]);
     setShopWeekStart(null);
   }
 

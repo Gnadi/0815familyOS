@@ -151,14 +151,17 @@ invites/{token}       { familyId, familyName, createdBy, createdByName,
                         revoked, expiresAt, createdAt }   // doc id IS the token
 events/{id}           { familyId, userId, title, description?, date, createdAt, updatedAt }
 shoppingItems/{id}    { familyId, userId, title, quantity, icon, urgent, offer, ifConvenient,
-                        list: 'main' | 'fresh', done, completedAt, lastPurchase?, seeded? }
+                        list: 'main' | 'fresh', forMeals, proposedFor?, done, completedAt,
+                        lastPurchase?, seeded? }
 shoppingProducts/{familyId}_{product}
-                      { familyId, userId, key, title, purchases: [{ id, at }],
+                      { familyId, userId, key, title, purchases: [{ id, at, planned? }],
                         stillHaveAt?, fresh?, muted?, updatedAt }
 ```
 
 `families/{id}` additionally carries `household: { adults, shoppingMode,
-shoppingDay }` for the smart shopping list, and recipes an optional `servings`.
+shoppingDay }` for the smart shopping list, recipes an optional `servings`,
+and meal plan entries `shopped: { recipeId, at }` once their ingredients went
+on the list.
 
 ## Auth & Family Flow
 
@@ -285,6 +288,7 @@ preisrunter.at, where to shop) are in
 - **Rhythm.** From three shopping trips on, the median interval says when a
   product is due again (`src/utils/consumption.js`). Irregular products are
   never predicted, "still have it" snoozes, and ignored suggestions go quiet.
+  Purchases made only for planned meals (`forMeals` items) build no rhythm.
 - **Household** (Settings → Household): number of adults, children weighted
   by age from their birthdays, running list or weekly list, and the shopping
   day. Recipes with `servings` are scaled to the household when planned meals
@@ -295,7 +299,11 @@ preisrunter.at, where to shop) are in
   the shop* lists what runs out before the shopping day; and a reviewed
   **weekly proposal** combines what runs out before the shop after next with
   the ingredients of the meals planned for that week
-  (`planWeeklyProposal` in `src/utils/smartShopping.js`).
+  (`planWeeklyProposal` in `src/utils/smartShopping.js`). Each planned meal
+  is offered once (`mealPlanEntries.shopped`), and what the proposal already
+  bought for a trip is not offered again for it (`shoppingItems.proposedFor`).
+  Without planned meals there are no recipe ingredients, only a hint to plan
+  meals or add recipes.
 
 The pure logic is covered by `tests/unit/smartShopping.spec.js`, the
 `shoppingProducts` rules by `tests/rules/rules.spec.js`.

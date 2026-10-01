@@ -916,8 +916,18 @@ export default {
     viewProposal: 'See proposal',
     proposalTitle: 'Weekly shop · {day}',
     proposalSubtitle: 'What runs out before the shop after this one, and what the planned meals need.',
-    proposalEmpty:
-      'Nothing to suggest yet. Plan meals in the week plan and keep checking off what you buy — the list learns from it.',
+    proposalEmpty: 'Nothing to suggest for this shop right now.',
+    mealsShopped: 'Ingredients already on the list or bought: {meals}.',
+    noMealsPlanned:
+      'No meals planned for this week yet. Plan them in the week plan and their ingredients join the proposal by themselves.',
+    toWeekPlan: 'Open the week plan',
+    noRecipes:
+      'You have no recipes yet. With your favourite dishes the week is easy to plan with variety, and the weekly list gets more complete.',
+    fewRecipes_one:
+      'You have only {count} recipe. With more recipes the week is easy to plan with variety, and the weekly list gets more complete.',
+    fewRecipes_other:
+      'You have only {count} recipes. With more recipes the week is easy to plan with variety, and the weekly list gets more complete.',
+    toRecipes: 'Add recipes',
     reasonDue: 'runs out',
     reasonRecipe: 'for {recipes}',
     listFresh: 'In between (fresh)',
@@ -929,6 +939,8 @@ export default {
     learnedLearning_one: 'Bought {count}× so far — a rhythm needs 3 purchases.',
     learnedLearning_other: 'Bought {count}× so far — a rhythm needs 3 purchases.',
     learnedIrregular: 'Bought irregularly — no rhythm to suggest from.',
+    learnedPlannedOnly:
+      'So far only bought for planned meals. That builds no rhythm — you do not cook the same every week.',
   },
   invite: {
     createLink: 'Create invite link',
@@ -1204,6 +1216,12 @@ export default {
     recipe2Title: 'Veggie curry',
     recipe2Ingredients: '300 g Rice\n400 ml Coconut milk\n2 tbsp Curry paste\n1 Broccoli\n3 Carrots\n1 can Chickpeas',
     recipe2Steps: 'Cook the rice\nFry the curry paste and add the vegetables\nPour in the coconut milk and simmer for 15 minutes\nServe with the rice',
+    recipe3Title: 'Roast vegetables with feta',
+    recipe3Ingredients: '1 kg Potatoes\n2 Peppers\n1 Courgette\n200 g Feta\n3 tbsp Olive oil',
+    recipe3Steps: 'Preheat the oven to 200 °C\nCut the vegetables and toss with oil\nRoast for 30 minutes\nCrumble the feta over and roast 10 more minutes',
+    recipe4Title: 'Pancakes',
+    recipe4Ingredients: '250 g Flour\n500 ml Milk\n3 Eggs\n1 pinch Salt',
+    recipe4Steps: 'Whisk everything into a smooth batter\nLet it rest for 10 minutes\nFry thin pancakes in a pan',
     shopMilk: 'Oat milk',
     shopJuice: 'Apple juice',
     shopCandles: 'Birthday candles',
