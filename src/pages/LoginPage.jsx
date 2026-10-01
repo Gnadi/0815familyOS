@@ -83,6 +83,15 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••"
           />
+          <div className="-mt-2 text-right">
+            <Link
+              to="/forgot-password"
+              state={{ email, from: location.state?.from }}
+              className="text-sm font-medium text-brand-600"
+            >
+              {t('auth.forgotPassword')}
+            </Link>
+          </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button type="submit" loading={loading} className="w-full">
             {t('auth.signIn')}
