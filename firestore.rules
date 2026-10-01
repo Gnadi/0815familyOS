@@ -183,6 +183,33 @@ service cloud.firestore {
         && request.auth.uid in familyMembers(resource.data.familyId);
     }
 
+    // Shopping products: what the smart list has learned per product (the
+    // purchase log and the family's per-product choices). One document per
+    // product and family, written with set-merge under a deterministic id
+    // "{familyId}_{product}", so the id is checked against the familyId it
+    // claims: otherwise an outsider could create "{yourFamily}_milch" for
+    // their own family first, and every later write of yours to it would be
+    // an update of a document you are not a member of — your milk would stop
+    // being logged. Firestore auto ids never contain "_".
+    match /shoppingProducts/{productId} {
+      function familyMembers(fid) {
+        return get(/databases/$(database)/documents/families/$(fid)).data.memberIds;
+      }
+      allow read: if request.auth != null
+        && request.auth.uid in familyMembers(resource.data.familyId);
+      allow create: if request.auth != null
+        && request.auth.uid in familyMembers(request.resource.data.familyId)
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.key is string
+        && request.resource.data.key.size() > 0
+        && productId.split('_')[0] == request.resource.data.familyId;
+      allow update: if request.auth != null
+        && request.auth.uid in familyMembers(resource.data.familyId)
+        && request.resource.data.familyId == resource.data.familyId;
+      allow delete: if request.auth != null
+        && request.auth.uid in familyMembers(resource.data.familyId);
+    }
+
     // Recipes: shared per family, every member may read/write. Mirrors the
     // shopping list rule (create must identify the caller).
     match /recipes/{recipeId} {

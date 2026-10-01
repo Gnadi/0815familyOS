@@ -13,6 +13,7 @@ import en from '../i18n/locales/en';
 import de from '../i18n/locales/de';
 import { LOCALE_STORAGE_KEY, matchLocale } from '../i18n/config';
 import { DEFAULT_SHOPPING_ITEMS } from '../constants/defaultShoppingItems';
+import { productDocId, productKey } from '../utils/smartShopping';
 
 const DEMO_UID = 'demo-user';
 const DEMO_PARTNER_UID = 'demo-partner';
@@ -99,6 +100,10 @@ export function buildSeed() {
     customCategories: [],
     calendarSubscriptions: [],
     giftBudget: 100,
+    // Weekly mode shows off the most of the smart list. The shopping day is
+    // always two days out, so the proposal and the "until the shop" list both
+    // have something to say whatever day the demo is opened.
+    household: { adults: 2, shoppingMode: 'weekly', shoppingDay: (new Date().getDay() + 2) % 7 },
     createdAt: new Date(),
   };
 
@@ -153,6 +158,7 @@ export function buildSeed() {
       ingredients: t(`demo.${key}Ingredients`).split('\n'),
       instructions: t(`demo.${key}Steps`).split('\n'),
       category,
+      servings: 4,
       notes: '',
       ...meta(),
     },
@@ -170,8 +176,36 @@ export function buildSeed() {
     done: Boolean(extras.done),
     ...(extras.done ? { seeded: true } : {}),
     completedAt: extras.done ? stamp() : null,
+    list: extras.list || 'main',
     ...meta(),
   });
+
+  // A learned purchase history for some of the starter products, so the demo
+  // has rhythms to predict from. `rhythm` is in days, `last` how many days ago
+  // the product was last bought, `count` how many purchases are on record.
+  const seedTitle = (en) => {
+    const item = DEFAULT_SHOPPING_ITEMS.find((i) => i.en === en);
+    return item[locale] || item.en;
+  };
+  const shoppingProduct = (en, { rhythm, last, count = 5 }) => {
+    const title = seedTitle(en);
+    const key = productKey(title);
+    return [
+      productDocId(DEMO_FAMILY_ID, key),
+      {
+        familyId: DEMO_FAMILY_ID,
+        userId: DEMO_UID,
+        key,
+        title,
+        purchases: Array.from({ length: count }, (_, i) => ({
+          id: `seed${i}`,
+          at: at(-(last + (count - 1 - i) * rhythm), 17),
+        })),
+        stillHaveAt: null,
+        updatedAt: new Date(),
+      },
+    ];
+  };
 
   let trackerOrder = 0;
   const tracker = (name, emoji, color, kidIds, extras = {}) => ({
@@ -246,18 +280,38 @@ export function buildSeed() {
       new Map([
         ['demo_meal_today', { familyId: DEMO_FAMILY_ID, userId: DEMO_UID, date: at(0, 12), slot: 'dinner', recipeId: 'demo_recipe_bolognese', text: '', cookId: null, cookType: null, cookName: '', ...meta() }],
         ['demo_meal_tomorrow', { familyId: DEMO_FAMILY_ID, userId: DEMO_UID, date: at(1, 12), slot: 'dinner', recipeId: null, text: t('demo.mealTomorrow'), cookId: null, cookType: null, cookName: '', ...meta() }],
+        // In the week the next shop covers, so the weekly proposal lists them.
+        ['demo_meal_shopweek_1', { familyId: DEMO_FAMILY_ID, userId: DEMO_UID, date: at(3, 12), slot: 'dinner', recipeId: 'demo_recipe_curry', text: '', cookId: null, cookType: null, cookName: '', ...meta() }],
+        ['demo_meal_shopweek_2', { familyId: DEMO_FAMILY_ID, userId: DEMO_UID, date: at(5, 12), slot: 'dinner', recipeId: 'demo_recipe_bolognese', text: '', cookId: null, cookType: null, cookName: '', ...meta() }],
       ]),
     ],
     [
       'shoppingItems',
       new Map([
-        ['demo_shop_milk', shoppingItem(t('demo.shopMilk'), '🥛', { urgent: true })],
+        ['demo_shop_milk', shoppingItem(t('demo.shopMilk'), '🥛', { urgent: true, list: 'fresh' })],
         ['demo_shop_juice', shoppingItem(t('demo.shopJuice'), '🧃')],
         ['demo_shop_candles', shoppingItem(t('demo.shopCandles'), '🎂')],
         ...DEFAULT_SHOPPING_ITEMS.map((item, i) => [
           `demo_shop_seed_${i}`,
           shoppingItem(item[locale] || item.en, item.icon, { done: true }),
         ]),
+      ]),
+    ],
+    [
+      'shoppingProducts',
+      new Map([
+        // Due before the shop — the "until the shop" list.
+        shoppingProduct('Bread', { rhythm: 2, last: 1 }),
+        shoppingProduct('Milk', { rhythm: 3, last: 2 }),
+        shoppingProduct('Eggs', { rhythm: 7, last: 6 }),
+        // Due during the week the shop covers — the weekly proposal.
+        shoppingProduct('Bananas', { rhythm: 7, last: 5 }),
+        shoppingProduct('Toilet paper', { rhythm: 21, last: 18, count: 4 }),
+        shoppingProduct('Coffee', { rhythm: 14, last: 10, count: 4 }),
+        shoppingProduct('Pasta', { rhythm: 10, last: 4 }),
+        // Not due yet, and still learning.
+        shoppingProduct('Rice', { rhythm: 30, last: 3, count: 3 }),
+        shoppingProduct('Yogurt', { rhythm: 4, last: 1, count: 2 }),
       ]),
     ],
     [

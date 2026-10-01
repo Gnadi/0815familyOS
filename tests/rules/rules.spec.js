@@ -366,3 +366,81 @@ describe('trackers', () => {
     await assertFails(deleteDoc(doc(asOutsider(), 'trackerEntries', 'entry1')));
   });
 });
+
+describe('shoppingProducts', () => {
+  const PRODUCT = `${FAMILY}_milch`;
+  const asStranger = () => testEnv.authenticatedContext('stranger').firestore();
+
+  const product = (overrides = {}) => ({
+    familyId: FAMILY,
+    userId: MEMBER,
+    key: 'milch',
+    title: 'Milch',
+    purchases: [{ id: 'p1', at: new Date() }],
+    updatedAt: new Date(),
+    ...overrides,
+  });
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'shoppingProducts', PRODUCT), product());
+    });
+  });
+
+  it('lets a member create a product under their family id with set-merge', async () => {
+    await assertSucceeds(
+      setDoc(
+        doc(asMember(), 'shoppingProducts', `${FAMILY}_brot`),
+        product({ key: 'brot', title: 'Brot' }),
+        { merge: true },
+      ),
+    );
+  });
+
+  it('lets a member append to an existing product with set-merge', async () => {
+    await assertSucceeds(
+      setDoc(
+        doc(asMember(), 'shoppingProducts', PRODUCT),
+        { ...product(), purchases: [{ id: 'p1', at: new Date() }, { id: 'p2', at: new Date() }] },
+        { merge: true },
+      ),
+    );
+  });
+
+  it('denies squatting a product id that names another family', async () => {
+    // A member of another family pre-creating "fam1_brot" for their own
+    // family would block fam1 from ever logging bread.
+    await assertFails(
+      setDoc(
+        doc(asStranger(), 'shoppingProducts', `${FAMILY}_brot`),
+        product({ familyId: OTHER_FAMILY, userId: 'stranger', key: 'brot' }),
+      ),
+    );
+  });
+
+  it('denies creating a product attributed to somebody else or without a key', async () => {
+    await assertFails(
+      setDoc(doc(asMember(), 'shoppingProducts', `${FAMILY}_brot`), product({ userId: OUTSIDER, key: 'brot' })),
+    );
+    await assertFails(
+      setDoc(doc(asMember(), 'shoppingProducts', `${FAMILY}_brot`), product({ key: '' })),
+    );
+  });
+
+  it('denies moving a product to another family', async () => {
+    await assertFails(
+      updateDoc(doc(asMember(), 'shoppingProducts', PRODUCT), { familyId: OTHER_FAMILY }),
+    );
+  });
+
+  it('keeps products private to the family', async () => {
+    await assertSucceeds(getDoc(doc(asMember(), 'shoppingProducts', PRODUCT)));
+    await assertFails(getDoc(doc(asOutsider(), 'shoppingProducts', PRODUCT)));
+    await assertFails(getDoc(doc(asStranger(), 'shoppingProducts', PRODUCT)));
+    await assertFails(getDoc(doc(asAnon(), 'shoppingProducts', PRODUCT)));
+    await assertFails(
+      updateDoc(doc(asOutsider(), 'shoppingProducts', PRODUCT), { muted: true }),
+    );
+    await assertFails(deleteDoc(doc(asOutsider(), 'shoppingProducts', PRODUCT)));
+  });
+});
