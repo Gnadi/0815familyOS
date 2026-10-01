@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Cake, Check, Download, Languages, LogOut, Moon, Palette, Pencil, Plus, Smartphone, Sun, Trash2, Users } from 'lucide-react';
+import { Cake, Check, Download, KeyRound, Languages, LogOut, Moon, Palette, Pencil, Plus, Smartphone, Sun, Trash2, Users } from 'lucide-react';
 import TopBar from '../components/layout/TopBar';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
@@ -18,6 +18,8 @@ import CalendarImportSection from '../components/settings/CalendarImportSection'
 import CalendarFeedSection from '../components/settings/CalendarFeedSection';
 import HouseholdSection from '../components/settings/HouseholdSection';
 import NavLayoutSection from '../components/settings/NavLayoutSection';
+import ChangePasswordModal from '../components/settings/ChangePasswordModal';
+import { hasPasswordLogin } from '../services/auth';
 
 // THEME/SKIN ids → settings.* translation keys for their human labels.
 const THEME_LABEL_KEYS = {
@@ -30,7 +32,7 @@ const THEME_LABEL_KEYS = {
 const SKIN_LABEL_KEYS = { material: 'settings.skinMaterial', ios: 'settings.skinIos' };
 
 export default function SettingsPage() {
-  const { user, userDoc, family, signOut } = useAuth();
+  const { user, userDoc, family, signOut, isDemo } = useAuth();
   const { theme, setTheme, mode, setMode, skin, setSkin, showLabels, setShowLabels } = useUIPreferences();
   const { t, tn, locale, setLocale } = useT();
   const [newKidName, setNewKidName] = useState('');
@@ -40,6 +42,7 @@ export default function SettingsPage() {
   const [nameBusy, setNameBusy] = useState(false);
   const [exportBusy, setExportBusy] = useState(false);
   const [exportError, setExportError] = useState('');
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const currentName = userDoc?.displayName || user?.displayName || '';
 
   function startEditingName() {
@@ -260,6 +263,28 @@ export default function SettingsPage() {
               </button>
             </div>
           )}
+          {/* The demo has no real account, so there is nothing to change. */}
+          {!isDemo && !editingName && (
+            <div className="mt-4 border-t border-slate-100 pt-4">
+              {hasPasswordLogin(user) ? (
+                <button
+                  type="button"
+                  onClick={() => setPasswordOpen(true)}
+                  className="flex items-center gap-1.5 rounded-full px-3 py-2 -ml-3 text-sm font-medium text-brand-600 hover:bg-brand-50"
+                >
+                  <KeyRound size={15} />
+                  {t('settings.changePassword')}
+                </button>
+              ) : (
+                <p className="text-sm text-slate-500">{t('settings.googleOnlyPassword')}</p>
+              )}
+            </div>
+          )}
+          <ChangePasswordModal
+            open={passwordOpen}
+            onClose={() => setPasswordOpen(false)}
+            email={user?.email}
+          />
         </section>
 
         {family && (
