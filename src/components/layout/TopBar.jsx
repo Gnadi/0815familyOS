@@ -1,5 +1,7 @@
-import { ArrowLeft, ChevronLeft, Plus } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { ArrowLeft, ChevronLeft, Plus, Settings } from 'lucide-react';
 import useUIPreferences from '../../hooks/useUIPreferences';
+import useNavLayout from '../../hooks/useNavLayout';
 import useT from '../../hooks/useT';
 import { useAddAction } from '../../context/AddActionContext';
 import BrandMark from '../brand/BrandMark';
@@ -13,7 +15,25 @@ export default function TopBar({
   const { skin } = useUIPreferences();
   const { t } = useT();
   const onAdd = useAddAction();
+  const { bottomNav } = useNavLayout();
+  const { pathname } = useLocation();
   const heading = title ?? t('common.appName');
+
+  // A family may take Settings out of the bottom bar; it must stay reachable,
+  // so the header picks up a gear instead.
+  const settingsLink = !bottomNav.includes('settings') && !pathname.startsWith('/settings') && (
+    <Link
+      to="/settings"
+      aria-label={t('nav.settings')}
+      className={
+        skin === 'ios'
+          ? 'rounded-full p-1.5 text-brand-600 active:opacity-60'
+          : 'rounded-full p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+      }
+    >
+      <Settings size={skin === 'ios' ? 22 : 20} />
+    </Link>
+  );
 
   if (skin === 'ios') {
     return (
@@ -33,6 +53,7 @@ export default function TopBar({
             )}
             <div className="flex items-center gap-1">
               {right}
+              {settingsLink}
               {showAdd && onAdd && (
                 <button
                   onClick={onAdd}
@@ -66,6 +87,7 @@ export default function TopBar({
         </div>
         <div className="flex items-center gap-2">
           {right}
+          {settingsLink}
         </div>
       </div>
     </header>

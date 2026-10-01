@@ -1,21 +1,9 @@
 import { NavLink } from 'react-router-dom';
-import { Calendar, CheckCircle2, Gift, Home, Plus, Settings, UtensilsCrossed } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import useUIPreferences from '../../hooks/useUIPreferences';
+import useNavLayout from '../../hooks/useNavLayout';
 import useT from '../../hooks/useT';
-
-// Note: the Document Vault used to sit here; it now lives in the Dashboard's
-// Quick Access since the Meal planner is reached far more often. `labelKey`
-// points at a nav.* translation key resolved at render time.
-const items = [
-  { to: '/dashboard', labelKey: 'nav.home',     Icon: Home },
-  { to: '/calendar',  labelKey: 'nav.schedule', Icon: Calendar },
-  { to: '/meals',     labelKey: 'nav.meals',    Icon: UtensilsCrossed },
-];
-const itemsRight = [
-  { to: '/tasks',    labelKey: 'nav.tasks',    Icon: CheckCircle2 },
-  { to: '/gifts',    labelKey: 'nav.gifts',    Icon: Gift },
-  { to: '/settings', labelKey: 'nav.settings', Icon: Settings },
-];
+import { BOTTOM_NAV_ENTRIES } from '../../constants/bottomNavEntries';
 
 function NavItem({ to, label, Icon, showLabels }) {
   return (
@@ -65,10 +53,15 @@ function IOSTabItem({ to, label, Icon }) {
 
 export default function BottomNav({ onAdd }) {
   const { showLabels, skin } = useUIPreferences();
+  const { bottomNav } = useNavLayout();
   const { t } = useT();
 
+  // The tabs (and their order) are a family setting, see Settings → Navigation.
+  const all = bottomNav
+    .map((id) => BOTTOM_NAV_ENTRIES.find((e) => e.id === id))
+    .filter(Boolean);
+
   if (skin === 'ios') {
-    const all = [...items, ...itemsRight];
     return (
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/80 backdrop-blur-xl safe-bottom">
         <div className="mx-auto flex max-w-md items-stretch">
@@ -79,6 +72,11 @@ export default function BottomNav({ onAdd }) {
       </nav>
     );
   }
+
+  // The "+" sits in the middle; with an odd count the extra tab goes left.
+  const split = Math.ceil(all.length / 2);
+  const items = all.slice(0, split);
+  const itemsRight = all.slice(split);
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white safe-bottom">

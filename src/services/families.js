@@ -2,6 +2,7 @@ import {
   addDoc,
   arrayUnion,
   collection,
+  deleteField,
   doc,
   getDoc,
   onSnapshot,
@@ -335,4 +336,23 @@ export async function deleteVaultCategory(familyId, vaultType, category) {
     const list = (data[customField] || []).filter((c) => c && c.id !== category.id);
     await writeFamily(familyId, { [customField]: list });
   }
+}
+
+// Family-wide navigation layout (bottom bar + Dashboard Quick Access), see
+// src/utils/navLayout.js. Firestore gets dotted field paths so two members
+// editing different lists at once don't overwrite each other; the demo store
+// only merges top-level keys, so it gets the whole object. `null` as a value
+// resets that list to the default.
+export async function updateNavLayout(familyId, patch) {
+  if (isDemoMode()) {
+    const current = demoGetFamily().navLayout || {};
+    const next = { ...current, ...patch };
+    Object.keys(next).forEach((k) => next[k] === null && delete next[k]);
+    return demoUpdateFamily({ navLayout: next });
+  }
+  const dotted = {};
+  Object.entries(patch).forEach(([k, v]) => {
+    dotted[`navLayout.${k}`] = v === null ? deleteField() : v;
+  });
+  return updateDoc(doc(db, 'families', familyId), dotted);
 }
