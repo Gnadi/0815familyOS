@@ -33,5 +33,10 @@
     "tailwindcss": "^3.4.14",
     "vite": "^8.3.0",
     "vitest": "^5.0.1"
+  },
+  "overrides": {
+    "@firebase/firestore": {
+      "@grpc/grpc-js": "^1.13.6"
+    }
   }
 }

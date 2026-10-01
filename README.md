@@ -141,6 +141,13 @@ The threshold is `AUDIT_LEVEL` in the workflow; lower it to `moderate` or
 `low` once everything above that is cleared. A one-off run at a different
 level can be started under Actions → npm audit → Run workflow.
 
+`package.json` carries one `overrides` entry: `@firebase/firestore` pins
+`@grpc/grpc-js` to `~1.9.0`, which has no fix for GHSA-m9gg-hp2v-232j (fixed
+in 1.13.6), so the override lifts it to `^1.13.6`. Only Firestore's Node build
+uses gRPC — the browser talks WebChannel — so what it affects is the rules
+tests and the build, both of which pass with it. Remove it once a Firebase
+release depends on a fixed `@grpc/grpc-js` itself.
+
 ## Data Model
 
 ```
