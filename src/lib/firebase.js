@@ -81,6 +81,14 @@ export function requireAuth() {
   return auth;
 }
 
+// The signed-in user's ID token, as the header the endpoints in api/ ask for:
+// they answer only members of a family (api/_lib/familyMember.js).
+export async function authorizationHeader() {
+  const user = auth?.currentUser;
+  if (!user) throw new Error('Sign in first.');
+  return { Authorization: `Bearer ${await user.getIdToken()}` };
+}
+
 if (auth) {
   setPersistence(auth, browserLocalPersistence).catch(() => {
     // Persistence failures are non-fatal; session simply won't survive reloads.

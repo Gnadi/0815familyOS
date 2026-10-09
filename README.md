@@ -148,6 +148,34 @@ uses gRPC — the browser talks WebChannel — so what it affects is the rules
 tests and the build, both of which pass with it. Remove it once a Firebase
 release depends on a fixed `@grpc/grpc-js` itself.
 
+## Server endpoints
+
+Two Vercel functions in `api/` do what the browser cannot:
+
+| Endpoint | Does |
+| --- | --- |
+| `api/cloudinary-sign.js` | Signs uploads to the document vault on Cloudinary (`CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`) |
+| `api/ics-fetch.js` | Fetches subscribed calendar feeds, which providers do not serve to browsers |
+
+Both answer only signed-in members of a family. The app sends the user's
+Firebase ID token with every call (`authorizationHeader()` in
+`src/lib/firebase.js`), and `api/_lib/familyMember.js` reads, with that token,
+the caller's user document and then the family it names, through Firestore's
+REST API. So Firestore verifies the token and `firestore.rules` decides, as for
+every read the app makes; a family's members are its `memberIds`, never
+`users.familyId`, which anyone may set on their own document. All this needs
+on the server is the project id, which it takes from `VITE_FIREBASE_PROJECT_ID`
+(or `FIREBASE_PROJECT_ID`) — no service account.
+
+The feed proxy reaches only the public internet (`api/_lib/publicFetch.js`).
+It checks the address it connects to rather than the hostname as written, and
+follows redirects itself, each through the same check, so a name that resolves
+to a private address or a redirect into Vercel's own network is refused —
+loopback, private and link-local ranges (cloud metadata) included, for IPv4 and
+IPv6.
+
+Vercel makes nothing under `api/_lib/` into an endpoint; those are modules.
+
 ## Data Model
 
 ```
