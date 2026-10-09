@@ -9,6 +9,7 @@
 // `subscriptionId` and `externalId`) so every view downstream treats them the
 // same way.
 
+import { authorizationHeader } from '../lib/firebase';
 import { parseICS } from '../utils/icsParser';
 import {
   dedupeFeedEvents,
@@ -129,7 +130,7 @@ function toFeedEvents(parsedEvents, subscription) {
 async function fetchFeed(subscription, validators) {
   const res = await fetch('/api/ics-fetch', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(await authorizationHeader()) },
     body: JSON.stringify({
       url: subscription.url,
       etag: validators?.etag || null,

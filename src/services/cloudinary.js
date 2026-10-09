@@ -1,5 +1,6 @@
 import { encryptBlob } from '../utils/encryption';
 import { isDemoMode } from '../lib/demoMode';
+import { authorizationHeader } from '../lib/firebase';
 
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 
@@ -41,7 +42,9 @@ export async function uploadFile(file, encryptionKey = null) {
     upload = new Blob([buf], { type: 'application/octet-stream' });
   }
 
-  const signRes = await fetch(`/api/cloudinary-sign${useRaw ? '?resource_type=raw' : ''}`);
+  const signRes = await fetch(`/api/cloudinary-sign${useRaw ? '?resource_type=raw' : ''}`, {
+    headers: await authorizationHeader(),
+  });
   if (!signRes.ok) throw new Error('Could not get upload credentials.');
   const { timestamp, signature, folder, apiKey, resourceType } = await signRes.json();
 

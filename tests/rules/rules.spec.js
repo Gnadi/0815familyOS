@@ -9,7 +9,7 @@
 // against below so they cannot come back.
 
 import { readFileSync } from 'node:fs';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   assertFails,
   assertSucceeds,
@@ -24,6 +24,7 @@ import {
   updateDoc,
   deleteDoc,
 } from 'firebase/firestore';
+import { verifyFamilyMember } from '../../api/_lib/familyMember.js';
 
 const FAMILY = 'fam1';
 const OTHER_FAMILY = 'fam2';
@@ -442,5 +443,65 @@ describe('shoppingProducts', () => {
       updateDoc(doc(asOutsider(), 'shoppingProducts', PRODUCT), { muted: true }),
     );
     await assertFails(deleteDoc(doc(asOutsider(), 'shoppingProducts', PRODUCT)));
+  });
+});
+
+// api/_lib/familyMember.js decides who may sign uploads and fetch calendar
+// feeds by reading Firestore through its REST API, as the caller. Run against
+// the emulator, its requests and its reading of the answers meet the real API
+// and these rules rather than the stubs of tests/unit/familyMember.spec.js.
+describe('api/_lib/familyMember.js under these rules', () => {
+  const LONER = 'loner-uid';
+
+  // The emulator does not check signatures, so a token only has to name the
+  // user -- the shape @firebase/rules-unit-testing gives its own.
+  function tokenFor(uid) {
+    const part = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
+    const claims = {
+      iss: 'https://securetoken.google.com/faos-rules-test',
+      aud: 'faos-rules-test',
+      iat: 0,
+      exp: 3600,
+      auth_time: 0,
+      sub: uid,
+      user_id: uid,
+      firebase: { sign_in_provider: 'custom', identities: {} },
+    };
+    return `${part({ alg: 'none', type: 'JWT' })}.${part(claims)}.`;
+  }
+  const verifyAs = (uid) => verifyFamilyMember({ headers: { authorization: `Bearer ${tokenFor(uid)}` } });
+
+  beforeEach(async () => {
+    vi.stubEnv('FIREBASE_PROJECT_ID', 'faos-rules-test');
+    vi.stubEnv('FIRESTORE_EMULATOR_HOST', process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080');
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'users', MEMBER), { email: 'member@example.com', familyId: FAMILY });
+      // Anyone may write their own user document, familyId included.
+      await setDoc(doc(db, 'users', OUTSIDER), { email: 'outsider@example.com', familyId: FAMILY });
+      await setDoc(doc(db, 'users', LONER), { email: 'loner@example.com', familyId: null });
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('admits a member of the family', async () => {
+    await expect(verifyAs(MEMBER)).resolves.toEqual({ ok: true, uid: MEMBER, familyId: FAMILY });
+  });
+
+  it('turns away someone who only names the family in their own user document', async () => {
+    const requests = vi.spyOn(globalThis, 'fetch');
+    await expect(verifyAs(OUTSIDER)).resolves.toMatchObject({ ok: false, status: 403 });
+    // Refused by the rules, not just by the check that follows them.
+    const statuses = await Promise.all(requests.mock.results.map(({ value }) => value.then((r) => r.status)));
+    expect(statuses).toEqual([200, 403]);
+    requests.mockRestore();
+  });
+
+  it('turns away a user in no family, and one without a user document', async () => {
+    await expect(verifyAs(LONER)).resolves.toMatchObject({ ok: false, status: 403 });
+    await expect(verifyAs('nobody-uid')).resolves.toMatchObject({ ok: false, status: 403 });
   });
 });

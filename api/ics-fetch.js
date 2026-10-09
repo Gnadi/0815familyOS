@@ -9,14 +9,21 @@
 // this is what keeps a re-sync from costing anything at all.
 //
 // Safety:
+// - Only members of a family may use it (_lib/familyMember.js); it used to be
+//   an open proxy for anyone who found the URL.
 // - Only http, https and webcal schemes accepted (webcal → https).
-// - Hostnames matching private/loopback patterns rejected to prevent SSRF.
+// - Only the public internet: the address connected to is checked, for every
+//   redirect too, so a name or a redirect pointing inside our own network is
+//   refused (_lib/publicFetch.js).
 // - 10s timeout, 8 MB max body.
 
-const PRIVATE_HOSTNAMES = /^(?:localhost|0\.0\.0\.0|127\.|10\.|192\.168\.|169\.254\.|::1|fd|fc|fe80)/i;
-const PRIVATE_172 = /^172\.(1[6-9]|2[0-9]|3[0-1])\./;
+import { verifyFamilyMember } from './_lib/familyMember.js';
+import { fetchPublic } from './_lib/publicFetch.js';
+
 const MAX_BYTES = 8 * 1024 * 1024;
 const TIMEOUT_MS = 10_000;
+
+const NOT_PUBLIC = 'Only calendars on the public internet can be subscribed to.';
 
 function sanitiseUrl(raw) {
   if (typeof raw !== 'string' || !raw.trim()) return null;
@@ -31,8 +38,9 @@ function sanitiseUrl(raw) {
     return null;
   }
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
-  const host = parsed.hostname.toLowerCase();
-  if (PRIVATE_HOSTNAMES.test(host) || PRIVATE_172.test(host)) return null;
+  // fetch() refused credentials in the URL, so they never worked; now they are
+  // refused up front rather than sent along as a login.
+  if (parsed.username || parsed.password) return null;
   return parsed.toString();
 }
 
@@ -49,12 +57,20 @@ function headerValue(raw) {
 
 function validatorsOf(response) {
   return {
-    etag: response.headers.get('etag') || null,
-    lastModified: response.headers.get('last-modified') || null,
+    etag: response.headers.etag || null,
+    lastModified: response.headers['last-modified'] || null,
   };
 }
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+
+  const member = await verifyFamilyMember(req);
+  if (!member.ok) {
+    res.status(member.status).json({ error: member.error });
+    return;
+  }
+
   const raw = req.method === 'POST' ? req.body?.url : req.query?.url;
   const url = sanitiseUrl(raw);
   if (!url) {
@@ -75,11 +91,10 @@ export default async function handler(req, res) {
     if (etag) headers['If-None-Match'] = etag;
     if (lastModified) headers['If-Modified-Since'] = lastModified;
 
-    const response = await fetch(url, {
-      method: 'GET',
+    const response = await fetchPublic(url, {
       headers,
-      redirect: 'follow',
       signal: controller.signal,
+      maxBytes: MAX_BYTES,
     });
     // Unchanged since the caller last looked: no body, nothing to re-parse and
     // nothing to write.
@@ -87,39 +102,20 @@ export default async function handler(req, res) {
       res.status(200).json({ notModified: true, etag, lastModified });
       return;
     }
-    if (!response.ok) {
+    if (!response.body) {
       res.status(502).json({
         error: `Upstream returned ${response.status} ${response.statusText}`,
       });
       return;
     }
-    const reader = response.body?.getReader();
-    if (!reader) {
-      const text = await response.text();
-      if (text.length > MAX_BYTES) {
-        res.status(413).json({ error: 'Calendar feed too large.' });
-        return;
-      }
-      res.status(200).json({ ics: text, ...validatorsOf(response) });
-      return;
-    }
-    const chunks = [];
-    let total = 0;
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      total += value.byteLength;
-      if (total > MAX_BYTES) {
-        res.status(413).json({ error: 'Calendar feed too large.' });
-        return;
-      }
-      chunks.push(value);
-    }
-    const merged = Buffer.concat(chunks.map((c) => Buffer.from(c)));
-    res.status(200).json({ ics: merged.toString('utf-8'), ...validatorsOf(response) });
+    res.status(200).json({ ics: response.body.toString('utf-8'), ...validatorsOf(response) });
   } catch (err) {
-    if (err.name === 'AbortError') {
+    if (controller.signal.aborted) {
       res.status(504).json({ error: 'Upstream timed out.' });
+    } else if (err.code === 'not-public') {
+      res.status(400).json({ error: NOT_PUBLIC });
+    } else if (err.code === 'too-large') {
+      res.status(413).json({ error: 'Calendar feed too large.' });
     } else {
       res.status(502).json({ error: err.message || 'Fetch failed.' });
     }
