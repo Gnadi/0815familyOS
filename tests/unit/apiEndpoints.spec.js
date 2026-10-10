@@ -14,6 +14,7 @@ vi.mock('../../api/_lib/publicFetch.js', () => ({ fetchPublic }));
 
 import signUpload from '../../api/cloudinary-sign.js';
 import fetchFeed from '../../api/ics-fetch.js';
+import importRecipe from '../../api/recipe-import.js';
 
 const MEMBER = { ok: true, uid: 'member-uid', familyId: 'fam1' };
 const NOT_SIGNED_IN = { ok: false, status: 401, error: 'Sign in first.' };
@@ -170,5 +171,73 @@ describe('api/ics-fetch', () => {
     await vi.advanceTimersByTimeAsync(10_000);
     await pending;
     expect(res.statusCode).toBe(504);
+  });
+});
+
+describe('api/recipe-import', () => {
+  const recipeRequest = (url = 'https://cookidoo.de/recipes/recipe/de-DE/r59322') => ({ method: 'POST', body: { url } });
+  const RECIPE_PAGE = '<script type="application/ld+json">'
+    + JSON.stringify({ '@type': 'Recipe', name: 'Brötchen', recipeYield: '12 Stück', recipeIngredient: ['400 g Mehl'] })
+    + '</script>';
+
+  it.each([
+    ['without a session', NOT_SIGNED_IN],
+    ['for someone outside a family', NOT_A_MEMBER],
+  ])('fetches nothing %s', async (_, refusal) => {
+    verifyFamilyMember.mockResolvedValue(refusal);
+    const res = await call(importRecipe, recipeRequest());
+    expect(res.statusCode).toBe(refusal.status);
+    expect(fetchPublic).not.toHaveBeenCalled();
+  });
+
+  it('returns the recipe on the page, not the page', async () => {
+    fetchPublic.mockResolvedValue(upstream(200, { body: RECIPE_PAGE }));
+    const res = await call(importRecipe, recipeRequest());
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({
+      recipe: {
+        title: 'Brötchen',
+        ingredients: ['400 g Mehl'],
+        instructions: [],
+        servings: 12,
+        category: null,
+        sourceUrl: 'https://cookidoo.de/recipes/recipe/de-DE/r59322',
+      },
+    });
+    expect(res.headers['cache-control']).toBe('no-store');
+  });
+
+  it('adds https to a link pasted without it', async () => {
+    fetchPublic.mockResolvedValue(upstream(200, { body: RECIPE_PAGE }));
+    await call(importRecipe, recipeRequest('www.chefkoch.de/rezepte/1/x.html'));
+    expect(fetchPublic.mock.calls[0][0]).toBe('https://www.chefkoch.de/rezepte/1/x.html');
+  });
+
+  it('says so when the page has no recipe', async () => {
+    fetchPublic.mockResolvedValue(upstream(200, { body: '<html>Hallo</html>' }));
+    const res = await call(importRecipe, recipeRequest());
+    expect(res.statusCode).toBe(422);
+    expect(res.body.code).toBe('no-recipe');
+  });
+
+  it('passes an upstream error on', async () => {
+    fetchPublic.mockResolvedValue(upstream(404, { body: 'gone', statusText: 'Not Found' }));
+    expect((await call(importRecipe, recipeRequest())).statusCode).toBe(502);
+  });
+
+  it.each([
+    'ftp://cookidoo.de/recipe',
+    'file:///etc/passwd',
+    'javascript:alert(1)',
+    'https://user:secret@cookidoo.de/recipe',
+  ])('refuses %s', async (url) => {
+    const res = await call(importRecipe, recipeRequest(url));
+    expect(res.statusCode).toBe(400);
+    expect(fetchPublic).not.toHaveBeenCalled();
+  });
+
+  it('refuses a page inside our own network', async () => {
+    fetchPublic.mockRejectedValue(Object.assign(new Error('not public'), { code: 'not-public' }));
+    expect((await call(importRecipe, recipeRequest('http://169.254.169.254/'))).statusCode).toBe(400);
   });
 });
