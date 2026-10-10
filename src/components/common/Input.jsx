@@ -11,7 +11,7 @@ const Input = forwardRef(function Input(
   const field =
     skin === 'ios'
       ? 'w-full rounded-xl border border-transparent bg-slate-100 px-4 py-3 text-base text-slate-900 placeholder-slate-400 focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100'
-      : 'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 placeholder-slate-400 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100';
+      : 'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 placeholder-slate-400 shadow-xs focus:border-brand-400 focus:ring-2 focus:ring-brand-100';
   return (
     <label className="block">
       {label && (

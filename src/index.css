@@ -1,6 +1,46 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@plugin '@tailwindcss/forms';
+
+/* The theme that lived in tailwind.config.js. The brand colours read the
+   --brand-* channels below, so switching data-theme on <html> recolours every
+   brand utility. */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  /* Apple system font stack — renders SF Pro natively on Apple devices. SF Pro
+     cannot be legally self-hosted as a webfont, so the system stack is the
+     correct way to get an authentic iOS feel on the web. */
+  --font-ios: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display',
+    system-ui, sans-serif;
+
+  --color-brand-50: rgb(var(--brand-50));
+  --color-brand-100: rgb(var(--brand-100));
+  --color-brand-200: rgb(var(--brand-200));
+  --color-brand-400: rgb(var(--brand-400));
+  --color-brand-500: rgb(var(--brand-500));
+  --color-brand-600: rgb(var(--brand-600));
+  --color-brand-700: rgb(var(--brand-700));
+
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+/* Tailwind 4 draws borders in currentColor and gives buttons the default
+   cursor. The app was designed against Tailwind 3's gray-200 borders and
+   pointer buttons, so those stay. */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
 
 :root,
 [data-theme="blue"] {
@@ -146,9 +186,11 @@ body {
 }
 
 /* iOS prefers flat surfaces + hairlines over Material elevation. Flatten the
-   card-level shadows app-wide; keep a soft depth only for floating overlays. */
+   card-level shadows app-wide; keep a soft depth only for floating overlays.
+   These selectors name Tailwind's own classes, so a Tailwind release that
+   renames one has to be followed here — 4.0 renamed shadow-sm to shadow-xs. */
 [data-skin="ios"] .shadow-card,
-[data-skin="ios"] .shadow-sm,
+[data-skin="ios"] .shadow-xs,
 [data-skin="ios"] .shadow-md {
   box-shadow: none;
 }
@@ -185,8 +227,6 @@ body {
 [data-skin="ios"][data-mode="dark"] .bg-white\/80 { background-color: rgb(28 28 30 / 0.8); }
 [data-skin="ios"][data-mode="dark"] .bg-white\/90 { background-color: rgb(28 28 30 / 0.9); }
 
-@layer utilities {
-  .safe-bottom {
-    padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
-  }
+@utility safe-bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
 }

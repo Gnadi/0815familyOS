@@ -19,10 +19,10 @@ export default function LegalLayout({ nsKey, path }) {
         path={path}
       />
 
-      <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+      <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/80 backdrop-blur-sm supports-backdrop-filter:bg-white/60">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-3.5">
           <Link to="/" className="flex items-center gap-2">
-            <BrandMark className="h-8 w-8 rounded-xl shadow-sm" />
+            <BrandMark className="h-8 w-8 rounded-xl shadow-xs" />
             <span className="text-base font-bold tracking-tight">{t('common.appName')}</span>
           </Link>
           <Link

@@ -25,14 +25,14 @@ export const TROPHY_CATEGORIES = [
 
 // Card background styles for trophy cards, keyed by color name.
 const TROPHY_CARD_STYLES = {
-  amber:   { cardBg: 'bg-gradient-to-br from-amber-50 to-yellow-50',   cardRing: 'ring-amber-100'   },
-  emerald: { cardBg: 'bg-gradient-to-br from-emerald-50 to-green-50',  cardRing: 'ring-emerald-100' },
-  violet:  { cardBg: 'bg-gradient-to-br from-violet-50 to-purple-50',  cardRing: 'ring-violet-100'  },
-  cyan:    { cardBg: 'bg-gradient-to-br from-cyan-50 to-sky-50',       cardRing: 'ring-cyan-100'    },
-  pink:    { cardBg: 'bg-gradient-to-br from-pink-50 to-rose-50',      cardRing: 'ring-pink-100'    },
-  blue:    { cardBg: 'bg-gradient-to-br from-blue-50 to-indigo-50',    cardRing: 'ring-blue-100'    },
-  slate:   { cardBg: 'bg-gradient-to-br from-slate-50 to-gray-50',     cardRing: 'ring-slate-100'   },
-  red:     { cardBg: 'bg-gradient-to-br from-red-50 to-orange-50',     cardRing: 'ring-red-100'     },
+  amber:   { cardBg: 'bg-linear-to-br from-amber-50 to-yellow-50',   cardRing: 'ring-amber-100'   },
+  emerald: { cardBg: 'bg-linear-to-br from-emerald-50 to-green-50',  cardRing: 'ring-emerald-100' },
+  violet:  { cardBg: 'bg-linear-to-br from-violet-50 to-purple-50',  cardRing: 'ring-violet-100'  },
+  cyan:    { cardBg: 'bg-linear-to-br from-cyan-50 to-sky-50',       cardRing: 'ring-cyan-100'    },
+  pink:    { cardBg: 'bg-linear-to-br from-pink-50 to-rose-50',      cardRing: 'ring-pink-100'    },
+  blue:    { cardBg: 'bg-linear-to-br from-blue-50 to-indigo-50',    cardRing: 'ring-blue-100'    },
+  slate:   { cardBg: 'bg-linear-to-br from-slate-50 to-gray-50',     cardRing: 'ring-slate-100'   },
+  red:     { cardBg: 'bg-linear-to-br from-red-50 to-orange-50',     cardRing: 'ring-red-100'     },
 };
 
 function resolve(cat) {

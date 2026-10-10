@@ -18,10 +18,10 @@ import {
 } from '../../constants/taskCategories';
 
 const PRIORITY_ACTIVE = {
-  low:    'bg-white text-slate-700 shadow-sm',
-  normal: 'bg-white text-brand-700 shadow-sm',
-  high:   'bg-white text-amber-600 shadow-sm',
-  urgent: 'bg-white text-red-600 shadow-sm',
+  low:    'bg-white text-slate-700 shadow-xs',
+  normal: 'bg-white text-brand-700 shadow-xs',
+  high:   'bg-white text-amber-600 shadow-xs',
+  urgent: 'bg-white text-red-600 shadow-xs',
 };
 
 function todayDateInput() {
@@ -149,7 +149,7 @@ export default function QuickAddModal({ open, onClose }) {
           type="button"
           onClick={() => { setTab('event'); setError(''); }}
           className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition ${
-            tab === 'event' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            tab === 'event' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
           <Calendar size={15} />
@@ -159,7 +159,7 @@ export default function QuickAddModal({ open, onClose }) {
           type="button"
           onClick={() => { setTab('task'); setError(''); }}
           className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition ${
-            tab === 'task' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            tab === 'task' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
           <CheckSquare size={15} />
@@ -228,7 +228,7 @@ export default function QuickAddModal({ open, onClose }) {
                       onClick={() => setEvCategory(cat.id)}
                       className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition ${
                         active
-                          ? `${cat.chipBg} ${cat.chipText} border-transparent shadow-sm`
+                          ? `${cat.chipBg} ${cat.chipText} border-transparent shadow-xs`
                           : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                       }`}
                     >
@@ -281,7 +281,7 @@ export default function QuickAddModal({ open, onClose }) {
                       onClick={() => setTaskCategory(cat.id)}
                       className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition ${
                         active
-                          ? `${cat.chipBg} ${cat.chipText} border-transparent shadow-sm`
+                          ? `${cat.chipBg} ${cat.chipText} border-transparent shadow-xs`
                           : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                       }`}
                     >

@@ -104,12 +104,12 @@ export default function DailyPreview() {
                     return (
                       <li key={ev.id} className="flex items-start gap-3">
                         <div
-                          className={`mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${cat.iconBg} ${cat.iconColor}`}
+                          className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${cat.iconBg} ${cat.iconColor}`}
                         >
                           <Calendar size={15} />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="line-clamp-2 break-words text-sm font-medium text-slate-900" title={ev.title}>
+                          <p className="line-clamp-2 wrap-break-word text-sm font-medium text-slate-900" title={ev.title}>
                             {ev.title}
                           </p>
                           {meta ? (
@@ -118,7 +118,7 @@ export default function DailyPreview() {
                             <p className={`mt-0.5 truncate text-xs ${cat.chipText}`}>{tLabel(t, cat)}</p>
                           )}
                         </div>
-                        <div className="mt-0.5 flex-shrink-0 text-right">
+                        <div className="mt-0.5 shrink-0 text-right">
                           <p className="text-xs font-medium text-slate-500">
                             {isAllDay(ev) ? t('calendar.allDay') : format(ev.date, 'p')}
                           </p>
@@ -180,10 +180,10 @@ function TaskRow({ task, t, indent = false }) {
   const prio = TASK_PRIORITY_MAP[task.priority];
   return (
     <li className={`flex items-center gap-2 ${indent ? 'pl-1' : ''}`}>
-      <CheckSquare size={14} className="flex-shrink-0 text-slate-300" />
+      <CheckSquare size={14} className="shrink-0 text-slate-300" />
       <span className="min-w-0 flex-1 truncate text-sm text-slate-800">{task.title}</span>
       {prio && (
-        <span className="flex flex-shrink-0 items-center gap-1 text-xs text-slate-400">
+        <span className="flex shrink-0 items-center gap-1 text-xs text-slate-400">
           <span className={`h-1.5 w-1.5 rounded-full ${prio.dot}`} />
           {tLabel(t, prio)}
         </span>

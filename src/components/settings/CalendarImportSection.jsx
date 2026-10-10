@@ -44,7 +44,7 @@ export default function CalendarImportSection() {
           type="button"
           onClick={() => setTab('file')}
           className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition ${
-            tab === 'file' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            tab === 'file' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
           <FileUp size={15} /> {t('calImport.tabFile')}
@@ -53,7 +53,7 @@ export default function CalendarImportSection() {
           type="button"
           onClick={() => setTab('url')}
           className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition ${
-            tab === 'url' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            tab === 'url' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
           <LinkIcon size={15} /> {t('calImport.tabUrl')}
@@ -143,7 +143,7 @@ function FileImportPane({ familyId, userId }) {
               type="checkbox"
               checked={skipPast}
               onChange={(e) => setSkipPast(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+              className="h-4 w-4 rounded-sm border-slate-300 text-brand-600 focus:ring-brand-500"
             />
             {t('calImport.skipPast')}
           </label>
@@ -337,7 +337,7 @@ function UrlSubscriptionPane({ family, userId }) {
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           placeholder={t('calImport.labelPlaceholder')}
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
         />
         <input
           type="url"
@@ -345,7 +345,7 @@ function UrlSubscriptionPane({ family, userId }) {
           onChange={(e) => setUrl(e.target.value)}
           placeholder={t('calImport.urlPlaceholder')}
           required
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
         />
         {error && <p className="text-sm text-red-600">{error}</p>}
         <Button type="submit" loading={busy} className="w-full">

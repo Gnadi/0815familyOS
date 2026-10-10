@@ -57,12 +57,12 @@ export default function WeeklyPreview() {
               return (
                 <li key={ev.id} className="flex items-center gap-3 px-4 py-3">
                   <div
-                    className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${cat.iconBg} ${cat.iconColor}`}
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${cat.iconBg} ${cat.iconColor}`}
                   >
                     <Calendar size={18} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 break-words text-sm font-semibold text-slate-900" title={ev.title}>
+                    <p className="line-clamp-2 wrap-break-word text-sm font-semibold text-slate-900" title={ev.title}>
                       {ev.title}
                     </p>
                     <p className={`mt-0.5 truncate text-xs ${cat.chipText}`}>{tLabel(t, cat)}</p>

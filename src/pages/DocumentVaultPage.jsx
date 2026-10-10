@@ -144,7 +144,7 @@ export default function DocumentVaultPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('vault.searchPlaceholder')}
-            className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-9 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-9 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
           />
           {searchQuery && (
             <button
@@ -163,7 +163,7 @@ export default function DocumentVaultPage() {
             onClick={() => setActiveTab('documents')}
             className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition ${
               activeTab === 'documents'
-                ? 'bg-white text-slate-900 shadow-sm'
+                ? 'bg-white text-slate-900 shadow-xs'
                 : 'text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -174,7 +174,7 @@ export default function DocumentVaultPage() {
             onClick={() => setActiveTab('trophies')}
             className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition ${
               activeTab === 'trophies'
-                ? 'bg-white text-amber-700 shadow-sm'
+                ? 'bg-white text-amber-700 shadow-xs'
                 : 'text-slate-500 hover:text-slate-700'
             }`}
           >

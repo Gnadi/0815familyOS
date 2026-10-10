@@ -134,7 +134,7 @@ runtime-switchable and the Material skin is untouched (regression-safe).
    `AddActionContext` so the iOS nav-bar `+` can trigger it.
 
 ### Files
-- Foundation: `src/context/UIPreferencesContext.jsx`, `src/pages/SettingsPage.jsx`, `src/index.css`, `tailwind.config.js`
+- Foundation: `src/context/UIPreferencesContext.jsx`, `src/pages/SettingsPage.jsx`, `src/index.css`
 - Add-action plumbing: `src/context/AddActionContext.js`, `src/components/layout/AppShell.jsx`
 - Primitives: `src/components/common/{Button,Modal,Input}.jsx`
 - Navigation: `src/components/layout/{BottomNav,TopBar}.jsx`

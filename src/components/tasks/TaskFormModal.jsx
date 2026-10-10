@@ -20,17 +20,17 @@ function toDateInput(d) {
 }
 
 const PRIORITY_ACTIVE = {
-  low:    'bg-white text-slate-700 shadow-sm',
-  normal: 'bg-white text-brand-700 shadow-sm',
-  high:   'bg-white text-amber-600 shadow-sm',
-  urgent: 'bg-white text-red-600 shadow-sm',
+  low:    'bg-white text-slate-700 shadow-xs',
+  normal: 'bg-white text-brand-700 shadow-xs',
+  high:   'bg-white text-amber-600 shadow-xs',
+  urgent: 'bg-white text-red-600 shadow-xs',
 };
 
 const STATUS_ACTIVE = {
-  backlog:    'bg-white text-slate-700 shadow-sm',
-  planned:    'bg-white text-cyan-700 shadow-sm',
-  inProgress: 'bg-white text-brand-700 shadow-sm',
-  completed:  'bg-white text-emerald-700 shadow-sm',
+  backlog:    'bg-white text-slate-700 shadow-xs',
+  planned:    'bg-white text-cyan-700 shadow-xs',
+  inProgress: 'bg-white text-brand-700 shadow-xs',
+  completed:  'bg-white text-emerald-700 shadow-xs',
 };
 
 export default function TaskFormModal({
@@ -154,7 +154,7 @@ export default function TaskFormModal({
             {TASK_CATEGORY_LIST.map((cat) => {
               const active = category === cat.id;
               const chip = active
-                ? `${cat.chipBg} ${cat.chipText} border-transparent shadow-sm`
+                ? `${cat.chipBg} ${cat.chipText} border-transparent shadow-xs`
                 : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50';
               return (
                 <button
@@ -295,7 +295,7 @@ export default function TaskFormModal({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-xs focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
             placeholder={t('tasks.notesPlaceholder')}
           />
         </label>

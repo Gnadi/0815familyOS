@@ -15,7 +15,7 @@ export default function ViewToggle({ value, onChange }) {
             key={o.id}
             onClick={() => onChange(o.id)}
             className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
-              active ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500'
+              active ? 'bg-white text-brand-600 shadow-xs' : 'text-slate-500'
             }`}
           >
             {o.label}

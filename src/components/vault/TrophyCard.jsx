@@ -56,7 +56,7 @@ export default function TrophyCard({ trophy, onClick, encryptionKey }) {
   return (
     <button
       onClick={() => onClick(trophy)}
-      className={`flex w-full items-start gap-3 rounded-2xl p-4 text-left shadow-sm ring-1 transition hover:shadow-md ${cat.cardBg} ${cat.cardRing}`}
+      className={`flex w-full items-start gap-3 rounded-2xl p-4 text-left shadow-xs ring-1 transition hover:shadow-md ${cat.cardBg} ${cat.cardRing}`}
     >
       <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${cat.iconBg} ${cat.iconColor}`}>
         <Trophy size={18} />
@@ -69,7 +69,7 @@ export default function TrophyCard({ trophy, onClick, encryptionKey }) {
             <button
               onClick={handleDownload}
               disabled={downloading}
-              className={`flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium shadow-sm disabled:opacity-50 ${cat.iconBg} ${cat.iconColor}`}
+              className={`flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium shadow-xs disabled:opacity-50 ${cat.iconBg} ${cat.iconColor}`}
             >
               {fileExtBadge(trophy.fileName)}
               {downloading ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />}
@@ -78,7 +78,7 @@ export default function TrophyCard({ trophy, onClick, encryptionKey }) {
         </div>
 
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
-          <span className={`rounded-full px-2 py-0.5 text-xs font-medium shadow-sm ${cat.chipBg} ${cat.chipText}`}>
+          <span className={`rounded-full px-2 py-0.5 text-xs font-medium shadow-xs ${cat.chipBg} ${cat.chipText}`}>
             {tLabel(t, cat)}
           </span>
           {trophy.date && (

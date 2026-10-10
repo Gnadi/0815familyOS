@@ -96,7 +96,7 @@ export default function ActiveTrackers() {
             <div key={key} className="flex items-center gap-3 px-4 py-3">
               <Link to="/tracker" className="flex min-w-0 flex-1 items-center gap-3">
                 <span
-                  className={`relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-base ${color.bubble}`}
+                  className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base ${color.bubble}`}
                 >
                   {tracker.emoji}
                   {status.goalMet && (
@@ -112,7 +112,7 @@ export default function ActiveTrackers() {
                   <span className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500">
                     <span className="truncate">{statusLine(status, { t, tn })}</span>
                     {status.cooldownActive && (
-                      <span className="inline-flex flex-shrink-0 items-center gap-0.5 font-medium text-amber-700">
+                      <span className="inline-flex shrink-0 items-center gap-0.5 font-medium text-amber-700">
                         <Timer size={10} />
                         {format(status.cooldownUntil, 'HH:mm')}
                       </span>
@@ -127,7 +127,7 @@ export default function ActiveTrackers() {
                 <Link
                   to="/tracker"
                   aria-label={t('tracker.logNow', { name: tracker.name })}
-                  className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-white ${color.button}`}
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white ${color.button}`}
                 >
                   <Plus size={18} />
                 </Link>
@@ -136,7 +136,7 @@ export default function ActiveTrackers() {
                   type="button"
                   onClick={() => handleLog({ kid, tracker })}
                   aria-label={t('tracker.logNow', { name: tracker.name })}
-                  className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-white transition active:scale-95 ${color.button}`}
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white transition active:scale-95 ${color.button}`}
                 >
                   <Plus size={18} />
                 </button>

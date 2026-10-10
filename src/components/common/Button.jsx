@@ -32,7 +32,7 @@ export default function Button({
         danger: 'bg-slate-100 text-red-600 hover:bg-slate-200',
       }
     : {
-        primary: 'bg-brand-500 text-white shadow-sm hover:bg-brand-600',
+        primary: 'bg-brand-500 text-white shadow-xs hover:bg-brand-600',
         secondary: 'bg-white text-slate-900 border border-slate-200 hover:bg-slate-50',
         ghost: 'text-brand-600 hover:bg-brand-50',
         danger: 'bg-white text-red-600 border border-red-200 hover:bg-red-50',

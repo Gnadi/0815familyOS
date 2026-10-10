@@ -168,13 +168,13 @@ export default function ShoppingPage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={t('shopping.whatNeed')}
-            className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 shadow-card focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 shadow-card focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
           />
           <button
             type="submit"
             disabled={!title.trim()}
             aria-label={t('shopping.addItem')}
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white shadow-sm hover:bg-brand-600 disabled:opacity-40"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white shadow-xs hover:bg-brand-600 disabled:opacity-40"
           >
             <Plus size={22} />
           </button>
@@ -202,7 +202,7 @@ export default function ShoppingPage() {
                 <button
                   type="button"
                   onClick={() => setProposalOpen(true)}
-                  className="mt-3 w-full rounded-full bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-600"
+                  className="mt-3 w-full rounded-full bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-brand-600"
                 >
                   {t('shopping.viewProposal')}
                 </button>
@@ -361,9 +361,9 @@ function ProductTile({ item, variant, onToggle, onEdit, t }) {
       {/* Priority badges, top-right */}
       {(item.urgent || item.offer || item.ifConvenient) && (
         <span className="absolute right-1.5 top-1.5 flex gap-1">
-          {item.urgent && <Footprints size={14} className="drop-shadow" />}
-          {item.offer && <BadgePercent size={14} className="drop-shadow" />}
-          {item.ifConvenient && <Hourglass size={14} className="drop-shadow" />}
+          {item.urgent && <Footprints size={14} className="drop-shadow-sm" />}
+          {item.offer && <BadgePercent size={14} className="drop-shadow-sm" />}
+          {item.ifConvenient && <Hourglass size={14} className="drop-shadow-sm" />}
         </span>
       )}
       <span className="text-3xl leading-none">{icon}</span>

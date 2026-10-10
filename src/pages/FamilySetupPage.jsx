@@ -19,7 +19,7 @@ function ModeCard({ icon: Icon, title, description, onClick }) {
       onClick={onClick}
       className="flex w-full items-center gap-4 rounded-2xl bg-white p-5 text-left shadow-card transition hover:bg-slate-50"
     >
-      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-500">
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-500">
         <Icon size={24} />
       </div>
       <div>

@@ -56,7 +56,7 @@ function NewCategoryForm({ onCreated, onCancel, familyId, vaultType }) {
         placeholder={t('vault.categoryPlaceholder')}
         maxLength={24}
         autoFocus
-        className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+        className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-xs focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
       />
       <div className="mt-3 flex flex-wrap gap-2">
         {PALETTE_COLORS.map((c) => {
@@ -286,7 +286,7 @@ export default function DocumentFormModal({
               const isDeletable = cat.id !== defaultCat;
               const isDeleting = deletingCategoryId === cat.id;
               const chip = active
-                ? `${cat.chipBg} ${cat.chipText} border-transparent shadow-sm`
+                ? `${cat.chipBg} ${cat.chipText} border-transparent shadow-xs`
                 : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50';
               return (
                 <div
@@ -414,7 +414,7 @@ export default function DocumentFormModal({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-xs focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
             placeholder={isTrophy ? t('vault.notesPlaceholderTrophy') : t('vault.notesPlaceholderDoc')}
           />
         </label>

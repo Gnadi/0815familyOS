@@ -82,7 +82,7 @@ export default function MonthView({
                 onClick={() => onSelect(d)}
                 className={`flex aspect-square flex-col items-center justify-center rounded-xl text-sm transition ${
                   active
-                    ? 'bg-brand-500 text-white shadow-sm'
+                    ? 'bg-brand-500 text-white shadow-xs'
                     : inMonth
                     ? 'text-slate-900 hover:bg-slate-100'
                     : 'text-slate-300'

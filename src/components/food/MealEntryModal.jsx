@@ -147,7 +147,7 @@ export default function MealEntryModal({
               type="button"
               onClick={() => setMode(o.id)}
               className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                mode === o.id ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500'
+                mode === o.id ? 'bg-white text-brand-600 shadow-xs' : 'text-slate-500'
               }`}
             >
               {o.label}
@@ -166,7 +166,7 @@ export default function MealEntryModal({
               <select
                 value={recipeId}
                 onChange={(e) => setRecipeId(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-xs focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
               >
                 <option value="">{t('food.selectRecipe')}</option>
                 {recipes.map((r) => (
@@ -186,7 +186,7 @@ export default function MealEntryModal({
               onChange={(e) => setText(e.target.value)}
               placeholder={t('food.mealPlaceholder')}
               autoFocus
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 shadow-xs focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
             />
           </label>
         )}
@@ -256,7 +256,7 @@ export default function MealEntryModal({
                   }
                 }}
                 placeholder={t('food.addAnotherPerson')}
-                className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
               />
               <button
                 type="button"

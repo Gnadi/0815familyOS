@@ -75,7 +75,7 @@ export default function CookingMode({ open, onClose, recipe }) {
   const stepText = onIntro ? null : steps[screen - 1];
 
   return createPortal(
-    <div className="fixed inset-0 z-[60] flex flex-col bg-white" style={{ height: '100dvh' }}>
+    <div className="fixed inset-0 z-60 flex flex-col bg-white" style={{ height: '100dvh' }}>
       {/* Header: progress + exit */}
       <div className="flex items-center gap-3 px-5 pt-5">
         <div className="min-w-0 flex-1">
@@ -134,7 +134,7 @@ export default function CookingMode({ open, onClose, recipe }) {
       {/* Ingredients slide-over (reachable during steps) */}
       {showIngredients && !onIntro && (
         <div
-          className="absolute inset-0 z-10 flex flex-col bg-white/95 backdrop-blur"
+          className="absolute inset-0 z-10 flex flex-col bg-white/95 backdrop-blur-sm"
           onClick={() => setShowIngredients(false)}
         >
           <div className="flex items-center justify-between px-6 pt-6">

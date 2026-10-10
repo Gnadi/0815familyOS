@@ -55,7 +55,7 @@ export default function SearchResults({ query, results, feedErrors, onEventClick
   // Saying so beats letting them conclude the search is broken.
   const feedWarning = feedErrors?.length ? (
     <p className="flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">
-      <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" />
+      <AlertTriangle size={14} className="mt-0.5 shrink-0" />
       {t('calendar.searchFeedWarning')}
     </p>
   ) : null;
