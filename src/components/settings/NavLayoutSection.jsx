@@ -64,7 +64,7 @@ function OrderedPicker({ entries, selected, onChange, min = 0, max = Infinity, r
               disabled={locked}
               onChange={() => onChange(toggleId(selected, entry.id))}
               aria-label={t(toggleLabelKey, { name: label })}
-              className="h-5 w-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500 disabled:opacity-40"
+              className="h-5 w-5 rounded-sm border-slate-300 text-brand-600 focus:ring-brand-500 disabled:opacity-40"
             />
           </div>
         );

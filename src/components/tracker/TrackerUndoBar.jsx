@@ -13,7 +13,7 @@ export default function TrackerUndoBar({ name, onUndo }) {
         <button
           type="button"
           onClick={onUndo}
-          className="flex flex-shrink-0 items-center gap-1.5 text-sm font-semibold text-brand-300"
+          className="flex shrink-0 items-center gap-1.5 text-sm font-semibold text-brand-300"
         >
           <Undo2 size={15} />
           {t('tracker.undo')}

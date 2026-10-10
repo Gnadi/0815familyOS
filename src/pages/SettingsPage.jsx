@@ -167,7 +167,7 @@ export default function SettingsPage() {
                   type="button"
                   onClick={() => setSkin(s.id)}
                   className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition ${
-                    skin === s.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                    skin === s.id ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
                   }`}
                 >
                   {s.id === 'ios' ? <Smartphone size={15} /> : <Palette size={15} />} {t(SKIN_LABEL_KEYS[s.id] || s.label)}
@@ -183,7 +183,7 @@ export default function SettingsPage() {
                 type="button"
                 onClick={() => setMode('light')}
                 className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition ${
-                  mode === 'light' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  mode === 'light' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
                 <Sun size={15} /> {t('settings.light')}
@@ -192,7 +192,7 @@ export default function SettingsPage() {
                 type="button"
                 onClick={() => setMode('dark')}
                 className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition ${
-                  mode === 'dark' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  mode === 'dark' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
                 <Moon size={15} /> {t('settings.dark')}
@@ -208,7 +208,7 @@ export default function SettingsPage() {
               type="checkbox"
               checked={showLabels}
               onChange={(e) => setShowLabels(e.target.checked)}
-              className="h-5 w-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+              className="h-5 w-5 rounded-sm border-slate-300 text-brand-600 focus:ring-brand-500"
             />
           </label>
         </section>
@@ -332,7 +332,7 @@ export default function SettingsPage() {
                             updateKid(family.id, kid.id, { birthday: next });
                           }
                         }}
-                        className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-200"
+                        className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:border-brand-400 focus:outline-hidden focus:ring-1 focus:ring-brand-200"
                       />
                     </label>
                   </div>
@@ -356,12 +356,12 @@ export default function SettingsPage() {
                 value={newKidName}
                 onChange={(e) => setNewKidName(e.target.value)}
                 placeholder={t('settings.addChildName')}
-                className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
               />
               <button
                 type="submit"
                 disabled={!newKidName.trim()}
-                className="flex items-center justify-center rounded-xl bg-brand-500 px-3 text-white shadow-sm hover:bg-brand-600 disabled:opacity-40"
+                className="flex items-center justify-center rounded-xl bg-brand-500 px-3 text-white shadow-xs hover:bg-brand-600 disabled:opacity-40"
                 aria-label={t('settings.addChild')}
               >
                 <Plus size={18} />

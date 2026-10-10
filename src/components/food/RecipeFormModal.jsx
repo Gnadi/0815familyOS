@@ -157,7 +157,7 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
             value={servings}
             onChange={(e) => setServings(e.target.value)}
             placeholder="4"
-            className="w-28 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 placeholder:text-slate-400 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+            className="w-28 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 placeholder:text-slate-400 shadow-xs focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
           />
           <span className="mt-1.5 block text-xs text-slate-500">{t('food.servingsHint')}</span>
         </label>
@@ -180,7 +180,7 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
                     }
                   }}
                   placeholder={t('food.ingredientPlaceholder', { n: i + 1 })}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 placeholder:text-slate-400 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 placeholder:text-slate-400 shadow-xs focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
                 />
                 <button
                   type="button"
@@ -217,7 +217,7 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
                   onChange={(e) => updateRow(setSteps)(i, e.target.value)}
                   rows={2}
                   placeholder={t('food.stepPlaceholder', { n: i + 1 })}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 placeholder:text-slate-400 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 placeholder:text-slate-400 shadow-xs focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
                 />
                 <button
                   type="button"
@@ -247,7 +247,7 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-xs focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
             placeholder={t('food.notesPlaceholder')}
           />
         </label>

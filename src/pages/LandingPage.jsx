@@ -116,10 +116,10 @@ export default function LandingPage() {
       </a>
 
       {/* Sticky nav */}
-      <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+      <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/80 backdrop-blur-sm supports-backdrop-filter:bg-white/60">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
           <Link to="/" className="flex items-center gap-2">
-            <BrandMark className="h-8 w-8 shadow-sm rounded-xl" />
+            <BrandMark className="h-8 w-8 shadow-xs rounded-xl" />
             <span className="text-base font-bold tracking-tight">{t('common.appName')}</span>
           </Link>
           <nav className="hidden items-center gap-7 text-sm font-medium text-slate-600 md:flex">
@@ -138,7 +138,7 @@ export default function LandingPage() {
             </Link>
             <Link
               to="/signup"
-              className="inline-flex items-center justify-center rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600"
+              className="inline-flex items-center justify-center rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-brand-600"
             >
               {t('landing.getStarted')}
             </Link>
@@ -149,7 +149,7 @@ export default function LandingPage() {
       <main id="main">
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-brand-50 to-white" />
+        <div className="absolute inset-0 -z-10 bg-linear-to-b from-brand-50 to-white" />
         <div
           aria-hidden
           className="absolute inset-0 -z-10 opacity-60"
@@ -164,14 +164,14 @@ export default function LandingPage() {
               <Sparkles size={13} />
               {t('landing.badgeFree')}
             </span>
-            <h1 className="mt-5 text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
+            <h1 className="mt-5 text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl sm:leading-none lg:text-6xl">
               {t('landing.heroTitleA')}
               <br />
               {t('landing.heroTitleB')}{' '}
               <span className="text-brand-500">{t('landing.heroTitleHighlight')}</span>{' '}
               {t('landing.heroTitleC')}
             </h1>
-            <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg lg:mx-0">
+            <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg sm:leading-7 lg:mx-0">
               {t('landing.heroSubtitle')}
             </p>
             <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:flex-wrap lg:justify-start">
@@ -211,7 +211,7 @@ export default function LandingPage() {
 
           {/* Hero visual: real product screenshot */}
           <div className="relative mx-auto w-full max-w-[280px] sm:max-w-[320px]">
-            <div className="absolute -inset-6 -z-10 rounded-[3rem] bg-gradient-to-br from-brand-400/30 to-brand-600/20 blur-3xl" />
+            <div className="absolute -inset-6 -z-10 rounded-[3rem] bg-linear-to-br from-brand-400/30 to-brand-600/20 blur-3xl" />
             <img
               src="/screenshots/dashboard.webp"
               alt={t('landing.heroShotAlt')}
@@ -293,7 +293,7 @@ export default function LandingPage() {
               <ul className="mt-4 space-y-1.5">
                 {[1, 2, 3].map((n) => (
                   <li key={n} className="flex items-center gap-2 text-sm text-slate-500">
-                    <Check size={15} className="flex-shrink-0 text-brand-500" />
+                    <Check size={15} className="shrink-0 text-brand-500" />
                     {t(`landing.feat${f.key}P${n}`)}
                   </li>
                 ))}
@@ -443,7 +443,7 @@ export default function LandingPage() {
                   {q}
                   <ChevronDown
                     size={20}
-                    className="flex-shrink-0 text-slate-400 transition-transform group-open:rotate-180"
+                    className="shrink-0 text-slate-400 transition-transform group-open:rotate-180"
                     aria-hidden
                   />
                 </summary>
@@ -575,7 +575,7 @@ function StatCard({ value, label }) {
 
 function ValueCard({ Icon, title, body }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
       <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white">
         <Icon size={20} />
       </span>

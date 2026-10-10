@@ -193,7 +193,7 @@ export default function TrackerPage() {
               onClick={() => setSelectedIdx(idx)}
               className={`flex-1 rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
                 selectedIdx === idx
-                  ? 'bg-white font-semibold text-slate-900 shadow-sm'
+                  ? 'bg-white font-semibold text-slate-900 shadow-xs'
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >

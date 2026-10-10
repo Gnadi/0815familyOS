@@ -152,7 +152,7 @@ export default function WeekMealPlan({
             <div
               key={day.toISOString()}
               className={`overflow-hidden rounded-3xl bg-white shadow-card ${
-                today ? 'ring-2 ring-brand-300' : ''
+                today ? 'ring-2 ring-brand-500/50' : ''
               }`}
             >
               <div

@@ -19,7 +19,7 @@ export default function FilterChips({ chips, selected, onToggle }) {
   const isAllActive = selected.size === 0;
 
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
       {chips.map((chip) => {
         const colors = CHIP_COLORS[chip.colorKey] || CHIP_COLORS.slate;
         const isAll = chip.id === 'all';
@@ -29,13 +29,13 @@ export default function FilterChips({ chips, selected, onToggle }) {
           <button
             key={chip.id}
             onClick={() => onToggle(chip.id)}
-            className={`flex flex-shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
               isActive
                 ? `${colors.activeBg} ${colors.activeText}`
                 : 'border border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
             }`}
           >
-            <span className={`h-2 w-2 rounded-full flex-shrink-0 ${colors.dot}`} />
+            <span className={`h-2 w-2 rounded-full shrink-0 ${colors.dot}`} />
             {chip.label}
           </button>
         );

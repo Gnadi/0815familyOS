@@ -28,7 +28,7 @@ export default function FeedIssueBanner({ reports }) {
       }`}
     >
       <p className="flex items-center gap-1.5 font-semibold">
-        <AlertTriangle size={14} className="flex-shrink-0" />
+        <AlertTriangle size={14} className="shrink-0" />
         {t('calendar.feedIssueTitle')}
       </p>
       <ul className="mt-1.5 space-y-1">

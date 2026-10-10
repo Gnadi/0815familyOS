@@ -129,7 +129,7 @@ export default function ShoppingItemModal({ item, product, weekly, familyId, use
           onChange={(e) => setQuantity(e.target.value)}
           onBlur={commitQuantity}
           placeholder={t('shopping.qtyDescription')}
-          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
         />
 
         <section>

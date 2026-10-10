@@ -37,7 +37,7 @@ export default function HealthAlerts() {
       <h2 className="text-lg font-bold text-slate-900">{t('dashboard.healthAlerts')}</h2>
       <div className="mt-3 rounded-2xl bg-red-50/60 p-5">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-red-100 text-red-500">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-500">
             <Syringe size={18} />
           </div>
           <div>

@@ -45,7 +45,7 @@ export default function SuggestionList({ title, hint, suggestions, iconFor, onAd
               type="button"
               onClick={() => onAdd(product)}
               aria-label={t('shopping.addSuggestion', { name: product.title })}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white shadow-sm hover:bg-brand-600"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white shadow-xs hover:bg-brand-600"
             >
               <Plus size={18} />
             </button>

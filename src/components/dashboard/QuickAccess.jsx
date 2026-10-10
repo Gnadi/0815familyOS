@@ -53,7 +53,7 @@ export default function QuickAccess() {
         <div className="mt-3 overflow-hidden rounded-2xl bg-white">
           {entries.map((e, i) => (
             <div key={e.id}>
-              {i > 0 && <div className="ml-[3.75rem] h-px bg-slate-100" />}
+              {i > 0 && <div className="ml-15 h-px bg-slate-100" />}
               <Row {...e} label={t(e.labelKey)} />
             </div>
           ))}

@@ -11,7 +11,7 @@ function NavItem({ to, label, Icon, showLabels }) {
       to={to}
       aria-label={label}
       className={({ isActive }) =>
-        `flex min-h-[3.5rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 py-2 ${
+        `flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 py-2 ${
           isActive ? 'text-brand-600' : 'text-slate-500'
         }`
       }

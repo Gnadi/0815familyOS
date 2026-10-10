@@ -35,7 +35,7 @@ const KID_CHIP = {
 function DetailRow({ icon: Icon, children }) {
   return (
     <div className="flex items-start gap-2 text-sm text-slate-600">
-      <Icon size={14} className="mt-0.5 flex-shrink-0 text-slate-400" />
+      <Icon size={14} className="mt-0.5 shrink-0 text-slate-400" />
       <span className="min-w-0 flex-1">{children}</span>
     </div>
   );
@@ -112,13 +112,13 @@ export default function EventCard({ event, onClick, showSource = false, day = nu
         onClick={onClick}
         className="flex w-full items-stretch gap-3 p-4 text-left hover:bg-slate-50"
       >
-        <div className="w-16 flex-shrink-0 text-right">
+        <div className="w-16 shrink-0 text-right">
           <p className={`font-semibold text-slate-900 ${timeTop.length > 5 ? 'text-xs leading-5' : 'text-sm'}`}>
             {timeTop}
           </p>
           {timeBottom && <p className="text-xs text-slate-400">{timeBottom}</p>}
         </div>
-        <div className={`w-1 flex-shrink-0 rounded-full ${barClass}`} />
+        <div className={`w-1 shrink-0 rounded-full ${barClass}`} />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             {/* Long titles wrap instead of being cut off with an ellipsis: the
@@ -127,18 +127,18 @@ export default function EventCard({ event, onClick, showSource = false, day = nu
               {isSynced && (
                 <ExternalLink
                   size={12}
-                  className="mt-1.5 flex-shrink-0 text-slate-400"
+                  className="mt-1.5 shrink-0 text-slate-400"
                   aria-label={sourceLabel}
                 />
               )}
-              <span className="min-w-0 break-words [overflow-wrap:anywhere]">{event.title}</span>
+              <span className="min-w-0 wrap-break-word wrap-anywhere">{event.title}</span>
             </h3>
             {effort ? (
-              <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${effort.badge}`}>
+              <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${effort.badge}`}>
                 {t(effort.labelKey)}
               </span>
             ) : (
-              <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${cat.chipBg} ${cat.chipText}`}>
+              <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${cat.chipBg} ${cat.chipText}`}>
                 {tLabel(t, cat)}
               </span>
             )}
@@ -158,19 +158,19 @@ export default function EventCard({ event, onClick, showSource = false, day = nu
           )}
           {isSynced && showSource && (
             <div className="mt-1 flex items-center gap-1 text-xs text-slate-400">
-              <ExternalLink size={12} className="flex-shrink-0" />
+              <ExternalLink size={12} className="shrink-0" />
               <span className="truncate">{sourceLabel}</span>
             </div>
           )}
           {event.location && (
             <div className="mt-1 flex items-center gap-1 text-xs text-slate-500">
-              <MapPin size={12} className="flex-shrink-0" />
+              <MapPin size={12} className="shrink-0" />
               <span className="truncate">{event.location}</span>
             </div>
           )}
           {event.responsibleParent && (
             <div className="mt-1 flex items-center gap-1 text-xs text-slate-500">
-              <User size={12} className="flex-shrink-0" />
+              <User size={12} className="shrink-0" />
               {event.responsibleParent}
             </div>
           )}

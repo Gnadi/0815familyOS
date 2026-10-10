@@ -38,7 +38,7 @@ export default function RecurrenceField({ value, onChange }) {
           type="checkbox"
           checked={enabled}
           onChange={(e) => toggle(e.target.checked)}
-          className="h-5 w-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+          className="h-5 w-5 rounded-sm border-slate-300 text-brand-600 focus:ring-brand-500"
         />
       </label>
 
@@ -52,12 +52,12 @@ export default function RecurrenceField({ value, onChange }) {
               max={99}
               value={interval}
               onChange={(e) => patch({ interval: Math.max(1, Number(e.target.value) || 1) })}
-              className="w-16 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-200"
+              className="w-16 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm focus:border-brand-400 focus:outline-hidden focus:ring-1 focus:ring-brand-200"
             />
             <select
               value={freq}
               onChange={(e) => patch({ freq: e.target.value })}
-              className="min-w-[6rem] rounded-lg border border-slate-200 bg-white py-1.5 pl-3 pr-8 text-sm focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-200"
+              className="min-w-24 rounded-lg border border-slate-200 bg-white py-1.5 pl-3 pr-8 text-sm focus:border-brand-400 focus:outline-hidden focus:ring-1 focus:ring-brand-200"
             >
               {FREQS.map((f) => (
                 <option key={f} value={f}>
@@ -72,7 +72,7 @@ export default function RecurrenceField({ value, onChange }) {
               type="date"
               value={until}
               onChange={(e) => patch({ until: e.target.value || null })}
-              className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-200"
+              className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs focus:border-brand-400 focus:outline-hidden focus:ring-1 focus:ring-brand-200"
             />
             {until && (
               <button

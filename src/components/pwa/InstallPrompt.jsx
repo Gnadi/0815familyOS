@@ -52,7 +52,7 @@ export default function InstallPrompt() {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-900/50 backdrop-blur-sm sm:items-center"
+      className="fixed inset-0 z-60 flex items-end justify-center bg-slate-900/50 backdrop-blur-xs sm:items-center"
       style={{ height: '100dvh' }}
       onClick={handleClose}
       role="dialog"
@@ -72,7 +72,7 @@ export default function InstallPrompt() {
         </button>
 
         {/* Branded header */}
-        <div className="relative flex flex-col items-center bg-gradient-to-b from-brand-50 to-white px-6 pb-2 pt-8 text-center">
+        <div className="relative flex flex-col items-center bg-linear-to-b from-brand-50 to-white px-6 pb-2 pt-8 text-center">
           <img
             src="/icons/icon-192.png"
             alt=""
@@ -94,7 +94,7 @@ export default function InstallPrompt() {
           <ul className="space-y-3">
             {benefits.map(({ Icon, key }) => (
               <li key={key} className="flex items-center gap-3 text-sm text-slate-700">
-                <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-500">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-500">
                   <Icon size={17} />
                 </span>
                 {t(`pwa.${key}`)}
@@ -108,11 +108,11 @@ export default function InstallPrompt() {
               <p className="font-semibold text-slate-800">{t('pwa.iosHowTo')}</p>
               <ol className="mt-2 space-y-2">
                 <li className="flex items-center gap-2">
-                  <Share size={16} className="flex-shrink-0 text-brand-500" />
+                  <Share size={16} className="shrink-0 text-brand-500" />
                   <span>{t('pwa.iosStep1')}</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <Plus size={16} className="flex-shrink-0 text-brand-500" />
+                  <Plus size={16} className="shrink-0 text-brand-500" />
                   <span>{t('pwa.iosStep2')}</span>
                 </li>
               </ol>

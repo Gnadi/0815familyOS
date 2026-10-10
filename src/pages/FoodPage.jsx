@@ -158,7 +158,7 @@ export default function FoodPage() {
               type="button"
               onClick={() => setTab(tabItem.id)}
               className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                tab === tabItem.id ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500'
+                tab === tabItem.id ? 'bg-white text-brand-600 shadow-xs' : 'text-slate-500'
               }`}
             >
               {t(tabItem.labelKey)}

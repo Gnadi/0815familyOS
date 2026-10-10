@@ -14,7 +14,7 @@ export default function DemoBanner() {
   return (
     <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-brand-600 px-4 py-2 text-center text-xs font-medium text-white">
       <span className="inline-flex items-center gap-1.5">
-        <Sparkles size={13} className="flex-shrink-0" />
+        <Sparkles size={13} className="shrink-0" />
         {t('demo.banner')}
       </span>
       <span className="flex items-center gap-3">

@@ -62,7 +62,7 @@ export default function ColumnSection({
             </div>
           </div>
           <span
-            className={`mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-slate-400 transition-transform ${
+            className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition-transform ${
               collapsed ? '-rotate-90' : ''
             }`}
             aria-hidden

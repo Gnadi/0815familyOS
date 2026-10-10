@@ -53,7 +53,7 @@ export default function TrackerCard({ tracker, status, onLog, onOpen }) {
         className="flex min-w-0 flex-1 items-center gap-3 text-left"
       >
         <span
-          className={`relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-xl ${color.bubble}`}
+          className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl ${color.bubble}`}
         >
           {tracker.emoji}
           {done && (
@@ -83,7 +83,7 @@ export default function TrackerCard({ tracker, status, onLog, onOpen }) {
         type="button"
         onClick={() => onLog(tracker)}
         aria-label={t('tracker.logNow', { name: tracker.name })}
-        className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-white shadow-sm transition active:scale-95 ${color.button}`}
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white shadow-xs transition active:scale-95 ${color.button}`}
       >
         <Plus size={22} />
       </button>

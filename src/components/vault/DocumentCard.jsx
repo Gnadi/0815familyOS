@@ -77,7 +77,7 @@ export default function DocumentCard({ doc, onClick, encryptionKey }) {
   return (
     <button
       onClick={() => onClick(doc)}
-      className="flex w-full items-start gap-3 rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-slate-100 transition hover:shadow-md"
+      className="flex w-full items-start gap-3 rounded-2xl bg-white p-4 text-left shadow-xs ring-1 ring-slate-100 transition hover:shadow-md"
     >
       <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${cat.iconBg} ${cat.iconColor}`}>
         <Icon size={18} />

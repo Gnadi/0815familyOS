@@ -83,7 +83,7 @@ export default function JoinPage() {
       <Shell>
         <Card title={t('invite.demoTitle')}>
           <p className="flex items-start gap-2">
-            <Sparkles size={16} className="mt-0.5 flex-shrink-0 text-brand-500" />
+            <Sparkles size={16} className="mt-0.5 shrink-0 text-brand-500" />
             {t('invite.demoHint')}
           </p>
           <Button className="w-full" onClick={() => exitDemo(location.pathname)}>
@@ -191,7 +191,7 @@ export default function JoinPage() {
       <Card title={t('invite.joinTitle', { family: invite.familyName })}>
         {invite.createdByName && (
           <p className="flex items-center gap-2">
-            <Users size={16} className="flex-shrink-0 text-slate-400" />
+            <Users size={16} className="shrink-0 text-slate-400" />
             {t('invite.joinInvitedBy', { name: invite.createdByName })}
           </p>
         )}

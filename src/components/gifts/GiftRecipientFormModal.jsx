@@ -69,7 +69,7 @@ export default function GiftRecipientFormModal({ open, onClose, onSubmit, onDele
             type="date"
             value={birthday}
             onChange={(e) => setBirthday(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-xs focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
           />
         </label>
 

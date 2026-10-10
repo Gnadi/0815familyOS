@@ -12,9 +12,9 @@ const STATUSES = [
 ];
 
 const STATUS_ACTIVE = {
-  idea:   'bg-white text-slate-700 shadow-sm',
-  bought: 'bg-white text-blue-700 shadow-sm',
-  gifted: 'bg-white text-emerald-700 shadow-sm',
+  idea:   'bg-white text-slate-700 shadow-xs',
+  bought: 'bg-white text-blue-700 shadow-xs',
+  gifted: 'bg-white text-emerald-700 shadow-xs',
 };
 
 export default function GiftFormModal({ open, onClose, onSubmit, onDelete, initial, recipients }) {
@@ -126,7 +126,7 @@ export default function GiftFormModal({ open, onClose, onSubmit, onDelete, initi
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               placeholder="0.00"
-              className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-8 pr-4 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+              className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-8 pr-4 text-base text-slate-900 shadow-xs focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
             />
           </div>
         </div>
@@ -157,7 +157,7 @@ export default function GiftFormModal({ open, onClose, onSubmit, onDelete, initi
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-xs focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
             placeholder={t('gifts.notesPlaceholder')}
           />
         </label>

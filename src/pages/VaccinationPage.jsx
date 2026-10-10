@@ -198,7 +198,7 @@ function VaccineRow({ vaccine, onClick, t }) {
       onClick={() => onClick(vaccine)}
       className="-mx-5 flex w-[calc(100%+2.5rem)] items-center gap-4 px-5 py-5 text-left transition-colors hover:bg-slate-50"
     >
-      <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${iconCls}`}>
+      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${iconCls}`}>
         <Icon size={18} />
       </div>
       <div className="min-w-0 flex-1">
@@ -207,7 +207,7 @@ function VaccineRow({ vaccine, onClick, t }) {
           {t(cfg.infoKey)} • {fmtDate(vaccine.date)}
         </p>
       </div>
-      <span className={`flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${badgeCls}`}>
+      <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${badgeCls}`}>
         {t(cfg.labelKey)}
       </span>
     </button>
@@ -327,7 +327,7 @@ export default function VaccinationPage() {
               onClick={() => setSelectedIdx(idx)}
               className={`flex-1 rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
                 selectedIdx === idx
-                  ? 'bg-white font-semibold text-slate-900 shadow-sm'
+                  ? 'bg-white font-semibold text-slate-900 shadow-xs'
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
@@ -391,7 +391,7 @@ export default function VaccinationPage() {
         {/* Travel Advisory */}
         {currentKid && (
           <div className="flex gap-3 rounded-2xl bg-amber-50 p-4">
-            <Info size={18} className="mt-0.5 flex-shrink-0 text-amber-500" />
+            <Info size={18} className="mt-0.5 shrink-0 text-amber-500" />
             <p className="text-sm text-amber-800">
               <span className="font-semibold">{t('health.travelAdvisory')} — </span>
               {t('health.travelAdvisoryText', { name: currentKid.name })}

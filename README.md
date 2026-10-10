@@ -8,7 +8,7 @@ modules (Document Vault, Gift Planner, Task Manager).
 ## Tech Stack
 
 - **Frontend:** React 18 + Vite
-- **Styling:** Tailwind CSS, Inter (Google Fonts)
+- **Styling:** Tailwind CSS 4 (theme, dark mode and iOS skin in `src/index.css`), Inter (Google Fonts)
 - **Backend:** Firebase — Authentication (Email/Password + Google) and Firestore
 - **Image storage:** Cloudinary env vars reserved for future features
 - **Routing:** react-router-dom
@@ -141,12 +141,24 @@ The threshold is `AUDIT_LEVEL` in the workflow; lower it to `moderate` or
 `low` once everything above that is cleared. A one-off run at a different
 level can be started under Actions → npm audit → Run workflow.
 
-`package.json` carries one `overrides` entry: `@firebase/firestore` pins
-`@grpc/grpc-js` to `~1.9.0`, which has no fix for GHSA-m9gg-hp2v-232j (fixed
-in 1.13.6), so the override lifts it to `^1.13.6`. Only Firestore's Node build
-uses gRPC — the browser talks WebChannel — so what it affects is the rules
-tests and the build, both of which pass with it. Remove it once a Firebase
-release depends on a fixed `@grpc/grpc-js` itself.
+`package.json` carries three `overrides`, each for an advisory whose fix the
+package that pulls it in has not taken up yet:
+
+- `@grpc/grpc-js` → `^1.13.6`, for `@firebase/firestore`, which pins `~1.9.0`
+  and so has no fix for GHSA-m9gg-hp2v-232j. Only Firestore's Node build uses
+  gRPC — the browser talks WebChannel — so what it affects is the rules tests
+  and the build, both of which pass with it.
+- `basic-ftp` → `^6.2.3`. `firebase-tools` reaches it through `proxy-agent` →
+  `get-uri`, which asks for `^5`; it would only ever fetch a proxy
+  configuration over FTP.
+- `chokidar` → `^4`, for `firebase-tools` only. chokidar 3 depends on `braces`,
+  which has an open advisory and no fixed release; chokidar 4 has dropped it.
+  firebase-tools uses it to watch the rules in the emulator, which works the
+  same with either.
+
+Remove each once the package that pulls it in depends on a fixed release
+itself. `braces` also came in through Tailwind CSS 3; Tailwind 4 no longer
+depends on it.
 
 ## Server endpoints
 

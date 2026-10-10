@@ -94,7 +94,7 @@ export default function WeekShoppingModal({ open, onClose, lines, shoppingItems,
                       checked={selected.has(entry.key)}
                       onChange={() => toggle(entry.key)}
                       disabled={already}
-                      className="h-5 w-5 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                      className="h-5 w-5 shrink-0 rounded-sm border-slate-300 text-brand-600 focus:ring-brand-500"
                     />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium text-slate-900">

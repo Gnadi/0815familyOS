@@ -42,7 +42,7 @@ export default function DayTimeline({ day, events, onEventClick, onCreateAt }) {
     <div className="rounded-2xl bg-white p-3 shadow-card">
       {allDay.length > 0 && (
         <div className="mb-3 flex gap-2 border-b border-slate-100 pb-3">
-          <span className="w-12 flex-shrink-0 pr-2 pt-1 text-right text-[11px] leading-tight text-slate-400">
+          <span className="w-12 shrink-0 pr-2 pt-1 text-right text-[11px] leading-tight text-slate-400">
             {t('calendar.allDay')}
           </span>
           <div className="min-w-0 flex-1 space-y-1">
@@ -56,9 +56,9 @@ export default function DayTimeline({ day, events, onEventClick, onCreateAt }) {
                   onClick={() => onEventClick(event)}
                   className={`flex w-full items-center gap-2 rounded-lg px-2 py-1 text-left text-sm font-semibold ${cat.chipBg} ${cat.chipText}`}
                 >
-                  <span className="min-w-0 flex-1 break-words">{event.title}</span>
+                  <span className="min-w-0 flex-1 wrap-break-word">{event.title}</span>
                   {i > 0 && (
-                    <span className="flex-shrink-0 text-xs font-normal opacity-80">
+                    <span className="shrink-0 text-xs font-normal opacity-80">
                       {t('calendar.dayOfSpan', { i, n })}
                     </span>
                   )}
@@ -69,7 +69,7 @@ export default function DayTimeline({ day, events, onEventClick, onCreateAt }) {
         </div>
       )}
       <div className="relative flex">
-        <div className="w-12 flex-shrink-0">
+        <div className="w-12 shrink-0">
           {hours.map((h) => (
             <div key={h} style={{ height: HOUR_HEIGHT }} className="relative">
               <span className="absolute -top-2 right-2 text-xs tabular-nums text-slate-400">
@@ -101,7 +101,7 @@ export default function DayTimeline({ day, events, onEventClick, onCreateAt }) {
               className="pointer-events-none absolute inset-x-0 z-10 flex items-center"
               aria-hidden="true"
             >
-              <span className="h-2 w-2 flex-shrink-0 rounded-full bg-rose-500" />
+              <span className="h-2 w-2 shrink-0 rounded-full bg-rose-500" />
               <span className="h-px flex-1 bg-rose-500" />
             </div>
           )}
@@ -136,7 +136,7 @@ export default function DayTimeline({ day, events, onEventClick, onCreateAt }) {
               >
                 <span
                   style={{ WebkitLineClamp: titleLines }}
-                  className={`break-words font-semibold [-webkit-box-orient:vertical] [display:-webkit-box] overflow-hidden ${
+                  className={`wrap-break-word font-semibold [-webkit-box-orient:vertical] [display:-webkit-box] overflow-hidden ${
                     tight ? 'text-xs' : 'text-sm'
                   }`}
                   title={event.title}
@@ -153,7 +153,7 @@ export default function DayTimeline({ day, events, onEventClick, onCreateAt }) {
                 )}
                 {showLocation && (
                   <span className="mt-0.5 flex items-center gap-1 truncate text-xs opacity-80">
-                    <MapPin size={11} className="flex-shrink-0" />
+                    <MapPin size={11} className="shrink-0" />
                     <span className="truncate">{event.location}</span>
                   </span>
                 )}

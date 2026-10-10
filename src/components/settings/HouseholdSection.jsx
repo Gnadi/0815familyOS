@@ -52,7 +52,7 @@ export default function HouseholdSection() {
             onClick={() => save({ adults: household.adults - 1 })}
             disabled={household.adults <= 1}
             aria-label={t('settings.fewerAdults')}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-600 shadow-sm hover:bg-slate-100 disabled:opacity-40"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-600 shadow-xs hover:bg-slate-100 disabled:opacity-40"
           >
             <Minus size={16} />
           </button>
@@ -64,7 +64,7 @@ export default function HouseholdSection() {
             onClick={() => save({ adults: household.adults + 1 })}
             disabled={household.adults >= MAX_ADULTS}
             aria-label={t('settings.moreAdults')}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-600 shadow-sm hover:bg-slate-100 disabled:opacity-40"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-600 shadow-xs hover:bg-slate-100 disabled:opacity-40"
           >
             <Plus size={16} />
           </button>

@@ -75,7 +75,7 @@ function NewCategoryForm({ onCreated, onCancel, familyId }) {
         placeholder={t('events.categoryPlaceholder')}
         maxLength={24}
         autoFocus
-        className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+        className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-xs focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
       />
       <div className="mt-3 flex flex-wrap gap-2">
         {PALETTE_COLORS.map((c) => {
@@ -148,7 +148,7 @@ function AddKidForm({ onCreated, onCancel, familyId, existingKidsCount }) {
         placeholder={t('events.childPlaceholder')}
         maxLength={24}
         autoFocus
-        className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+        className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-xs focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
       />
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
       <div className="mt-3 flex justify-end">
@@ -427,7 +427,7 @@ export default function EventFormModal({
             checked={allDay}
             onChange={(e) => setAllDay(e.target.checked)}
             disabled={isSubscribed}
-            className="h-5 w-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+            className="h-5 w-5 rounded-sm border-slate-300 text-brand-600 focus:ring-brand-500"
           />
         </label>
         {allDay ? (
@@ -560,7 +560,7 @@ export default function EventFormModal({
               const deletable = cat.id !== DEFAULT_CATEGORY;
               const isDeleting = deletingCategoryId === cat.id;
               const chipClasses = active
-                ? `${cat.chipBg} ${cat.chipText} border-transparent shadow-sm`
+                ? `${cat.chipBg} ${cat.chipText} border-transparent shadow-xs`
                 : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50';
               return (
                 <div
@@ -633,7 +633,7 @@ export default function EventFormModal({
                       onClick={() => toggleParent(member.displayName)}
                       className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
                         responsibleParent === member.displayName
-                          ? 'bg-white text-slate-900 shadow-sm'
+                          ? 'bg-white text-slate-900 shadow-xs'
                           : 'text-slate-500 hover:text-slate-700'
                       }`}
                     >
@@ -651,9 +651,9 @@ export default function EventFormModal({
               </span>
               <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
                 {[
-                  { value: 'low', label: t('events.effortLow'), active: 'bg-white text-green-700 shadow-sm' },
-                  { value: 'medium', label: t('events.effortMedium'), active: 'bg-white text-amber-600 shadow-sm' },
-                  { value: 'high', label: t('events.effortHigh'), active: 'bg-white text-rose-600 shadow-sm' },
+                  { value: 'low', label: t('events.effortLow'), active: 'bg-white text-green-700 shadow-xs' },
+                  { value: 'medium', label: t('events.effortMedium'), active: 'bg-white text-amber-600 shadow-xs' },
+                  { value: 'high', label: t('events.effortHigh'), active: 'bg-white text-rose-600 shadow-xs' },
                 ].map(({ value, label, active }) => (
                   <button
                     key={value}
@@ -693,14 +693,14 @@ export default function EventFormModal({
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
             disabled={isSubscribed}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-100 disabled:bg-slate-50 disabled:text-slate-500"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-xs focus:border-brand-400 focus:ring-2 focus:ring-brand-100 disabled:bg-slate-50 disabled:text-slate-500"
             placeholder={t('events.notesPlaceholder')}
           />
         </label>
         {conflicts.length > 0 && (
           <div className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800" role="status">
             <p className="flex items-center gap-1.5 font-semibold">
-              <AlertTriangle size={14} className="flex-shrink-0" />
+              <AlertTriangle size={14} className="shrink-0" />
               {tn('events.conflictTitle', conflicts.length)}
             </p>
             <ul className="mt-1 space-y-0.5">
@@ -710,7 +710,7 @@ export default function EventFormModal({
                   .filter(Boolean)
                   .join(', ');
                 return (
-                  <li key={ev.id} className="break-words">
+                  <li key={ev.id} className="wrap-break-word">
                     {`${format(ev.date, 'HH:mm')}${end ? `–${end}` : ''} ${ev.title}`}
                     {who && <span className="text-amber-700">{` · ${who}`}</span>}
                   </li>

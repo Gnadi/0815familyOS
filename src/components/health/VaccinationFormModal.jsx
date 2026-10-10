@@ -12,9 +12,9 @@ const STATUSES = [
 ];
 
 const STATUS_ACTIVE = {
-  done:    'bg-white text-emerald-700 shadow-sm',
-  next_up: 'bg-white text-brand-700 shadow-sm',
-  pending: 'bg-white text-slate-700 shadow-sm',
+  done:    'bg-white text-emerald-700 shadow-xs',
+  next_up: 'bg-white text-brand-700 shadow-xs',
+  pending: 'bg-white text-slate-700 shadow-xs',
 };
 
 const DATE_LABEL_KEY = {
