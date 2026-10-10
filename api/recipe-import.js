@@ -61,13 +61,20 @@ export default async function handler(req, res) {
       headers: {
         'User-Agent': 'myFAOS/1.0 (recipe import)',
         Accept: 'text/html, application/xhtml+xml',
+        // Cookidoo and others pick the page's language from this; without it
+        // some answer with a country chooser instead of the recipe.
+        'Accept-Language': 'de-DE,de;q=0.9,en;q=0.8',
       },
       signal: controller.signal,
       maxBytes: MAX_BYTES,
     });
     if (response.status < 200 || response.status >= 300 || !response.body) {
+      // 401/403/429: the site turned the server away (bot protection), which
+      // the form tells apart from a page that isn't there.
+      const blocked = [401, 403, 429].includes(response.status);
       res.status(502).json({
         error: `Upstream returned ${response.status} ${response.statusText}`.trim(),
+        code: blocked ? 'blocked' : 'upstream',
       });
       return;
     }

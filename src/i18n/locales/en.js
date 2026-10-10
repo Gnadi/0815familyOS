@@ -291,6 +291,7 @@ export default {
     noEventsInFile: 'No events found in this file.',
     couldNotReadFile: 'Could not read this file.',
     importFailed: 'Import failed.',
+    importBlocked: 'That site blocked the app from reading the page. Please enter the recipe by hand.',
     chooseIcs: 'Choose .ics file',
     eventsFound: '{n} events found',
     clickToBrowse: 'Click to browse',

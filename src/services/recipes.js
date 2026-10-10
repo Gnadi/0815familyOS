@@ -130,7 +130,7 @@ export function deleteRecipe(id) {
 // api/recipe-import.js. Resolves to the form's fields -- title, ingredients,
 // instructions, servings, category (null when the site's didn't match one of
 // ours) and sourceUrl -- and rejects with an Error whose `code` is 'no-recipe'
-// when the page describes no recipe.
+// when the page describes no recipe and 'blocked' when the site refused us.
 export async function importRecipeFromUrl(url) {
   const res = await fetch('/api/recipe-import', {
     method: 'POST',
@@ -139,7 +139,7 @@ export async function importRecipeFromUrl(url) {
   });
   const data = await res.json().catch(() => null);
   if (!res.ok || !data?.recipe) {
-    const err = new Error(data?.error || `Import failed (${res.status}).`);
+    const err = new Error(data?.error || `HTTP ${res.status}`);
     err.code = data?.code || null;
     throw err;
   }

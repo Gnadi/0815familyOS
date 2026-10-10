@@ -79,7 +79,12 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
       if (recipe.instructions?.length) setSteps(recipe.instructions);
       setImportNote(recipe.instructions?.length ? t('food.importDone') : t('food.importNoSteps'));
     } catch (err) {
-      setError(err.code === 'no-recipe' ? t('food.importNoRecipe') : t('food.importFailed'));
+      // The reason goes along, so a failure can be told apart from the next
+      // one: the site blocking us, no session, the endpoint missing (npm run dev
+      // serves no api/), a timeout.
+      if (err.code === 'no-recipe') setError(t('food.importNoRecipe'));
+      else if (err.code === 'blocked') setError(t('food.importBlocked'));
+      else setError(`${t('food.importFailed')} (${err.message})`);
     } finally {
       setImporting(false);
     }

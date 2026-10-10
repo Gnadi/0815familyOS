@@ -289,6 +289,7 @@ export default {
     noEventsInFile: 'Keine Termine in dieser Datei gefunden.',
     couldNotReadFile: 'Diese Datei konnte nicht gelesen werden.',
     importFailed: 'Import fehlgeschlagen.',
+    importBlocked: 'Die Seite hat den Abruf durch die App blockiert. Bitte das Rezept von Hand eintragen.',
     chooseIcs: '.ics-Datei auswählen',
     eventsFound: '{n} Termine gefunden',
     clickToBrowse: 'Zum Durchsuchen klicken',

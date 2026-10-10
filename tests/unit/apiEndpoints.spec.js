@@ -222,7 +222,16 @@ describe('api/recipe-import', () => {
 
   it('passes an upstream error on', async () => {
     fetchPublic.mockResolvedValue(upstream(404, { body: 'gone', statusText: 'Not Found' }));
-    expect((await call(importRecipe, recipeRequest())).statusCode).toBe(502);
+    const res = await call(importRecipe, recipeRequest());
+    expect(res.statusCode).toBe(502);
+    expect(res.body.code).toBe('upstream');
+  });
+
+  it('tells a site that turned us away from a missing page', async () => {
+    fetchPublic.mockResolvedValue(upstream(403, { body: 'nope', statusText: 'Forbidden' }));
+    const res = await call(importRecipe, recipeRequest());
+    expect(res.statusCode).toBe(502);
+    expect(res.body.code).toBe('blocked');
   });
 
   it.each([
