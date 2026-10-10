@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ExternalLink, Plus, X } from 'lucide-react';
+import { Download, ExternalLink, Plus, X } from 'lucide-react';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
 import Button from '../common/Button';
 import { RECIPE_CATEGORIES, DEFAULT_RECIPE_CATEGORY } from '../../constants/recipeCategories';
+import { importRecipeFromUrl } from '../../services/recipes';
 import useT from '../../hooks/useT';
 import { tLabel } from '../../i18n/labels';
 
@@ -25,6 +26,8 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importNote, setImportNote] = useState('');
 
   useEffect(() => {
     if (!open) return;
@@ -46,6 +49,7 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
       setNotes('');
     }
     setError('');
+    setImportNote('');
   }, [open, initial]);
 
   // Helpers to edit one row, drop a row, or append a new empty row of a list.
@@ -54,6 +58,37 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
   const removeRow = (setList) => (i) =>
     setList((list) => (list.length > 1 ? list.filter((_, idx) => idx !== i) : ['']));
   const addRow = (setList) => () => setList((list) => [...list, '']);
+
+  // Fill the form from the recipe page the link points to. What the page
+  // provides replaces what is in the form; what it lacks is left alone, so
+  // steps typed in by hand survive a Cookidoo import (Cookidoo keeps its steps
+  // behind its login).
+  async function handleImport() {
+    const url = sourceUrl.trim();
+    if (!url) return;
+    setError('');
+    setImportNote('');
+    setImporting(true);
+    try {
+      const recipe = await importRecipeFromUrl(url);
+      if (recipe.title) setTitle(recipe.title);
+      if (recipe.sourceUrl) setSourceUrl(recipe.sourceUrl);
+      if (recipe.category) setCategory(recipe.category);
+      if (recipe.servings) setServings(String(recipe.servings));
+      if (recipe.ingredients?.length) setIngredients(recipe.ingredients);
+      if (recipe.instructions?.length) setSteps(recipe.instructions);
+      setImportNote(recipe.instructions?.length ? t('food.importDone') : t('food.importNoSteps'));
+    } catch (err) {
+      // The reason goes along, so a failure can be told apart from the next
+      // one: the site blocking us, no session, the endpoint missing (npm run dev
+      // serves no api/), a timeout.
+      if (err.code === 'no-recipe') setError(t('food.importNoRecipe'));
+      else if (err.code === 'blocked') setError(t('food.importBlocked'));
+      else setError(`${t('food.importFailed')} (${err.message})`);
+    } finally {
+      setImporting(false);
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -112,16 +147,28 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
             onChange={(e) => setSourceUrl(e.target.value)}
             placeholder={t('food.linkPlaceholder')}
           />
+          {!sourceUrl.trim() && <span className="mt-1.5 block text-xs text-slate-500">{t('food.importHint')}</span>}
           {sourceUrl.trim() && (
-            <a
-              href={/^https?:\/\//i.test(sourceUrl.trim()) ? sourceUrl.trim() : `https://${sourceUrl.trim()}`}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-1.5 inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:underline"
-            >
-              <ExternalLink size={14} /> {t('food.openLink')}
-            </a>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
+              <a
+                href={/^https?:\/\//i.test(sourceUrl.trim()) ? sourceUrl.trim() : `https://${sourceUrl.trim()}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:underline"
+              >
+                <ExternalLink size={14} /> {t('food.openLink')}
+              </a>
+              <button
+                type="button"
+                onClick={handleImport}
+                disabled={importing}
+                className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline disabled:opacity-60"
+              >
+                <Download size={14} /> {importing ? t('food.importing') : t('food.importFromLink')}
+              </button>
+            </div>
           )}
+          {importNote && <p className="mt-1.5 text-sm text-slate-600">{importNote}</p>}
         </div>
 
         <div>

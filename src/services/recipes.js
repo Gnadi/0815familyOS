@@ -9,7 +9,7 @@ import {
   updateDoc,
   where,
 } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { authorizationHeader, db } from '../lib/firebase';
 import { DEFAULT_RECIPE_CATEGORY } from '../constants/recipeCategories';
 import { isDemoMode } from '../lib/demoMode';
 import { demoAdd, demoDelete, demoSubscribe, demoUpdate } from './demoStore';
@@ -124,4 +124,24 @@ export function updateRecipe(id, { title, sourceUrl, ingredients, instructions, 
 export function deleteRecipe(id) {
   if (isDemoMode()) return demoDelete('recipes', id);
   return deleteDoc(doc(db, 'recipes', id));
+}
+
+// Read a recipe from a recipe page (Cookidoo, Chefkoch, …) through
+// api/recipe-import.js. Resolves to the form's fields -- title, ingredients,
+// instructions, servings, category (null when the site's didn't match one of
+// ours) and sourceUrl -- and rejects with an Error whose `code` is 'no-recipe'
+// when the page describes no recipe and 'blocked' when the site refused us.
+export async function importRecipeFromUrl(url) {
+  const res = await fetch('/api/recipe-import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(await authorizationHeader()) },
+    body: JSON.stringify({ url }),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data?.recipe) {
+    const err = new Error(data?.error || `HTTP ${res.status}`);
+    err.code = data?.code || null;
+    throw err;
+  }
+  return data.recipe;
 }
