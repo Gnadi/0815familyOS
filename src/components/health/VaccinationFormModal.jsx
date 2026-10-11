@@ -88,7 +88,6 @@ export default function VaccinationFormModal({ open, onClose, onSubmit, onDelete
           onChange={(e) => setName(e.target.value)}
           placeholder={t('health.vaccinePlaceholder')}
           required
-          autoFocus
         />
 
         <div>

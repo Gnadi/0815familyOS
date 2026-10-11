@@ -162,7 +162,6 @@ export default function TrackerFormModal({ open, onClose, onSubmit, onDelete, in
           onChange={(e) => set({ name: e.target.value })}
           placeholder={t('tracker.namePlaceholder')}
           required
-          autoFocus
         />
 
         <div>

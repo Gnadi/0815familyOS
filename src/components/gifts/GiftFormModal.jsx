@@ -84,7 +84,6 @@ export default function GiftFormModal({ open, onClose, onSubmit, onDelete, initi
           onChange={(e) => setTitle(e.target.value)}
           placeholder={t('gifts.giftTitlePlaceholder')}
           required
-          autoFocus
         />
 
         <div>

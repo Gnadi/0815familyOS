@@ -58,7 +58,6 @@ export default function GiftRecipientFormModal({ open, onClose, onSubmit, onDele
           onChange={(e) => setName(e.target.value)}
           placeholder={t('gifts.recipientNamePlaceholder')}
           required
-          autoFocus
         />
 
         <label className="block">
