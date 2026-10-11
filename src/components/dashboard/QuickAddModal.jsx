@@ -176,7 +176,6 @@ export default function QuickAddModal({ open, onClose }) {
               onChange={(e) => setEvTitle(e.target.value)}
               placeholder={t('events.titlePlaceholder')}
               required
-              autoFocus
             />
             <Input
               label={t('quickAdd.timeToday')}
@@ -248,7 +247,6 @@ export default function QuickAddModal({ open, onClose }) {
               onChange={(e) => setTaskTitle(e.target.value)}
               placeholder={t('tasks.titlePlaceholder')}
               required
-              autoFocus
             />
             <div>
               <span className="mb-1.5 block text-sm font-medium text-slate-700">{t('tasks.priority')}</span>

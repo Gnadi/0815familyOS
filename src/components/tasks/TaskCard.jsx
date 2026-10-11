@@ -157,7 +157,7 @@ export default function TaskCard({ task, members, onClick }) {
       onClick={() => onClick?.(task)}
       {...listeners}
       {...attributes}
-      className={`block w-full touch-none cursor-grab rounded-2xl bg-white p-4 text-left shadow-card transition hover:shadow-md active:cursor-grabbing active:scale-[0.99] ${
+      className={`block w-full touch-manipulation select-none [-webkit-touch-callout:none] cursor-grab rounded-2xl bg-white p-4 text-left shadow-card transition hover:shadow-md active:cursor-grabbing active:scale-[0.99] ${
         isDragging ? 'opacity-30' : ''
       }`}
     >

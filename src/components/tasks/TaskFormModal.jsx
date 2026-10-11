@@ -145,7 +145,6 @@ export default function TaskFormModal({
           onChange={(e) => setTitle(e.target.value)}
           placeholder={t('tasks.titlePlaceholder')}
           required
-          autoFocus
         />
 
         <div>

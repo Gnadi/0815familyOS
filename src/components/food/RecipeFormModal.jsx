@@ -135,7 +135,6 @@ export default function RecipeFormModal({ open, onClose, onSubmit, onDelete, ini
           onChange={(e) => setTitle(e.target.value)}
           placeholder={t('food.recipeTitlePlaceholder')}
           required
-          autoFocus
         />
 
         <div>

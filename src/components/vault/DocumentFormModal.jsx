@@ -275,7 +275,6 @@ export default function DocumentFormModal({
           onChange={(e) => setTitle(e.target.value)}
           placeholder={isTrophy ? t('vault.titlePlaceholderTrophy') : t('vault.titlePlaceholderDoc')}
           required
-          autoFocus
         />
 
         <div>

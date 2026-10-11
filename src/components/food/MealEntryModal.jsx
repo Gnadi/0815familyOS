@@ -185,7 +185,6 @@ export default function MealEntryModal({
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder={t('food.mealPlaceholder')}
-              autoFocus
               className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 shadow-xs focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
             />
           </label>

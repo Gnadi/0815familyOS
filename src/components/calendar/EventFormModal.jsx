@@ -417,7 +417,6 @@ export default function EventFormModal({
           onChange={(e) => setTitle(e.target.value)}
           placeholder={t('events.titlePlaceholder')}
           required
-          autoFocus={!isSubscribed}
           disabled={isSubscribed}
         />
         <label className="flex items-center justify-between gap-3">
