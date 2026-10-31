@@ -1148,6 +1148,8 @@ export default {
     footerTerms: 'Terms',
     footerTagline: 'Free & open source under the MIT license.',
     navFaq: 'FAQ',
+    navBlog: 'Blog',
+    footerBlog: 'Why I built myFAOS',
     skipToContent: 'Skip to content',
     faqTitle: 'Questions families ask first',
     faqSubtitle:
