@@ -1146,6 +1146,8 @@ export default {
     footerTerms: 'AGB',
     footerTagline: 'Kostenlos & Open Source unter der MIT-Lizenz.',
     navFaq: 'FAQ',
+    navBlog: 'Blog',
+    footerBlog: 'Warum ich myFAOS gebaut habe',
     skipToContent: 'Zum Inhalt springen',
     faqTitle: 'Was Familien zuerst fragen',
     faqSubtitle:

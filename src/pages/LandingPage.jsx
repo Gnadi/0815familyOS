@@ -32,6 +32,7 @@ import { enterDemo } from '../lib/demoMode';
 import { SITE_URL, SITE_NAME } from '../config/site';
 
 const GITHUB_URL = 'https://github.com/gnadi/0815familyOS';
+const BLOG_URL = 'https://blog.gnadlinger.me/blog/myfaos/';
 
 // The product modules, each keyed to the landing namespace. Order is roughly
 // "most-used first" so the strongest features lead the grid.
@@ -127,6 +128,14 @@ export default function LandingPage() {
             <a href="#open-source" className="hover:text-slate-900">{t('landing.navOpenSource')}</a>
             <a href="#how" className="hover:text-slate-900">{t('landing.navHow')}</a>
             <a href="#faq" className="hover:text-slate-900">{t('landing.navFaq')}</a>
+            <a
+              href={BLOG_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-slate-900"
+            >
+              {t('landing.navBlog')}
+            </a>
           </nav>
           <div className="flex items-center gap-2">
             <LocaleSwitch />
@@ -512,6 +521,14 @@ export default function LandingPage() {
               >
                 <Github size={15} />
                 GitHub
+              </a>
+              <a
+                href={BLOG_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-slate-800"
+              >
+                {t('landing.footerBlog')}
               </a>
               <Link to="/privacy" className="hover:text-slate-800">{t('landing.footerPrivacy')}</Link>
               <Link to="/terms" className="hover:text-slate-800">{t('landing.footerTerms')}</Link>
