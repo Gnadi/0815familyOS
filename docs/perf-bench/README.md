@@ -17,3 +17,10 @@ Reproduziert die Browser-Messreihe aus `docs/performance-review-2026-11-24.md` (
    - `node controls.cjs <port> feed|housekeeping|board`: die Kontrollversuche. Sie laufen gegen `server2.cjs`.
 
 Browser-Einstellungen wie im Review: 393 × 852 CSS-Pixel, DPR 2, 4-fache CPU-Drosselung, 60 ms Latenz, 8 Mbit/s Download, 1,5 Mbit/s Upload, Service Worker blockiert, für jeden Kaltlauf ein neuer Kontext, aus dem nur der Anmeldestatus übernommen wird.
+
+## Ergänzende Skripte (Befund 1)
+
+- `seed-stale.mjs` legt die Familie `stale` mit Grenzfällen an: eine wöchentliche Serie, die vor einem Jahr begann, ein mehrtägiger Termin, der vor 10 Tagen begann und noch läuft, und Tracker-Einträge, die alle älter als 10 Tage sind.
+- `compare.cjs` vergleicht den Dashboard-Text zwischen zwei Builds (Ports 4321/4322) für alle Testfamilien.
+- `history.cjs <port> <profil> "<titel>"` misst vom Wechsel Dashboard → Kalender bis ein alter Termin über die Suche gefunden wird.
+- `results-2026-11-24-bounded.ndjson` enthält die Rohdaten der Messreihe aus Abschnitt 11 (`243ef52` gegen `f17b4b6`).

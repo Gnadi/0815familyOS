@@ -267,3 +267,41 @@ Zum Kontrollversuch mit 2,5 s Verzögerung: Zwei der drei Läufe der alten Versi
 **Nicht gemessen.** Diese Reihe enthält weder Service Worker noch HTTP/2, INP oder echte Geräte. Die Warmstart-Verbesserung enthält auch den Effekt der neuen Cache-Header (keine Revalidierung gehashter Assets). Für 8.1 und 8.2 bleibt der Lauf auf einem Vercel-Preview aus 8.7 nötig.
 
 **Konsequenz für die Freigabe.** Die Entscheidung aus Abschnitt 7 bleibt bestehen. Die Befunde 2, 3 und 5 sind für den Pilot weitgehend erledigt. Der breite Rollout hängt jetzt im Wesentlichen an Befund 1, also an Abfragen mit begrenzter Ergebnismenge für das Dashboard: offene oder heute fällige Aufgaben, ein Terminfenster mit separaten Serienmastern und vorberechnete Tracker-Zusammenfassungen pro Kind.
+
+## 11. Befund 1 umgesetzt: begrenzte Dashboard-Abfragen
+
+**Änderung (Commit `f17b4b6`).** Das Dashboard liest nur noch, was es anzeigt.
+
+| Daten | Vorher | Jetzt |
+|---|---|---|
+| Termine | gesamte Historie | Termine ab 7 Tagen vor heute, alle Serien (`recurrence != null`), mehrtägige Termine mit `endDate` im Fenster und Abo-Annotationen. Vier schmale Abfragen, nach ID zusammengeführt (`useEvents(…, { scope: 'upcoming' })`). Ist die volle Historie bereits geladen, wird sie wiederverwendet. |
+| Aufgaben | alle, inklusive Archiv | nur heute fällige (`useTasksDueOn`) |
+| Tracker-Einträge | alle | die letzten 2 Tage live, dazu einmalig der jeweils neueste Eintrag für Karten ohne aktuellen Eintrag (`useRecentTrackers`) |
+| Kalenderwartung ohne Listener | ganze Termin-Collection | nur Dokumente mit `source` `subscription` oder `annotation` |
+
+**Voraussetzung für das Deployment:** Fünf neue zusammengesetzte Indizes in `firestore.indexes.json` müssen **vor** dem App-Deployment angelegt sein (`firebase deploy --only firestore:indexes`). Ohne sie schlagen die neuen Abfragen fehl. Dank der Fehlerbehandlung aus 8.5 zeigt das Dashboard dann leere Bereiche statt eines dauerhaften Ladezustands.
+
+**Korrektheit.**
+- 516 von 516 Unit-Tests bestanden, davon sechs neue für Zusammenführung und Zeitfenster.
+- In fünf Testfamilien ist der Dashboard-Text zwischen altem und neuem Stand **identisch**. Dazu gehört eine eigene Familie mit Grenzfällen: eine wöchentliche Serie, die vor einem Jahr begann, ein mehrtägiger Termin, der vor 10 Tagen begann und noch 5 Tage läuft, und Tracker-Einträge, die alle älter als 10 Tage sind („Last: 10 days ago“).
+- Live-Erfassung eines Tracker-Eintrags auf dem Dashboard sowie der Wechsel zu Kalender, Aufgaben und zurück liefen ohne Fehler.
+
+**Messung.** Gleicher Aufbau wie in Abschnitt 10, `243ef52` gegen `f17b4b6`, je 6 Kaltläufe, 36 Läufe ohne Seitenfehler.
+
+| Messpunkt (Median, Spanne) | Klein alt | Klein neu | Mittel alt | Mittel neu | Groß alt | Groß neu |
+|---|---:|---:|---:|---:|---:|---:|
+| Dashboard kalt | 2,07 s | **1,86 s** (1,77–2,00) | 4,96 s | **1,91 s** (1,74–1,99) | 12,24 s | **1,89 s** (1,79–2,06) |
+| Dashboard warm | 1,10 s | **0,77 s** | 1,88 s | **0,76 s** | 3,99 s | **0,75 s** |
+| Dashboard → Kalender (heutiger Termin sichtbar) | 196 ms | 187 ms | 197 ms | 184 ms | 195 ms | 189 ms |
+| Kalender → Aufgabenboard | 0,33 s | 0,22 s | 0,84 s | 0,25 s | 4,99 s | 1,04 s (0,98–1,22) |
+| Dashboard → alter Termin per Suche auffindbar (3 Läufe) | – | – | 0,38–0,41 s | 1,40–1,47 s | 0,44–0,49 s | 3,74–3,97 s |
+
+**Bewertung.**
+- **Dashboard p95 ≤ 3 s: erfüllt.** Alle 18 Kaltstarts des neuen Stands liegen unter 2,1 s, unabhängig von der Datenmenge. Ein Dashboard im großen Profil ist 6,5-mal schneller als vorher. Die Ergebnismenge ist nicht mehr an die Historie gekoppelt: Das Ziel aus Befund 1 („höchstens 10 % zusätzliche Ergebnisdokumente gegenüber dem kleinen Profil bei identischem Tagesinhalt“) ist für Termine, Aufgaben und Tracker-Einträge konstruktiv erfüllt.
+- **Verlagerte Kosten Kalender.** Die volle Termin-Historie wird jetzt erst beim Öffnen des Kalenders geladen. Die aktuelle Woche erscheint weiterhin sofort aus dem lokalen Cache, ältere Termine sind im großen Profil nach knapp 4 s auffindbar statt sofort. Gerechnet ab App-Start ist die Historie trotzdem früher verfügbar als vorher (≈ 5,8 s statt ≈ 12,7 s).
+- **Verlagerte Kosten Aufgabenboard.** Das Dashboard lädt keine vollständige Aufgabenliste mehr vor, deshalb lädt das Board sie jetzt selbst. Im großen Profil liegt der Median bei 1,04 s, 4 von 6 Läufen über dem Ziel von 1 s. Gegenüber dem Ausgangsstand (4,99 s) ist das weiterhin eine Verbesserung um Faktor 5.
+
+**Nächste sinnvolle Schritte.**
+1. **Aufgabenboard:** offene Aufgaben zuerst über eine eigene Abfrage laden, erledigte Aufgaben erst beim Aufklappen oder seitenweise. Das schließt Befund 2 vollständig.
+2. **Kalender:** die volle Historie optional im Leerlauf nach dem Dashboard vorladen. Das kostet zusätzliche Reads auch für Nutzer, die den Kalender nicht öffnen. Alternativ ältere Monate erst beim Blättern nachladen.
+3. **Messlauf auf einem Vercel-Preview** (8.7) und ein Pilot mit echten Geräten.
