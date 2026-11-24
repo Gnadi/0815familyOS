@@ -207,9 +207,19 @@ async function loadEventEntries(familyId, existingEvents) {
       data: ev,
     }));
   }
-  const allSnap = await getDocs(query(eventsRef, where('familyId', '==', familyId)));
-  return allSnap.docs.map((d) => ({ id: d.id, ref: d.ref, data: d.data() }));
+  // Only overlays and retired mirrored copies belong to a subscription, so
+  // that is all every caller here looks at. Asking for just those keeps the
+  // fallback proportional to the subscription data instead of to the family's
+  // whole calendar history (equality filters only: no composite index).
+  const snap = await getDocs(query(
+    eventsRef,
+    where('familyId', '==', familyId),
+    where('source', 'in', SUBSCRIPTION_SOURCES),
+  ));
+  return snap.docs.map((d) => ({ id: d.id, ref: d.ref, data: d.data() }));
 }
+
+const SUBSCRIPTION_SOURCES = ['subscription', 'annotation'];
 
 // Retire the mirrored copies of subscribed calendars.
 //

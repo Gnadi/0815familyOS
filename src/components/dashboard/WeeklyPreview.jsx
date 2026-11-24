@@ -15,7 +15,7 @@ function WeeklyPreview() {
   const { userDoc } = useAuth();
   const { get: getCat } = useCategories();
   const { t } = useT();
-  const { events, loading } = useEvents(userDoc?.familyId);
+  const { events, loading } = useEvents(userDoc?.familyId, { scope: 'upcoming' });
   // Only the next three entries are shown, but the expansion behind them ran on
   // every render. Keyed on the day so it survives unrelated re-renders.
   const todayStamp = dayKey(new Date());

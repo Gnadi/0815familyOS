@@ -63,6 +63,25 @@ export function subscribeTasks(familyId, cb, onError) {
   return onSnapshot(q, (snap) => cb(mapTaskDocs(snap.docs)), onError);
 }
 
+// Tasks due within [from, to): the Dashboard lists today's open tasks and has
+// no use for the family's archive, which only grows. Status is filtered by the
+// caller, so a task completed today still updates live. Needs the composite
+// index (familyId, dueDate) from firestore.indexes.json.
+export function subscribeTasksDueBetween(familyId, from, to, cb, onError) {
+  if (isDemoMode()) {
+    return demoSubscribe('tasks', (docs) => cb(
+      mapTaskDocs(docs).filter((t) => t.dueDate && t.dueDate >= from && t.dueDate < to),
+    ));
+  }
+  const q = query(
+    tasksRef,
+    where('familyId', '==', familyId),
+    where('dueDate', '>=', Timestamp.fromDate(from)),
+    where('dueDate', '<', Timestamp.fromDate(to)),
+  );
+  return onSnapshot(q, (snap) => cb(mapTaskDocs(snap.docs)), onError);
+}
+
 function mapTaskDocs(docs) {
   return docs
     .map((d) => {

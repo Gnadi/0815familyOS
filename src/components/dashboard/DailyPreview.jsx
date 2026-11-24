@@ -4,7 +4,7 @@ import { format, isSameDay } from 'date-fns';
 import { compareEventsInDay, dayKey, formatDate } from '../../utils/date';
 import useAuth from '../../hooks/useAuth';
 import useEvents from '../../hooks/useEvents';
-import useTasks from '../../hooks/useTasks';
+import { useTasksDueOn } from '../../hooks/useTasks';
 import useCategories from '../../hooks/useCategories';
 import useFamilyMembers from '../../hooks/useFamilyMembers';
 import useT from '../../hooks/useT';
@@ -20,8 +20,8 @@ function DailyPreview() {
   const { userDoc, family } = useAuth();
   const { get: getCat } = useCategories();
   const { t } = useT();
-  const { events, loading: evLoading } = useEvents(userDoc?.familyId);
-  const { tasks, loading: taskLoading } = useTasks(userDoc?.familyId);
+  const { events, loading: evLoading } = useEvents(userDoc?.familyId, { scope: 'upcoming' });
+  const { tasks, loading: taskLoading } = useTasksDueOn(userDoc?.familyId);
   const members = useFamilyMembers();
   const [showAdd, setShowAdd] = useState(false);
 

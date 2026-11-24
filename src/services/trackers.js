@@ -4,7 +4,9 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  limit,
   onSnapshot,
+  orderBy,
   query,
   serverTimestamp,
   Timestamp,
@@ -151,6 +153,42 @@ export async function deleteTracker(id, familyId) {
     await batch.commit();
   }
   return deleteDoc(doc(db, 'trackers', id));
+}
+
+// Entries logged on or after `since`. The Dashboard's tracker cards need only
+// "today" and "the last time" per child; the full log stays with the Tracker
+// page. Needs the composite index (familyId, at).
+export function subscribeRecentTrackerEntries(familyId, since, cb, onError) {
+  if (isDemoMode()) {
+    return demoSubscribe('trackerEntries', (docs) => cb(
+      mapEntryDocs(docs).filter((e) => e.at && e.at >= since),
+    ));
+  }
+  const q = query(
+    entriesRef,
+    where('familyId', '==', familyId),
+    where('at', '>=', Timestamp.fromDate(since)),
+  );
+  return onSnapshot(q, (snap) => cb(mapEntryDocs(snap.docs)), onError);
+}
+
+// The newest entry of one tracker for one child, or null. Used for the cards
+// whose last entry is older than the recent window ("last given 3 weeks
+// ago"). Needs the composite index (familyId, trackerId, kidId, at desc).
+export async function fetchLatestTrackerEntry(familyId, trackerId, kidId) {
+  if (isDemoMode()) {
+    return mapEntryDocs(demoDocs('trackerEntries'))
+      .find((e) => e.trackerId === trackerId && e.kidId === kidId) || null;
+  }
+  const snap = await getDocs(query(
+    entriesRef,
+    where('familyId', '==', familyId),
+    where('trackerId', '==', trackerId),
+    where('kidId', '==', kidId),
+    orderBy('at', 'desc'),
+    limit(1),
+  ));
+  return mapEntryDocs(snap.docs)[0] || null;
 }
 
 async function entriesForTracker(trackerId, familyId) {

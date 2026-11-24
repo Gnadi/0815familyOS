@@ -19,7 +19,7 @@ function getSummary(rows, spread, t) {
 function WorkloadBalance() {
   const { userDoc } = useAuth();
   const { t } = useT();
-  const { events, loading } = useEvents(userDoc?.familyId);
+  const { events, loading } = useEvents(userDoc?.familyId, { scope: 'upcoming' });
   const members = useFamilyMembers();
 
   const { rows, totalScore, spread } = useMemo(() => {
