@@ -225,3 +225,45 @@ Die folgenden Änderungen sind umgesetzt. Danach liefen 510 von 510 Unit-Tests i
 | 8.6 Blur | iOS-Skin `backdrop-blur-md` statt `-xl`, Material-TopBar deckend ohne Blur. | Umgesetzt. |
 
 **Nächster Schritt:** Die Messreihe aus Abschnitt 3 mit unverändertem Aufbau sowie den Lauf aus 8.7 (Vercel-Preview, Service Worker aktiv, INP) auf diesem Stand wiederholen. Erst danach über die offenen Datenmodell-Änderungen für Befund 1 entscheiden.
+
+## 10. Wiederholungsmessung nach den Änderungen
+
+**Aufbau.** Gleicher Aufbau wie in Abschnitt 2, nachgebaut in einer Cloud-Sandbox: Firestore-Emulator 1.22.0 mit Auth-Emulator, Projekt `demo-faos-review`, Chromium (Playwright) mit 393 × 852 CSS-Pixeln, DPR 2, 4-facher CPU-Drosselung, 60 ms Latenz, 8/1,5 Mbit/s, Service Worker blockiert und ein frischer Kontext je Kaltlauf mit übernommenem Anmeldestatus. Die drei Datenprofile ergeben exakt dieselben Dokumentzahlen wie im Review (84 / 1.299 / 4.304).
+
+Verglichen wurden Commit `243ef52` (Ausgangsstand) und `8a1a707` (Änderungen aus Abschnitt 9). Je Profil und Version gab es sechs Kaltläufe in rotierender Reihenfolge, insgesamt 36 Läufe, alle ohne Seitenfehler. Der Server bildet die Rewrites und Cache-Header aus der `vercel.json` der jeweiligen Version nach, inklusive ETag/304.
+
+Der Ausgangsstand lag auf diesem Rechner etwa 10–20 % unter den Werten aus Abschnitt 3; das Verhältnis zwischen den Profilen ist gleich. Messpaket und Rohdaten liegen unter `docs/perf-bench/`.
+
+| Messpunkt (Median, Spanne) | Klein alt | Klein neu | Mittel alt | Mittel neu | Groß alt | Groß neu |
+|---|---:|---:|---:|---:|---:|---:|
+| Dashboard kalt | 2,09 s (1,98–2,27) | 1,99 s (1,84–2,32) | 5,11 s (4,85–5,25) | 5,30 s (4,93–5,71) | 13,22 s (12,72–14,31) | 13,41 s (12,77–14,03) |
+| Dashboard warm | 1,20 s | **0,82 s** | 1,95 s | **1,57 s** | 4,20 s | 3,98 s |
+| Dashboard → Kalender | 199 ms | 193 ms | 196 ms | 197 ms | 191 ms | 199 ms |
+| Woche → Monat | 43 ms | 49 ms | 43 ms | 41 ms | 67 ms | 56 ms |
+| Kalender → Aufgabenboard | 0,36 s | **0,21 s** | 0,92 s | **0,23 s** | 5,54 s (5,26–6,29) | **0,76 s** (0,41–1,89) |
+| DOM-Elemente Board | 788 | 322 | 5.610 | 806 | 17.537 | 1.767 |
+
+**Kontrollversuche.**
+
+| Versuch | Alt | Neu |
+|---|---|---|
+| Langsamer Kalenderanbieter: Zeit bis zum eigenen Termin bei veraltetem Cache und 10 s Verzögerung eines Abos (je 3 Läufe, ohne Drosselung) | 10,22–10,25 s | **0,19–0,21 s** (ohne Verzögerung: 0,18–0,21 s) |
+| Dasselbe bei 2,5 s Verzögerung | 0,25 / 0,27 / 2,73 s | 0,18–0,25 s |
+| Direkteinstieg in den Einkauf, große Familie, empfangene Firestore-Bytes in 8 s: 1. / 2. Sitzung | 2,10 MB / 2,10 MB | 2,10 MB / **3,4 kB** |
+| Spalte „Erledigt“ (540 Aufgaben) erneut öffnen, großes Profil, 4 Wiederholungen | 0,65–1,02 s, DOM 1.864 → 17.525 | **0,09–0,23 s**, DOM 1.883 → 3.335 |
+
+Zum Kontrollversuch mit 2,5 s Verzögerung: Zwei der drei Läufe der alten Version zeigten den Termin trotzdem nach 0,25 s. Die Ursache wurde nicht untersucht. Der Lauf mit 10 s Verzögerung ist in beiden Versionen eindeutig.
+
+**Bewertung gegen die Abnahmekriterien.**
+
+| Kriterium | Ergebnis |
+|---|---|
+| Befund 1: Dashboard p95 ≤ 3 s kalt | **Nicht erfüllt.** Kaltstarts sind praktisch unverändert, im mittleren und großen Profil liegen 12 von 12 Läufen über 3 s. Die Änderungen reduzieren CPU-Arbeit, Re-Renders und Warmstarts (–32 % klein, –19 % mittel), aber nicht die Ergebnismenge des ersten Snapshots. Der Kaltstart wird von der Datenmenge bestimmt und bleibt erst mit begrenzten Abfragen lösbar. |
+| Befund 2: erste Aufgabenliste p95 ≤ 1 s, großes Profil | **Weitgehend erfüllt.** Median 0,76 s statt 5,54 s, 5 von 6 Läufen unter 1 s, ein Ausreißer mit 1,89 s. Für einen p95-Nachweis sind mehr Läufe nötig. |
+| Befund 3: eine um 10 s verzögerte Antwort verschiebt die eigenen Termine um höchstens 200 ms | **Erfüllt.** Mit Verzögerung 0,19–0,21 s, ohne Verzögerung 0,18–0,21 s. |
+| Befund 5: bei bereinigter Familie keine Termindokumente zu Wartungszwecken | **Ab der zweiten Sitzung erfüllt.** Die erste Sitzung auf einem Gerät liest weiterhin die ganze Collection, weil der Merker lokal gespeichert ist. Ein Merker im Familiendokument würde das auch für neue Geräte lösen. |
+| Kalenderaktion p95 ≤ 500 ms | In beiden Versionen erfüllt (alle Läufe unter 250 ms). |
+
+**Nicht gemessen.** Diese Reihe enthält weder Service Worker noch HTTP/2, INP oder echte Geräte. Die Warmstart-Verbesserung enthält auch den Effekt der neuen Cache-Header (keine Revalidierung gehashter Assets). Für 8.1 und 8.2 bleibt der Lauf auf einem Vercel-Preview aus 8.7 nötig.
+
+**Konsequenz für die Freigabe.** Die Entscheidung aus Abschnitt 7 bleibt bestehen. Die Befunde 2, 3 und 5 sind für den Pilot weitgehend erledigt. Der breite Rollout hängt jetzt im Wesentlichen an Befund 1, also an Abfragen mit begrenzter Ergebnismenge für das Dashboard: offene oder heute fällige Aufgaben, ein Terminfenster mit separaten Serienmastern und vorberechnete Tracker-Zusammenfassungen pro Kind.
