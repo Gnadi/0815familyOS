@@ -1,44 +1,21 @@
-import { useEffect, useState } from 'react';
+import { createSharedCollection, useSharedCollection } from './sharedCollection';
 import { subscribeTrackerEntries, subscribeTrackers } from '../services/trackers';
 
+// Shared listeners (see sharedCollection.js): the Dashboard widget and the
+// Tracker page reuse one subscription instead of re-querying on every visit.
+const trackerStore = createSharedCollection(subscribeTrackers);
+const entryStore = createSharedCollection(subscribeTrackerEntries);
+
 // Definitions and their logged entries always arrive together: a card cannot
-// render "last time" without both, and two separate hooks would make the page
-// flash a wrong "never logged" state between the snapshots.
+// render "last time" without both, and two separate loading flags would make
+// the page flash a wrong "never logged" state between the snapshots.
 export default function useTrackers(familyId) {
-  const [trackers, setTrackers] = useState([]);
-  const [entries, setEntries] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!familyId) {
-      setTrackers([]);
-      setEntries([]);
-      setLoading(false);
-      return undefined;
-    }
-    setLoading(true);
-    let gotTrackers = false;
-    let gotEntries = false;
-    const settle = () => {
-      if (gotTrackers && gotEntries) setLoading(false);
-    };
-
-    const unsubTrackers = subscribeTrackers(familyId, (list) => {
-      setTrackers(list);
-      gotTrackers = true;
-      settle();
-    });
-    const unsubEntries = subscribeTrackerEntries(familyId, (list) => {
-      setEntries(list);
-      gotEntries = true;
-      settle();
-    });
-
-    return () => {
-      unsubTrackers();
-      unsubEntries();
-    };
-  }, [familyId]);
-
-  return { trackers, entries, loading };
+  const trackers = useSharedCollection(trackerStore, familyId);
+  const entries = useSharedCollection(entryStore, familyId);
+  return {
+    trackers: trackers.data,
+    entries: entries.data,
+    loading: trackers.loading || entries.loading,
+    error: trackers.error || entries.error,
+  };
 }

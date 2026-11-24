@@ -4,14 +4,21 @@ import { authorizationHeader } from '../lib/firebase';
 
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 
-const MAX_SIZE_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB
+// 50 MB. The vault encrypts in the browser: encryptBlob() reads the whole file
+// into memory, and AES-GCM via WebCrypto cannot stream, so plaintext,
+// ciphertext and the upload Blob coexist -- roughly 3-4x the file size in RAM.
+// On phones a few hundred MB already risks the tab being killed. The upload is
+// also a single multipart request, which Cloudinary only accepts up to 100 MB
+// (and many plans cap raw files far lower). Raising this needs a chunked,
+// resumable upload with chunked encryption first.
+export const MAX_SIZE_BYTES = 50 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = ['pdf', 'docx', 'xls', 'xlsx'];
 
 // Errors carry a `code` so callers can render a localized message; the English
 // `message` remains as a fallback for non-UI callers.
 export function validateFile(file) {
   if (file.size > MAX_SIZE_BYTES) {
-    const err = new Error('File exceeds the 2 GB size limit.');
+    const err = new Error('File exceeds the 50 MB size limit.');
     err.code = 'file/too-large';
     throw err;
   }

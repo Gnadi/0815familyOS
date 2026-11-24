@@ -204,3 +204,24 @@ TopBar und BottomNav verwenden `backdrop-blur-xl` (24 px). Zwei bildschirmbreite
 - **CPU und Netz trennen:** Long Tasks je Messpunkt aus einem Performance-Trace erfassen.
 - **Produktionsnahen Lauf ergänzen:** Vercel-Preview mit HTTP/2, aktivem Service Worker und Warmstart nach 24 h, um Cache-Header und Service Worker zu prüfen.
 - **Fehlerpfad testen:** Einen Listener gezielt mit einem Regelfehler scheitern lassen. Die Oberfläche muss innerhalb von 2 s einen Fehlerzustand statt eines Ladezustands zeigen.
+
+## 9. Umsetzungsstand (Branch `ccr-dab476d9-vjffn1`)
+
+Die folgenden Änderungen sind umgesetzt. Danach liefen 510 von 510 Unit-Tests in 27 Dateien und der Produktionsbuild erfolgreich durch. Ein Browser-Smoke-Test im Demomodus mit Vercel-gleichen Rewrites lief ohne Konsolenfehler. Er umfasste alle App-Routen, Kalender (Woche/Monat, Tag antippen, Suche, Termin bearbeiten), FAB-Formulare auf vier Seiten, Aufgabenboard und Einkauf. **Die Messreihe aus Abschnitt 3 wurde noch nicht wiederholt.** Die Abnahmekriterien aus Abschnitt 4 und 7 gelten unverändert.
+
+| Befund | Umsetzung | Status |
+|---|---|---|
+| 1 Dashboard-Historie | Ein gemeinsamer Listener je Collection und Familie (`src/hooks/sharedCollection.js`, 15 s Nachlauf, Startwert aus dem Cache) für Aufgaben, Einkauf, Rezepte, Mahlzeiten, Tracker, Impfungen, Dokumente, Geschenke. Tracker-Einträge werden einmal je Änderung nach Tracker und Kind indiziert, der 30-s-Takt liest nur noch Buckets. `useFamilyMembers` mit Sitzungscache und Deduplizierung. Der Termin-Listener verwendet unveränderte Objekte über `docChanges()` weiter. Widgets memoisiert. | Teilweise. **Offen:** Begrenzte Abfragen (Terminfenster plus Serienmaster, Tracker-Zusammenfassung pro Kind). Bewusst nicht umgesetzt, weil Verlauf, „zuletzt gegeben“ und laufende Serien sonst falsch angezeigt würden. Das braucht ein Datenmodell mit vorberechneten Feldern. |
+| 2 Aufgabenboard | „Erledigt“ standardmäßig eingeklappt. Gruppierung nach Status einmal je Änderung. Spalten rendern seitenweise je 50 Karten. `TaskCard` und die Kennzahlenkarten memoisiert. Suche über `useDeferredValue`. | Umgesetzt. Seitenweises Laden des Archivs aus Firestore offen. |
+| 3 Kalenderabos | Stale-While-Revalidate. Veraltete Feeds erscheinen sofort, die Aktualisierung läuft im Hintergrund und meldet sich nur bei Änderungen. Der Ladezustand des Rasters hängt nur noch an Firestore. Bereits geladene Feeds werden synchron übernommen (kein Lade-Frame). Proxy-Limit auf 3,5 MiB gesenkt (Vercel 4,5 MB inkl. JSON-Escaping). Suche verzögert und zunächst im ±31-Tage-Fenster. Konfliktprüfung mit Vorfilter. Formular nur bei Bedarf gemountet. | Umgesetzt. ICS-Parsing im Web Worker offen. |
+| 4 Tresor | Grenze auf 50 MB gesenkt, Prüfung vor dem Einlesen, Texte DE/EN angepasst, Test für Grenzwert ±1 Byte. | Kurzfristig umgesetzt. Upload großer Dateien in Blöcken offen. |
+| 5 Kalenderwartung | Merker je Familie und Aufgabe in `localStorage` (7 Tage) nach einem Lauf ohne Befund. Spätere Sitzungen lesen ohne Listener nicht mehr die ganze Collection. ICS-Import fragt nur `source == 'import'` ab. | Umgesetzt. |
+| 6 Bundle | jsPDF erst beim Export (Impfpass 133,4 → 3,4 kB gzip). Firebase aufgeteilt in Auth (`firebaseApp.js`) und Firestore. Öffentliche Seiten ohne Login-Hinweis laden kein Firestore und Auth erst im Leerlauf. Deutsche Sprachdatei als eigener Chunk. | Umgesetzt. |
+| 8.1 Cache-Header | `/assets/*` immutable (1 Jahr), Fonts 30 Tage, Icons/Screenshots 7 Tage, HTML und `sw.js` `no-cache`. | Umgesetzt. |
+| 8.2 Service Worker | Version v2 mit Aufräumen. Cache-first für gehashte Assets (max. 120 Einträge). `/app.html` als App-Shell. Navigation mit 3-s-Timeout. Beim Build werden 49 Start-Assets vorab gecacht. | Umgesetzt. |
+| 8.3 Ladekette | `modulepreload` (aus dem Vite-Manifest) und `preconnect` in `app.html`. Hero-Preload entfernt. Auth, Nutzer- und Familienservice in einem parallelen Import. Zusätzlicher `ensureUserDoc`-Read entfällt. | Umgesetzt. `familyId`-Cache für parallelen Datenstart offen. |
+| 8.4 Re-Renders | App-Shell mit stabilem Outlet-Context und FAB-Registry per Ref. Formular-Modals nur bei Bedarf gemountet. Einkaufs-Eingabe als eigene Komponente. Wochenplan indiziert. | Teilweise. **Offen:** Aufteilung des `AuthContext` in Nutzer- und Familienkontext. |
+| 8.5 Fehlerbehandlung | `onError` an allen `onSnapshot`-Aufrufen. Hooks beenden den Ladezustand und geben `error` zurück. | Umgesetzt. Anzeige eines Fehlerzustands je Seite offen. |
+| 8.6 Blur | iOS-Skin `backdrop-blur-md` statt `-xl`, Material-TopBar deckend ohne Blur. | Umgesetzt. |
+
+**Nächster Schritt:** Die Messreihe aus Abschnitt 3 mit unverändertem Aufbau sowie den Lauf aus 8.7 (Vercel-Preview, Service Worker aktiv, INP) auf diesem Stand wiederholen. Erst danach über die offenen Datenmodell-Änderungen für Befund 1 entscheiden.

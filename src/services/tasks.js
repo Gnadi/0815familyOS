@@ -54,13 +54,13 @@ function normalizeRecurrence(rec) {
   return { freq, interval, until };
 }
 
-export function subscribeTasks(familyId, cb) {
+export function subscribeTasks(familyId, cb, onError) {
   // Single-field `familyId` query only — Firestore auto-indexes this so we
   // don't need a composite index. Sort client-side; a family's task list is
   // small enough that this is cheaper than maintaining an index.
   if (isDemoMode()) return demoSubscribe('tasks', (docs) => cb(mapTaskDocs(docs)));
   const q = query(tasksRef, where('familyId', '==', familyId));
-  return onSnapshot(q, (snap) => cb(mapTaskDocs(snap.docs)));
+  return onSnapshot(q, (snap) => cb(mapTaskDocs(snap.docs)), onError);
 }
 
 function mapTaskDocs(docs) {

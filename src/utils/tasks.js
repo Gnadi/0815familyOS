@@ -58,8 +58,11 @@ export function computeCapacityLoad(tasks, monday = currentSprintMonday()) {
 // Column summary row. Returns i18n keys (leftKey / rightKey, with optional
 // rightParams) rather than English text, so the component resolves them with
 // the active language via t().
+// `tasks` may be the whole board or a list already narrowed to `status`.
 export function summaryForColumn(status, tasks) {
-  const filtered = tasks.filter((t) => t.status === status);
+  const filtered = tasks.every((t) => t.status === status)
+    ? tasks
+    : tasks.filter((t) => t.status === status);
   const points = filtered.reduce((sum, t) => sum + (Number(t.points) || 0), 0);
   const count = filtered.length;
 
@@ -117,6 +120,14 @@ export function summaryForColumn(status, tasks) {
     rightParams: best ? { day: best[0] } : undefined,
     rightTone: 'text-emerald-600',
   };
+}
+
+// Group tasks into the four board columns in a single pass.
+export const TASK_STATUSES = ['backlog', 'planned', 'inProgress', 'completed'];
+export function groupTasksByStatus(tasks) {
+  const groups = { backlog: [], planned: [], inProgress: [], completed: [] };
+  for (const task of tasks) groups[task.status]?.push(task);
+  return groups;
 }
 
 // Stable colour per uid so each member's avatar is recognisable across cards.

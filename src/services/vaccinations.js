@@ -60,10 +60,10 @@ function mapVaccinationDocs(docs) {
 
 // Subscribe to all vaccinations for a family. Sorted client-side by date
 // (single-field query avoids needing a composite Firestore index).
-export function subscribeVaccinations(familyId, cb) {
+export function subscribeVaccinations(familyId, cb, onError) {
   if (isDemoMode()) return demoSubscribe('vaccinations', (docs) => cb(mapVaccinationDocs(docs)));
   const q = query(vaccinationsRef, where('familyId', '==', familyId));
-  return onSnapshot(q, (snap) => cb(mapVaccinationDocs(snap.docs)));
+  return onSnapshot(q, (snap) => cb(mapVaccinationDocs(snap.docs)), onError);
 }
 
 export function createVaccination({ familyId, userId, kidId, name, status, date }) {

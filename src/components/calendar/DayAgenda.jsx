@@ -38,7 +38,7 @@ export default function DayAgenda({ day, events, onEventClick, onCreateAt, title
       ) : (
         <div className={`space-y-3 ${title ? 'mt-3' : ''}`}>
           {events.map((ev) => (
-            <EventCard key={ev.id} event={ev} day={day} onClick={() => onEventClick(ev)} />
+            <EventCard key={ev.id} event={ev} day={day} onEventClick={onEventClick} />
           ))}
         </div>
       )}

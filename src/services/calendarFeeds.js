@@ -41,17 +41,40 @@ function cacheKey(subscriptionId) {
   return `${CACHE_PREFIX}${subscriptionId}`;
 }
 
+// Parsed feeds kept in memory per subscription. Reading the cache used to
+// JSON.parse the whole feed and rebuild every Date on each load; a family
+// switching between the calendar and the dashboard paid for that every time.
+const memCache = new Map();
+
+// The freshness clock lives under its own small key. Restarting it after an
+// "unchanged upstream" answer used to re-stringify the entire feed.
+const FETCHED_AT_PREFIX = 'faos.feedAt.';
+
+function fetchedAtKey(subscriptionId) {
+  return `${FETCHED_AT_PREFIX}${subscriptionId}`;
+}
+
+function readFetchedAt(subscriptionId) {
+  try {
+    return Number(localStorage.getItem(fetchedAtKey(subscriptionId))) || 0;
+  } catch {
+    return 0;
+  }
+}
+
 function readCache(subscription) {
+  const mem = memCache.get(subscription.id);
+  // The URL is part of the identity: repointing a subscription must not serve
+  // the previous calendar's events.
+  if (mem && mem.url === subscription.url) return mem.entry;
   try {
     const raw = localStorage.getItem(cacheKey(subscription.id));
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (parsed?.version !== CACHE_VERSION) return null;
-    // The URL is part of the identity: repointing a subscription must not serve
-    // the previous calendar's events.
     if (parsed.url !== subscription.url) return null;
-    return {
-      fetchedAt: parsed.fetchedAt || 0,
+    const entry = {
+      fetchedAt: Math.max(parsed.fetchedAt || 0, readFetchedAt(subscription.id)),
       etag: parsed.etag || null,
       lastModified: parsed.lastModified || null,
       events: (parsed.events || []).map((ev) => ({
@@ -60,6 +83,8 @@ function readCache(subscription) {
         endDate: ev.endDate ? new Date(ev.endDate) : null,
       })),
     };
+    memCache.set(subscription.id, { url: subscription.url, entry });
+    return entry;
   } catch {
     // Unparseable, or storage unavailable (private mode). Treat as no cache.
     return null;
@@ -67,6 +92,7 @@ function readCache(subscription) {
 }
 
 function writeCache(subscription, entry) {
+  memCache.set(subscription.id, { url: subscription.url, entry });
   try {
     localStorage.setItem(cacheKey(subscription.id), JSON.stringify({
       version: CACHE_VERSION,
@@ -80,15 +106,31 @@ function writeCache(subscription, entry) {
         endDate: ev.endDate ? ev.endDate.toISOString() : null,
       })),
     }));
+    localStorage.removeItem(fetchedAtKey(subscription.id));
   } catch {
     // Quota exceeded or storage unavailable -- the feed still works, it just
     // has to be refetched next time.
   }
 }
 
+// Restart the freshness clock without touching the (possibly large) events.
+function touchCache(subscription, cached) {
+  const entry = { ...cached, fetchedAt: Date.now() };
+  memCache.set(subscription.id, { url: subscription.url, entry });
+  try {
+    localStorage.setItem(fetchedAtKey(subscription.id), String(entry.fetchedAt));
+  } catch {
+    // Storage unavailable: the in-memory clock still holds for this session.
+  }
+  return entry;
+}
+
 export function clearFeedCache(subscriptionId) {
+  memCache.delete(subscriptionId);
+  refreshes.delete(subscriptionId);
   try {
     localStorage.removeItem(cacheKey(subscriptionId));
+    localStorage.removeItem(fetchedAtKey(subscriptionId));
   } catch {
     // Nothing to do; the cache is an optimisation, not state we depend on.
   }
@@ -144,71 +186,141 @@ async function fetchFeed(subscription, validators) {
   return res.json();
 }
 
+// Background refreshes, one per subscription at a time. A failed one is
+// remembered for a while so the stale cache is served with its error (the
+// calendar says "may be out of date") instead of retrying on every render.
+const refreshes = new Map();
+const FAILED_RETRY_MS = 5 * 60 * 1000;
+
+// Told when a background refresh changed what a feed shows -- new events, or
+// a new/cleared error -- so mounted views can pick it up.
+const refreshListeners = new Set();
+
+export function onFeedRefreshed(listener) {
+  refreshListeners.add(listener);
+  return () => refreshListeners.delete(listener);
+}
+
+function notifyRefreshed(subscription) {
+  refreshListeners.forEach((listener) => {
+    try {
+      listener(subscription.id);
+    } catch {
+      // One broken listener must not stop the others.
+    }
+  });
+}
+
+// Fetch, parse and cache one feed. Resolves with the loadFeed result for a
+// network answer; throws when the request or the payload is unusable.
+async function fetchAndStore(subscription, cached) {
+  const data = await fetchFeed(subscription, cached);
+  if (data.notModified && cached) {
+    // Unchanged upstream: keep the events, just restart the freshness clock.
+    const entry = touchCache(subscription, cached);
+    return {
+      events: entry.events,
+      fromCache: true,
+      stale: false,
+      report: cachedFeedReport(entry.events),
+      changed: false,
+    };
+  }
+  const parsed = parseICS(data.ics || '');
+  const events = toFeedEvents(parsed.events, subscription);
+  const report = classifyFeed({
+    ics: data.ics,
+    parsed: parsed.events,
+    kept: events,
+    calendarName: parsed.calendarName,
+  });
+
+  // Not a calendar at all -- almost always the wrong link out of a provider's
+  // sharing settings (Google's HTML address, or a page that redirected to a
+  // sign-in). Refusing it here is what makes "Test & subscribe" a real test:
+  // it used to report success and leave the family with an empty calendar and
+  // no hint as to why. Nothing is cached, so a corrected URL starts clean.
+  if (report.code === FEED_NOT_CALENDAR) {
+    const err = new Error('This URL does not return a calendar (.ics) file.');
+    err.code = 'feed/not-calendar';
+    err.report = report;
+    throw err;
+  }
+
+  writeCache(subscription, {
+    fetchedAt: Date.now(),
+    etag: data.etag || null,
+    lastModified: data.lastModified || null,
+    events,
+  });
+  return { events, fromCache: false, stale: false, report, changed: true };
+}
+
+function staleResult(cached, error) {
+  return {
+    events: cached.events,
+    fromCache: true,
+    stale: true,
+    error,
+    report: cachedFeedReport(cached.events),
+  };
+}
+
+// Refresh a stale feed without anyone waiting on it. The calendar already
+// shows the cached events; listeners hear about it only if something changed.
+function refreshInBackground(subscription, cached) {
+  const running = refreshes.get(subscription.id);
+  if (running?.promise) return;
+  const hadError = Boolean(running?.error);
+  const state = { promise: null, error: null, at: Date.now() };
+  refreshes.set(subscription.id, state);
+  state.promise = fetchAndStore(subscription, cached)
+    .then((res) => {
+      refreshes.delete(subscription.id);
+      if (res.changed || hadError) notifyRefreshed(subscription);
+    })
+    .catch((err) => {
+      state.promise = null;
+      state.error = err;
+      state.at = Date.now();
+      notifyRefreshed(subscription);
+    });
+}
+
 // Load one subscription's events.
 //
 // Returns { events, fromCache, stale } immediately from the cache when there is
-// one, so nothing blocks on the network. Pass `force` to bypass freshness (the
-// manual refresh button).
+// one, so nothing blocks on the network: a cache past its freshness window is
+// served as it is and refreshed in the background (listeners registered with
+// onFeedRefreshed hear when that changed anything). Only a feed with no cache
+// at all waits for the network. Pass `force` to bypass the cache and wait for
+// a real answer (the manual refresh button, "Test & subscribe").
 export async function loadFeed(subscription, { force = false } = {}) {
   const cached = readCache(subscription);
-  const fresh = cached && !force && Date.now() - cached.fetchedAt < FRESH_MS;
-  if (fresh) {
+  if (cached && !force) {
+    const fresh = Date.now() - cached.fetchedAt < FRESH_MS;
+    if (fresh) {
+      return { events: cached.events, fromCache: true, stale: false, report: cachedFeedReport(cached.events) };
+    }
+    const failed = refreshes.get(subscription.id);
+    if (failed?.error && Date.now() - failed.at < FAILED_RETRY_MS
+      && failed.error.code !== 'feed/not-calendar') {
+      return staleResult(cached, failed.error);
+    }
+    refreshInBackground(subscription, cached);
     return { events: cached.events, fromCache: true, stale: false, report: cachedFeedReport(cached.events) };
   }
 
   try {
-    const data = await fetchFeed(subscription, cached);
-    if (data.notModified && cached) {
-      // Unchanged upstream: keep the events, just restart the freshness clock.
-      const entry = { ...cached, fetchedAt: Date.now() };
-      writeCache(subscription, entry);
-      return {
-        events: entry.events,
-        fromCache: true,
-        stale: false,
-        report: cachedFeedReport(entry.events),
-      };
-    }
-    const parsed = parseICS(data.ics || '');
-    const events = toFeedEvents(parsed.events, subscription);
-    const report = classifyFeed({
-      ics: data.ics,
-      parsed: parsed.events,
-      kept: events,
-      calendarName: parsed.calendarName,
-    });
-
-    // Not a calendar at all -- almost always the wrong link out of a provider's
-    // sharing settings (Google's HTML address, or a page that redirected to a
-    // sign-in). Refusing it here is what makes "Test & subscribe" a real test:
-    // it used to report success and leave the family with an empty calendar and
-    // no hint as to why. Nothing is cached, so a corrected URL starts clean.
-    if (report.code === FEED_NOT_CALENDAR) {
-      const err = new Error('This URL does not return a calendar (.ics) file.');
-      err.code = 'feed/not-calendar';
-      err.report = report;
-      throw err;
-    }
-
-    writeCache(subscription, {
-      fetchedAt: Date.now(),
-      etag: data.etag || null,
-      lastModified: data.lastModified || null,
-      events,
-    });
-    return { events, fromCache: false, stale: false, report };
+    const { changed, ...res } = await fetchAndStore(subscription, cached);
+    refreshes.delete(subscription.id);
+    return res;
   } catch (err) {
     // Offline or the provider is down: a stale cache beats an empty calendar.
     // A payload that is not a calendar is not that case -- there is nothing to
     // fall back to and the caller has to hear about it.
     if (cached && err.code !== 'feed/not-calendar') {
-      return {
-        events: cached.events,
-        fromCache: true,
-        stale: true,
-        error: err,
-        report: cachedFeedReport(cached.events),
-      };
+      return staleResult(cached, err);
     }
     throw err;
   }

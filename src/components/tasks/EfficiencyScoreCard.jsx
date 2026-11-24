@@ -1,8 +1,9 @@
+import { memo } from 'react';
 import AvatarStack from '../common/AvatarStack';
 import { computeEfficiencyScore } from '../../utils/tasks';
 import useT from '../../hooks/useT';
 
-export default function EfficiencyScoreCard({ tasks, members }) {
+function EfficiencyScoreCard({ tasks, members }) {
   const { t } = useT();
   const { score, completedPoints, totalPoints } = computeEfficiencyScore(tasks);
 
@@ -33,3 +34,6 @@ export default function EfficiencyScoreCard({ tasks, members }) {
     </div>
   );
 }
+
+// Memoised: depends only on the task list, not on the board's search or drag state.
+export default memo(EfficiencyScoreCard);

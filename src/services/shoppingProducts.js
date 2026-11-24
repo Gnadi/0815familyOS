@@ -62,10 +62,10 @@ function mapProductDocs(docs) {
   });
 }
 
-export function subscribeShoppingProducts(familyId, cb) {
+export function subscribeShoppingProducts(familyId, cb, onError) {
   if (isDemoMode()) return demoSubscribe(COL, (docs) => cb(mapProductDocs(docs)));
   const q = query(productsRef, where('familyId', '==', familyId));
-  return onSnapshot(q, (snap) => cb(mapProductDocs(snap.docs)));
+  return onSnapshot(q, (snap) => cb(mapProductDocs(snap.docs)), onError);
 }
 
 function entryId() {

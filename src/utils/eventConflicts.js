@@ -5,7 +5,7 @@
 // All-day events are left out on both sides. A birthday or a school holiday
 // runs alongside the day's appointments rather than clashing with them.
 
-import { expandEventsInRange } from './recurrence';
+import { expandEventsInRange, isValidRecurrence } from './recurrence';
 import { eventEnd, isAllDay } from './eventTime';
 
 // How long an event without an end is taken to last -- the same hour the day
@@ -38,8 +38,23 @@ export function findConflicts(events, candidate, { ignoreId = null } = {}) {
   const from = new Date(start.getFullYear(), start.getMonth(), start.getDate() - 1);
   const to = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1);
 
+  // Narrow the list before expanding anything. An occurrence carries its
+  // master's kids, parent and all-day flag, so a series that shares nobody with
+  // the candidate cannot clash on any date; a one-off that starts after the
+  // window cannot either. The form recomputes this on every change, and
+  // expanding the family's whole history each time was most of the cost.
+  const relevant = [];
+  for (const ev of events || []) {
+    if (!(ev?.date instanceof Date) || ev.source === 'annotation' || isAllDay(ev)) continue;
+    if (ignoreId && ev.id === ignoreId) continue;
+    const sharesKid = kids.length > 0 && (ev.kids || []).some((id) => kids.includes(id));
+    if (!sharesKid && !(parent && ev.responsibleParent === parent)) continue;
+    if (!isValidRecurrence(ev.recurrence) && ev.date > to) continue;
+    relevant.push(ev);
+  }
+
   const out = [];
-  for (const ev of expandEventsInRange(events || [], from, to)) {
+  for (const ev of expandEventsInRange(relevant, from, to)) {
     if (!(ev.date instanceof Date) || isAllDay(ev)) continue;
     if (ev.source === 'annotation') continue;
     if (ignoreId && (ev.id === ignoreId || ev.masterId === ignoreId)) continue;

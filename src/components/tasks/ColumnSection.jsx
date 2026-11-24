@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import TaskCard from './TaskCard';
@@ -12,7 +12,11 @@ const COLUMN_META = {
   completed:  { labelKey: 'taskStatus.completed',  chip: 'bg-emerald-50 text-emerald-700' },
 };
 
-export default function ColumnSection({
+// A long column (the completed archive grows forever) is rendered in pages so
+// opening it doesn't create thousands of draggable cards at once.
+const PAGE_SIZE = 50;
+
+function ColumnSection({
   status,
   tasks,
   members,
@@ -24,8 +28,12 @@ export default function ColumnSection({
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const meta = COLUMN_META[status];
   const columnLabel = t(meta.labelKey);
-  const filtered = tasks.filter((t2) => t2.status === status);
-  const summary = summaryForColumn(status, tasks);
+  // `tasks` is this column's list, already grouped by the page.
+  const filtered = tasks;
+  const summary = useMemo(() => summaryForColumn(status, tasks), [status, tasks]);
+  const [limit, setLimit] = useState(PAGE_SIZE);
+  const visible = filtered.length > limit ? filtered.slice(0, limit) : filtered;
+  const hidden = filtered.length - visible.length;
 
   const { setNodeRef, isOver } = useDroppable({
     id: `column-${status}`,
@@ -84,14 +92,25 @@ export default function ColumnSection({
                 {isOver ? t('tasks.dropToMove', { column: columnLabel }) : t('tasks.noTasksIn', { column: columnLabel })}
               </div>
             ) : (
-              filtered.map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  members={members}
-                  onClick={onTaskClick}
-                />
-              ))
+              <>
+                {visible.map((task) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    members={members}
+                    onClick={onTaskClick}
+                  />
+                ))}
+                {hidden > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setLimit((n) => n + PAGE_SIZE)}
+                    className="w-full rounded-xl border border-dashed border-slate-200 bg-white/60 py-2 text-xs font-semibold text-slate-500 hover:bg-white"
+                  >
+                    {t('dashboard.seeAll')} (+{hidden})
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}
@@ -105,3 +124,5 @@ export default function ColumnSection({
     </section>
   );
 }
+
+export default memo(ColumnSection);

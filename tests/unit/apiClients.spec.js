@@ -26,6 +26,12 @@ afterEach(() => {
 describe('calendar feeds', () => {
   const subscription = { id: 'sub1', url: 'https://calendar.example/family.ics' };
 
+  // Parsed feeds are kept in memory between loads; each test starts uncached.
+  beforeEach(async () => {
+    const { clearFeedCache } = await import('../../src/services/calendarFeeds');
+    clearFeedCache(subscription.id);
+  });
+
   it('send the ID token to the feed proxy', async () => {
     const { loadFeed } = await import('../../src/services/calendarFeeds');
     fetchMock.mockResolvedValue(ok({ ics: 'BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n' }));

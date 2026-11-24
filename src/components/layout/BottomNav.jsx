@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import useUIPreferences from '../../hooks/useUIPreferences';
@@ -51,19 +52,23 @@ function IOSTabItem({ to, label, Icon }) {
   );
 }
 
-export default function BottomNav({ onAdd }) {
+const ENTRY_BY_ID = new Map(BOTTOM_NAV_ENTRIES.map((e) => [e.id, e]));
+
+function BottomNav({ onAdd }) {
   const { showLabels, skin } = useUIPreferences();
   const { bottomNav } = useNavLayout();
   const { t } = useT();
 
   // The tabs (and their order) are a family setting, see Settings → Navigation.
-  const all = bottomNav
-    .map((id) => BOTTOM_NAV_ENTRIES.find((e) => e.id === id))
-    .filter(Boolean);
+  const navKey = bottomNav.join(',');
+  const all = useMemo(
+    () => (navKey ? navKey.split(',') : []).map((id) => ENTRY_BY_ID.get(id)).filter(Boolean),
+    [navKey],
+  );
 
   if (skin === 'ios') {
     return (
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/80 backdrop-blur-xl safe-bottom">
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/80 backdrop-blur-md safe-bottom">
         <div className="mx-auto flex max-w-md items-stretch">
           {all.map((it) => (
             <IOSTabItem key={it.to} to={it.to} Icon={it.Icon} label={t(it.labelKey)} />
@@ -100,3 +105,7 @@ export default function BottomNav({ onAdd }) {
     </nav>
   );
 }
+
+// Memoised: AppShell passes a stable onAdd, so route changes and page state
+// no longer re-render the tab bar (NavLink still tracks the active route).
+export default memo(BottomNav);

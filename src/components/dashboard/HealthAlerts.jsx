@@ -1,12 +1,14 @@
+import { memo, useMemo } from 'react';
 import { Syringe } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import useVaccinations from '../../hooks/useVaccinations';
 import useT from '../../hooks/useT';
+import { dayKey } from '../../utils/date';
 
 const HORIZON_DAYS = 30;
 
-export default function HealthAlerts() {
+function HealthAlerts() {
   const { userDoc, family } = useAuth();
   const { vaccinations } = useVaccinations(userDoc?.familyId);
   const { t } = useT();
@@ -15,13 +17,16 @@ export default function HealthAlerts() {
   // A rolling window, not the calendar month: a shot due in three days must
   // still raise an alert when those three days happen to cross into the next
   // month, and one that came due weeks ago is exactly what needs chasing.
-  const horizon = new Date();
-  horizon.setDate(horizon.getDate() + HORIZON_DAYS);
-  horizon.setHours(23, 59, 59, 999);
-
-  const dueSoon = vaccinations
-    .filter((v) => v.status !== 'done' && v.date && v.date <= horizon)
-    .sort((a, b) => a.date - b.date);
+  const todayStamp = dayKey(new Date());
+  const dueSoon = useMemo(() => {
+    const horizon = new Date();
+    horizon.setDate(horizon.getDate() + HORIZON_DAYS);
+    horizon.setHours(23, 59, 59, 999);
+    return vaccinations
+      .filter((v) => v.status !== 'done' && v.date && v.date <= horizon)
+      .sort((a, b) => a.date - b.date);
+    // todayStamp: the horizon moves with the calendar day.
+  }, [vaccinations, todayStamp]);
 
   if (dueSoon.length === 0) return null;
 
@@ -56,3 +61,5 @@ export default function HealthAlerts() {
     </section>
   );
 }
+
+export default memo(HealthAlerts);

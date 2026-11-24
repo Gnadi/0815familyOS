@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { addWeeks, format, isSameDay, subWeeks } from 'date-fns';
+import { addWeeks, format, subWeeks } from 'date-fns';
 import {
   dayKey,
   formatWeekRange,
@@ -26,10 +26,24 @@ export default function WeekView({
 }) {
   const { get: getCat } = useCategories();
   const { t } = useT();
-  const days = getWeekDays(anchor);
+  // The week's days, keys and labels change only with the week itself.
+  const weekKey = dayKey(weekStart(anchor));
+  const days = useMemo(
+    () => getWeekDays(anchor),
+    // `anchor` matters only for the week it falls in.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [weekKey],
+  );
+  const cells = useMemo(() => days.map((d) => ({
+    date: d,
+    key: dayKey(d),
+    label: d.getDate(),
+    weekday: format(d, 'EEEEE'),
+  })), [days]);
   // One pass over the events instead of one full scan per day cell.
   const byDay = useMemo(() => groupEventsByDay(events), [events]);
-  const dayEvents = byDay.get(dayKey(selected)) || NO_EVENTS;
+  const selectedKey = dayKey(selected);
+  const dayEvents = byDay.get(selectedKey) || NO_EVENTS;
   const monthLabel = formatWeekRange(days);
   // Paging to another week always lands on its Monday, not on the weekday that
   // happened to be selected before.
@@ -64,24 +78,24 @@ export default function WeekView({
       </div>
 
       <div className="mt-3 grid grid-cols-7 text-center text-xs font-medium text-slate-400">
-        {days.map((d) => (
-          <span key={d.toISOString()}>{format(d, 'EEEEE')}</span>
+        {cells.map((c) => (
+          <span key={c.key}>{c.weekday}</span>
         ))}
       </div>
       <div className="mt-1 grid grid-cols-7 gap-1">
-        {days.map((d) => {
-          const active = isSameDay(d, selected);
-          const dayEvs = byDay.get(dayKey(d)) || NO_EVENTS;
+        {cells.map(({ date: d, key, label }) => {
+          const active = key === selectedKey;
+          const dayEvs = byDay.get(key) || NO_EVENTS;
           const categories = [...new Set(dayEvs.map((e) => e.category))].slice(0, 3);
           return (
             <button
-              key={d.toISOString()}
+              key={key}
               onClick={() => onSelect(d)}
               className={`flex flex-col items-center gap-1 rounded-full py-1.5 text-sm font-semibold transition ${
                 active ? 'bg-brand-500 text-white' : 'text-slate-700 hover:bg-slate-100'
               }`}
             >
-              <span>{format(d, 'd')}</span>
+              <span>{label}</span>
               {categories.length > 0 && (
                 <span className="flex h-1.5 items-center gap-0.5">
                   {categories.map((c) => (

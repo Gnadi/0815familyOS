@@ -1,23 +1,10 @@
-import { useEffect, useState } from 'react';
+import { createSharedCollection, useSharedCollection } from './sharedCollection';
 import { subscribeVaccinations } from '../services/vaccinations';
 
+// One listener per family shared by every caller (see sharedCollection.js).
+const store = createSharedCollection(subscribeVaccinations);
+
 export default function useVaccinations(familyId) {
-  const [vaccinations, setVaccinations] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!familyId) {
-      setVaccinations([]);
-      setLoading(false);
-      return undefined;
-    }
-    setLoading(true);
-    const unsub = subscribeVaccinations(familyId, (list) => {
-      setVaccinations(list);
-      setLoading(false);
-    });
-    return unsub;
-  }, [familyId]);
-
-  return { vaccinations, loading };
+  const { data, loading, error } = useSharedCollection(store, familyId);
+  return { vaccinations: data, loading, error };
 }

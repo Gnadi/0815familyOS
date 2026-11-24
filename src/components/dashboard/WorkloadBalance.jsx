@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { Scale } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import useEvents from '../../hooks/useEvents';
@@ -16,7 +16,7 @@ function getSummary(rows, spread, t) {
   return t('dashboard.workloadUneven');
 }
 
-export default function WorkloadBalance() {
+function WorkloadBalance() {
   const { userDoc } = useAuth();
   const { t } = useT();
   const { events, loading } = useEvents(userDoc?.familyId);
@@ -100,3 +100,6 @@ export default function WorkloadBalance() {
     </section>
   );
 }
+
+// Memoised: the dashboard re-renders on auth/skin changes this widget ignores.
+export default memo(WorkloadBalance);

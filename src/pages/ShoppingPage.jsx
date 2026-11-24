@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { addDays, isSameDay } from 'date-fns';
 import { Plus, ShoppingBasket, BadgePercent, Footprints, Hourglass, CalendarCheck, Sparkles } from 'lucide-react';
@@ -37,7 +37,6 @@ export default function ShoppingPage() {
   const { items, loading } = useShoppingItems(familyId);
   const { products } = useShoppingProducts(familyId);
   const { setShoppingFabCallback } = useOutletContext() || {};
-  const [title, setTitle] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [proposalOpen, setProposalOpen] = useState(false);
   const inputRef = useRef(null);
@@ -60,8 +59,16 @@ export default function ShoppingPage() {
   const itemIndex = useMemo(() => indexShoppingItems(items), [items]);
   const productFor = (itemTitle) => productsByKey.get(productKey(itemTitle)) || null;
 
-  const toBuy = items.filter((i) => !i.done);
-  const recent = items.filter((i) => i.done);
+  // Split once per snapshot, not on every render.
+  const { toBuy, recent, toBuyMain, toBuyFresh } = useMemo(() => {
+    const buy = items.filter((i) => !i.done);
+    return {
+      toBuy: buy,
+      recent: items.filter((i) => i.done),
+      toBuyMain: buy.filter((i) => i.list !== 'fresh'),
+      toBuyFresh: buy.filter((i) => i.list === 'fresh'),
+    };
+  }, [items]);
   const editingItem = items.find((i) => i.id === editingId) || null;
 
   // Where a new item waits in weekly mode: fresh food on the in-between list,
@@ -87,26 +94,36 @@ export default function ShoppingPage() {
     return products.reduce((sum, p) => sum + tripsOf(ownPurchases(p.purchases)).length, 0);
   }, [products]);
 
-  async function handleAdd(e) {
-    e.preventDefault();
-    if (!title.trim() || !familyId || !userId) return;
+  // The latest values, read by the stable handlers below. Keeping the handler
+  // identities fixed lets the memoised tiles skip re-rendering when an
+  // unrelated snapshot (products, family) arrives.
+  const latest = useRef(null);
+  latest.current = { familyId, userId, products, listFor };
+
+  const handleAdd = useCallback(async (itemTitle) => {
+    const { familyId: fid, userId: uid, listFor: listOf } = latest.current;
+    if (!itemTitle.trim() || !fid || !uid) return false;
     await createShoppingItem({
-      familyId,
-      userId,
-      title,
-      icon: guessProductIcon(title),
-      list: listFor(title),
+      familyId: fid,
+      userId: uid,
+      title: itemTitle,
+      icon: guessProductIcon(itemTitle),
+      list: listOf(itemTitle),
     });
-    setTitle('');
-  }
+    return true;
+  }, []);
 
-  function handleCheckOff(item) {
-    return checkOffShoppingItem(item, { familyId, userId, products });
-  }
+  const handleCheckOff = useCallback((item) => {
+    const { familyId: fid, userId: uid, products: prods } = latest.current;
+    return checkOffShoppingItem(item, { familyId: fid, userId: uid, products: prods });
+  }, []);
 
-  function handleReopen(item) {
-    return reopenShoppingItem(item, { familyId, userId, products, list: listFor(item.title) });
-  }
+  const handleReopen = useCallback((item) => {
+    const { familyId: fid, userId: uid, products: prods, listFor: listOf } = latest.current;
+    return reopenShoppingItem(item, { familyId: fid, userId: uid, products: prods, list: listOf(item.title) });
+  }, []);
+
+  const handleEdit = useCallback((item) => setEditingId(item.id), []);
 
   // A suggestion brings back the product's "recently used" tile when there is
   // one (keeping its icon and flags), else creates the item. In weekly mode it
@@ -155,30 +172,13 @@ export default function ShoppingPage() {
     return () => setShoppingFabCallback?.(null);
   }, [setShoppingFabCallback, focusInput]);
 
-  const sectionProps = { onEdit: (item) => setEditingId(item.id), t };
+  const sectionProps = { onEdit: handleEdit, t };
 
   return (
     <>
       <TopBar title={t('shopping.title')} />
       <main className="mx-auto max-w-md space-y-6 px-5 pt-5">
-        <form onSubmit={handleAdd} className="flex items-center gap-2">
-          <input
-            ref={inputRef}
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={t('shopping.whatNeed')}
-            className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 shadow-card focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
-          />
-          <button
-            type="submit"
-            disabled={!title.trim()}
-            aria-label={t('shopping.addItem')}
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white shadow-xs hover:bg-brand-600 disabled:opacity-40"
-          >
-            <Plus size={22} />
-          </button>
-        </form>
+        <AddItemForm inputRef={inputRef} onAdd={handleAdd} t={t} />
 
         {loading ? (
           <Spinner />
@@ -242,7 +242,7 @@ export default function ShoppingPage() {
                   <>
                     <Section
                       title={t('shopping.weeklyShop')}
-                      items={toBuy.filter((i) => i.list !== 'fresh')}
+                      items={toBuyMain}
                       empty={t('shopping.allChecked')}
                       variant="buy"
                       onToggle={handleCheckOff}
@@ -250,7 +250,7 @@ export default function ShoppingPage() {
                     />
                     <Section
                       title={t('shopping.inBetween')}
-                      items={toBuy.filter((i) => i.list === 'fresh')}
+                      items={toBuyFresh}
                       empty={t('shopping.inBetweenEmpty')}
                       variant="buy"
                       onToggle={handleCheckOff}
@@ -307,6 +307,39 @@ export default function ShoppingPage() {
   );
 }
 
+// The add field keeps its own text state, so typing re-renders only the form
+// instead of the whole shopping page.
+function AddItemForm({ inputRef, onAdd, t }) {
+  const [title, setTitle] = useState('');
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const value = title;
+    if (await onAdd(value)) setTitle((cur) => (cur === value ? '' : cur));
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex items-center gap-2">
+      <input
+        ref={inputRef}
+        type="text"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder={t('shopping.whatNeed')}
+        className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 shadow-card focus:border-brand-400 focus:outline-hidden focus:ring-2 focus:ring-brand-100"
+      />
+      <button
+        type="submit"
+        disabled={!title.trim()}
+        aria-label={t('shopping.addItem')}
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white shadow-xs hover:bg-brand-600 disabled:opacity-40"
+      >
+        <Plus size={22} />
+      </button>
+    </form>
+  );
+}
+
 function Section({ title, empty, items, variant, onToggle, onEdit, t }) {
   return (
     <section>
@@ -338,7 +371,9 @@ function Section({ title, empty, items, variant, onToggle, onEdit, t }) {
   );
 }
 
-function ProductTile({ item, variant, onToggle, onEdit, t }) {
+// Memoised: with stable handlers a tile re-renders only when its own item
+// changes, not when another tile is checked off.
+const ProductTile = memo(function ProductTile({ item, variant, onToggle, onEdit, t }) {
   const handlers = useLongPress(
     () => onEdit(item),
     () => onToggle(item),
@@ -371,4 +406,4 @@ function ProductTile({ item, variant, onToggle, onEdit, t }) {
       {item.quantity && <span className="text-[11px] font-medium opacity-90">{item.quantity}</span>}
     </button>
   );
-}
+});

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { QUICK_ACCESS_ENTRIES } from '../../constants/quickAccessEntries';
@@ -33,7 +34,7 @@ function Row({ icon: Icon, label, color, bg, to }) {
   );
 }
 
-export default function QuickAccess() {
+function QuickAccess() {
   const { skin } = useUIPreferences();
   const { quickAccess } = useNavLayout();
   const { t } = useT();
@@ -73,3 +74,6 @@ export default function QuickAccess() {
     </section>
   );
 }
+
+// Memoised: the dashboard re-renders on auth/skin changes this widget ignores.
+export default memo(QuickAccess);

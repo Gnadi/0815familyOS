@@ -158,7 +158,8 @@ describe('api/ics-fetch', () => {
   it('refuses a feed over the size limit', async () => {
     fetchPublic.mockRejectedValue(Object.assign(new Error('Response too large.'), { code: 'too-large' }));
     expect((await call(fetchFeed, feedRequest())).statusCode).toBe(413);
-    expect(fetchPublic.mock.calls[0][1].maxBytes).toBe(8 * 1024 * 1024);
+    // Below Vercel's 4.5 MB response limit, with room for JSON escaping.
+    expect(fetchPublic.mock.calls[0][1].maxBytes).toBe(3.5 * 1024 * 1024);
   });
 
   it('gives up after ten seconds', async () => {

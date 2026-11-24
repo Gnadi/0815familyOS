@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { isDemoMode } from '../lib/demoMode';
-import { demoAdd, demoDelete, demoSubscribe, demoUpdate } from './demoStore';
+import { demoAdd, demoBatch, demoDelete, demoSubscribe, demoUpdate } from './demoStore';
 
 const entriesRef = collection(db, 'mealPlanEntries');
 
@@ -45,10 +45,10 @@ function mapEntryDocs(docs) {
 // Subscribe to every meal entry for the family. Like events, we filter by
 // familyId only (no composite index needed) and let the page slice out the
 // visible week client-side.
-export function subscribeMealPlan(familyId, cb) {
+export function subscribeMealPlan(familyId, cb, onError) {
   if (isDemoMode()) return demoSubscribe('mealPlanEntries', (docs) => cb(mapEntryDocs(docs)));
   const q = query(entriesRef, where('familyId', '==', familyId));
-  return onSnapshot(q, (snap) => cb(mapEntryDocs(snap.docs)));
+  return onSnapshot(q, (snap) => cb(mapEntryDocs(snap.docs)), onError);
 }
 
 // `shopped` creates the meal already shopped for: the weekly proposal plans
@@ -109,9 +109,11 @@ export async function markMealsShopped(entries) {
   const targets = (entries || []).filter((e) => e?.id && e.recipeId);
   if (targets.length === 0) return;
   if (isDemoMode()) {
-    for (const e of targets) {
-      await demoUpdate('mealPlanEntries', e.id, { shopped: { recipeId: e.recipeId, at: new Date() } });
-    }
+    await demoBatch(async () => {
+      for (const e of targets) {
+        await demoUpdate('mealPlanEntries', e.id, { shopped: { recipeId: e.recipeId, at: new Date() } });
+      }
+    });
     return;
   }
   // A week of meals is far below the 500-operation batch limit.

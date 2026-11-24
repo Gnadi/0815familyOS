@@ -1,23 +1,10 @@
-import { useEffect, useState } from 'react';
+import { createSharedCollection, useSharedCollection } from './sharedCollection';
 import { subscribeTasks } from '../services/tasks';
 
+// One listener per family shared by every caller (see sharedCollection.js).
+const store = createSharedCollection(subscribeTasks);
+
 export default function useTasks(familyId) {
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!familyId) {
-      setTasks([]);
-      setLoading(false);
-      return undefined;
-    }
-    setLoading(true);
-    const unsub = subscribeTasks(familyId, (list) => {
-      setTasks(list);
-      setLoading(false);
-    });
-    return unsub;
-  }, [familyId]);
-
-  return { tasks, loading };
+  const { data, loading, error } = useSharedCollection(store, familyId);
+  return { tasks: data, loading, error };
 }

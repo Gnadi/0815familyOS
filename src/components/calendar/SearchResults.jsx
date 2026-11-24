@@ -39,7 +39,7 @@ function DayGroup({ group, onEventClick }) {
         <span className="text-xs font-normal text-slate-400">{format(group.date, 'PPP')}</span>
       </h4>
       {group.events.map((ev) => (
-        <EventCard key={ev.id} event={ev} onClick={() => onEventClick(ev)} showSource />
+        <EventCard key={ev.id} event={ev} onEventClick={onEventClick} showSource />
       ))}
     </div>
   );

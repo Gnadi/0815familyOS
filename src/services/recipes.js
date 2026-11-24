@@ -72,10 +72,10 @@ function mapRecipeDocs(docs) {
     );
 }
 
-export function subscribeRecipes(familyId, cb) {
+export function subscribeRecipes(familyId, cb, onError) {
   if (isDemoMode()) return demoSubscribe('recipes', (docs) => cb(mapRecipeDocs(docs)));
   const q = query(recipesRef, where('familyId', '==', familyId));
-  return onSnapshot(q, (snap) => cb(mapRecipeDocs(snap.docs)));
+  return onSnapshot(q, (snap) => cb(mapRecipeDocs(snap.docs)), onError);
 }
 
 export function createRecipe({

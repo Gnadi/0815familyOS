@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { isDemoMode } from '../lib/demoMode';
-import { demoAdd, demoDelete, demoDocs, demoSubscribe, demoUpdate } from './demoStore';
+import { demoAdd, demoBatch, demoDelete, demoDocs, demoSubscribe, demoUpdate } from './demoStore';
 
 // Two collections: `trackers` holds the definitions a family sets up once
 // ("Vitamin D", "Medicine", "Threw up"), `trackerEntries` holds one document
@@ -88,16 +88,16 @@ function mapEntryDocs(docs) {
 
 // Both subscriptions filter on familyId only and sort client-side, matching the
 // rest of the app: a single-field query needs no composite Firestore index.
-export function subscribeTrackers(familyId, cb) {
+export function subscribeTrackers(familyId, cb, onError) {
   if (isDemoMode()) return demoSubscribe('trackers', (docs) => cb(mapTrackerDocs(docs)));
   const q = query(trackersRef, where('familyId', '==', familyId));
-  return onSnapshot(q, (snap) => cb(mapTrackerDocs(snap.docs)));
+  return onSnapshot(q, (snap) => cb(mapTrackerDocs(snap.docs)), onError);
 }
 
-export function subscribeTrackerEntries(familyId, cb) {
+export function subscribeTrackerEntries(familyId, cb, onError) {
   if (isDemoMode()) return demoSubscribe('trackerEntries', (docs) => cb(mapEntryDocs(docs)));
   const q = query(entriesRef, where('familyId', '==', familyId));
-  return onSnapshot(q, (snap) => cb(mapEntryDocs(snap.docs)));
+  return onSnapshot(q, (snap) => cb(mapEntryDocs(snap.docs)), onError);
 }
 
 export function trackerPayload({ name, emoji, color, kidIds, unit, trackValue, dailyGoal, minIntervalHours }) {
@@ -137,7 +137,9 @@ export function updateTracker(id, values) {
 export async function deleteTracker(id, familyId) {
   const orphans = await entriesForTracker(id, familyId);
   if (isDemoMode()) {
-    await Promise.all(orphans.map((entryId) => demoDelete('trackerEntries', entryId)));
+    await demoBatch(async () => {
+      await Promise.all(orphans.map((entryId) => demoDelete('trackerEntries', entryId)));
+    });
     return demoDelete('trackers', id);
   }
   // Firestore caps a batch at 500 writes, so chunk rather than assume.
@@ -157,8 +159,14 @@ async function entriesForTracker(trackerId, familyId) {
       .filter((d) => d.data().trackerId === trackerId)
       .map((d) => d.id);
   }
-  const snap = await getDocs(query(entriesRef, where('familyId', '==', familyId)));
-  return snap.docs.filter((d) => d.data().trackerId === trackerId).map((d) => d.id);
+  // Equality filters only, so Firestore merges its single-field indexes and no
+  // composite index is needed. familyId stays in the query for the rules.
+  const snap = await getDocs(query(
+    entriesRef,
+    where('familyId', '==', familyId),
+    where('trackerId', '==', trackerId),
+  ));
+  return snap.docs.map((d) => d.id);
 }
 
 export function logTrackerEntry({ familyId, userId, trackerId, kidId, at, value, note }) {

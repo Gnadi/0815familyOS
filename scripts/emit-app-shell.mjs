@@ -37,7 +37,7 @@
 // here; everything the shells can fix (the flash of the marketing page, the
 // wasted bytes, the wrong metadata) they do fix.
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
@@ -121,28 +121,98 @@ function socialTags({ title, description, image, imageAlt, locale }) {
 // that this shell is not for indexing. Invite links carry a secret token in the
 // path and app routes are private, so neither belongs in a search index —
 // messenger crawlers build their preview from the Open Graph tags regardless.
-function neutralHead(html, { title, lang = 'en', social = '' }) {
+function neutralHead(html, { title, lang = 'en', social = '', extraHead = '' }) {
   const stripped = html
     .replace(/<title data-rh="true">[\s\S]*?<\/title>/g, '')
     .replace(/<script type="application\/ld\+json" data-rh="true">[\s\S]*?<\/script>/g, '')
     .replace(/<(meta|link) data-rh="true"[^>]*>/g, '')
+    // The landing hero screenshot is the landing page's LCP image. In a shell
+    // it would only compete with the JS the app actually needs.
+    .replace(/<link rel="preload" as="image" href="\/screenshots\/[^"]*"[^>]*>/g, '')
     .replace(/<html lang="[^"]*"/, `<html lang="${lang}"`);
   return stripped.replace(
     '</head>',
     `<meta charset="utf-8"><title>${esc(title)}</title>` +
       '<meta name="robots" content="noindex,nofollow">' +
       social +
+      extraHead +
       '</head>',
+  );
+}
+
+// Origins every signed-in start talks to (Auth token refresh, Firestore). A
+// preconnect saves the DNS + TLS round trips while the JS is still loading.
+export const APP_PRECONNECT = [
+  'https://firestore.googleapis.com',
+  'https://identitytoolkit.googleapis.com',
+  'https://securetoken.googleapis.com',
+];
+
+// Chunks a signed-in start needs right after the entry: the Firebase SDK and
+// the user/family services (requested by AuthProvider), the protected layout
+// and the default landing route. Without hints the browser only discovers them
+// one dynamic import at a time -- entry, then auth, then the layout, then the
+// page -- each a full round trip.
+const PRELOAD_ROOTS = [
+  { name: 'firebaseApp' },
+  { name: 'firebase' },
+  { name: 'users' },
+  { name: 'families' },
+  { src: 'src/routes/ProtectedAppLayout.jsx' },
+  { src: 'src/pages/DashboardPage.jsx' },
+];
+
+// Resolve PRELOAD_ROOTS against a Vite manifest into the JS files to preload
+// (with their static imports), excluding what the entry already loads. Also
+// returns the entry's own files, which the service worker precaches together
+// with the preloads. Pure: tests feed it a hand-written manifest.
+export function startupChunks(manifest) {
+  const entries = Object.entries(manifest || {});
+  const entry = entries.find(([, v]) => v.isEntry);
+  if (!entry) return { preload: [], precache: [] };
+
+  const closure = (keys) => {
+    const seen = new Set();
+    const walk = (key) => {
+      if (seen.has(key) || !manifest[key]) return;
+      seen.add(key);
+      for (const imp of manifest[key].imports || []) walk(imp);
+    };
+    keys.forEach(walk);
+    return seen;
+  };
+
+  const entryKeys = closure([entry[0]]);
+  const rootKeys = PRELOAD_ROOTS.flatMap(({ name, src }) =>
+    entries
+      .filter(([k, v]) => (src ? k === src : v.name === name && !v.isEntry))
+      .map(([k]) => k),
+  );
+  const preloadKeys = [...closure(rootKeys)].filter((k) => !entryKeys.has(k));
+
+  const fileOf = (k) => `/${manifest[k].file}`;
+  const preload = preloadKeys.map(fileOf);
+  const entryFiles = [...entryKeys].map(fileOf);
+  const css = [...entryKeys, ...preloadKeys].flatMap((k) => (manifest[k].css || []).map((c) => `/${c}`));
+  return { preload, precache: [...new Set([...entryFiles, ...preload, ...css])] };
+}
+
+function appHead(preload) {
+  return (
+    APP_PRECONNECT.map((o) => `<link rel="preconnect" href="${o}" crossorigin>`).join('') +
+    preload.map((f) => `<link rel="modulepreload" crossorigin href="${esc(f)}">`).join('')
   );
 }
 
 // Exported (and pure) so tests/unit/appShell.spec.js can assert the metadata
 // without running a full production build.
-export function buildShells(html, { siteUrl = DEFAULT_SITE_URL } = {}) {
+export function buildShells(html, { siteUrl = DEFAULT_SITE_URL, preload = [] } = {}) {
   const site = siteUrl.replace(/\/$/, '');
   const bare = emptyRoot(html);
 
-  const shells = { 'app.html': neutralHead(bare, { title: 'myFAOS' }) };
+  const shells = {
+    'app.html': neutralHead(bare, { title: 'myFAOS', extraHead: appHead(preload) }),
+  };
   for (const [name, preview] of Object.entries(INVITE_PREVIEWS)) {
     shells[name] = neutralHead(bare, {
       title: preview.title,
@@ -159,10 +229,39 @@ export function buildShells(html, { siteUrl = DEFAULT_SITE_URL } = {}) {
   return shells;
 }
 
+function readManifest(distDir) {
+  const path = resolve(distDir, '.vite', 'manifest.json');
+  if (!existsSync(path)) return null;
+  try {
+    return JSON.parse(readFileSync(path, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+// Fill the service worker's precache list with this build's hashed startup
+// chunks. Fails soft: without a manifest the worker keeps an empty list.
+function injectPrecache(distDir, files) {
+  const swPath = resolve(distDir, 'sw.js');
+  if (!existsSync(swPath)) return;
+  const sw = readFileSync(swPath, 'utf8');
+  const marker = '/*__PRECACHE_ASSETS__*/ []';
+  if (!sw.includes(marker)) return;
+  writeFileSync(swPath, sw.replace(marker, JSON.stringify(files)));
+  console.log(`[emit-app-shell] dist/sw.js  precaching ${files.length} startup assets`);
+}
+
 function main() {
   const distDir = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'dist');
   const html = readFileSync(resolve(distDir, 'index.html'), 'utf8');
-  const shells = buildShells(html, { siteUrl: process.env.VITE_SITE_URL || DEFAULT_SITE_URL });
+  const manifest = readManifest(distDir);
+  const { preload, precache } = startupChunks(manifest);
+  if (!manifest) console.warn('[emit-app-shell] no Vite manifest; app.html gets no modulepreload hints');
+  const shells = buildShells(html, {
+    siteUrl: process.env.VITE_SITE_URL || DEFAULT_SITE_URL,
+    preload,
+  });
+  injectPrecache(distDir, precache);
 
   for (const [name, shell] of Object.entries(shells)) {
     writeFileSync(resolve(distDir, name), shell);
@@ -171,6 +270,10 @@ function main() {
         `(from ${(html.length / 1024).toFixed(2)} KiB index.html)`,
     );
   }
+
+  // The manifests are build metadata only (read above); nothing at runtime
+  // uses them, so keep them out of the public deploy.
+  rmSync(resolve(distDir, '.vite'), { recursive: true, force: true });
 }
 
 // Only when run as a script (`node scripts/emit-app-shell.mjs`), not on import.

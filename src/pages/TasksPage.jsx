@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useMemo, useRef, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -22,6 +22,7 @@ import useT from '../hooks/useT';
 import useTasks from '../hooks/useTasks';
 import useFamilyMembers from '../hooks/useFamilyMembers';
 import { updateTask, updateTaskStatus, deleteTask } from '../services/tasks';
+import { groupTasksByStatus } from '../utils/tasks';
 
 export default function TasksPage() {
   const { userDoc } = useAuth();
@@ -33,8 +34,11 @@ export default function TasksPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const backlogRef = useRef(null);
 
+  // Filter against a deferred copy so typing stays responsive on a big board:
+  // the input updates at once, the card list catches up in the background.
+  const deferredQuery = useDeferredValue(searchQuery);
   const filteredTasks = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = deferredQuery.trim().toLowerCase();
     if (!q) return tasks;
     return tasks.filter((task) => {
       const haystack = [task.title, task.description, task.category, task.priority]
@@ -43,7 +47,8 @@ export default function TasksPage() {
         .toLowerCase();
       return haystack.includes(q);
     });
-  }, [tasks, searchQuery]);
+  }, [tasks, deferredQuery]);
+  const columns = useMemo(() => groupTasksByStatus(filteredTasks), [filteredTasks]);
 
   // Require a small movement before starting a drag so a tap still opens the
   // edit modal. Touch gets a short press-and-hold activation so scrolling the
@@ -93,9 +98,9 @@ export default function TasksPage() {
     }
   }
 
-  function scrollToBacklog() {
+  const scrollToBacklog = useCallback(() => {
     backlogRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+  }, []);
 
   return (
     <>
@@ -145,28 +150,30 @@ export default function TasksPage() {
 
               <ColumnSection
                 status="backlog"
-                tasks={filteredTasks}
+                tasks={columns.backlog}
                 members={members}
                 onTaskClick={setEditingTask}
                 sectionRef={backlogRef}
               />
               <ColumnSection
                 status="planned"
-                tasks={filteredTasks}
+                tasks={columns.planned}
                 members={members}
                 onTaskClick={setEditingTask}
               />
               <ColumnSection
                 status="inProgress"
-                tasks={filteredTasks}
+                tasks={columns.inProgress}
                 members={members}
                 onTaskClick={setEditingTask}
               />
+              {/* The completed archive only grows; it opens on demand. */}
               <ColumnSection
                 status="completed"
-                tasks={filteredTasks}
+                tasks={columns.completed}
                 members={members}
                 onTaskClick={setEditingTask}
+                defaultCollapsed
               />
 
               <CapacityHeatmap tasks={tasks} />

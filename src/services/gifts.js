@@ -45,10 +45,10 @@ function mapGiftDocs(docs) {
     });
 }
 
-export function subscribeGifts(familyId, cb) {
+export function subscribeGifts(familyId, cb, onError) {
   if (isDemoMode()) return demoSubscribe('gifts', (docs) => cb(mapGiftDocs(docs)));
   const q = query(giftsRef, where('familyId', '==', familyId));
-  return onSnapshot(q, (snap) => cb(mapGiftDocs(snap.docs)));
+  return onSnapshot(q, (snap) => cb(mapGiftDocs(snap.docs)), onError);
 }
 
 export function createGift({ familyId, kidId, title, price, status, notes }) {
