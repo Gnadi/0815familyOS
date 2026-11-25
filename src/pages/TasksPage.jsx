@@ -27,7 +27,7 @@ import { groupTasksByStatus } from '../utils/tasks';
 export default function TasksPage() {
   const { userDoc } = useAuth();
   const { t } = useT();
-  const { tasks, loading } = useTasks(userDoc?.familyId);
+  const { tasks, loading, completedLoading } = useTasks(userDoc?.familyId);
   const members = useFamilyMembers();
   const [editingTask, setEditingTask] = useState(null);
   const [activeTaskId, setActiveTaskId] = useState(null);
@@ -146,7 +146,7 @@ export default function TasksPage() {
             onDragCancel={handleDragCancel}
           >
             <div className="space-y-5">
-              <EfficiencyScoreCard tasks={tasks} members={members} />
+              <EfficiencyScoreCard tasks={tasks} members={members} pending={completedLoading} />
 
               <ColumnSection
                 status="backlog"
@@ -170,6 +170,7 @@ export default function TasksPage() {
               {/* The completed archive only grows; it opens on demand. */}
               <ColumnSection
                 status="completed"
+                pending={completedLoading}
                 tasks={columns.completed}
                 members={members}
                 onTaskClick={setEditingTask}
