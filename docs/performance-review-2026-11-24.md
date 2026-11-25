@@ -330,3 +330,57 @@ Im großen Profil ist das Board damit 46 % früher bedienbar, ohne dass das Arch
 Der Direkteinstieg oben misst das Board ohne beide Effekte. Für die Abnahme sollte der Messpunkt „alle offenen Karten angelegt“ verwendet werden.
 
 **Offener Punkt mit Wechselwirkung.** Wer im großen Profil vom Kalender direkt zum Board wechselt, teilt sich die Ladezeit mit der Kalender-Historie. Ein Nachladen älterer Kalendermonate erst beim Zurückblättern (statt der vollen Historie beim Öffnen) würde diese Konkurrenz beseitigen. Das ist der nächste sinnvolle Schritt für den Kalender.
+
+## 13. Kalender lädt ein Fenster statt der ganzen Historie
+
+**Änderung (Commit `5109426`).**
+- **Kalender:** Er lädt nur noch Termine, die ab dem Quartal vor dem frühesten in dieser Sitzung besuchten Monat auftreten können. Dafür nutzt er dieselben vier schmalen Abfragen wie das Dashboard, einschließlich aller Serien und laufenden Mehrtagestermine.
+- **Zurückblättern:** Das Fenster wird in Quartalsschritten erweitert. Die angezeigten Termine bleiben dabei stehen, und nur das Sync-Symbol dreht sich.
+- **Suche:** Sie findet auch vergangene Termine und wechselt deshalb auf die volle Historie.
+- **Terminformular:** Die Konfliktprüfung lädt ein Fenster um das gewählte Datum.
+- **Wiederverwendung:** Ein bereits geladener, umfassenderer Feed (volle Historie oder ein früheres Fenster) wird wiederverwendet, statt einen weiteren Listener zu öffnen.
+
+**Korrektheit.**
+- 517 von 517 Unit-Tests bestanden, darunter ein neuer Test für die Fensterberechnung.
+- Im großen Profil und in der Grenzfall-Familie ist das Monatsraster samt Tagesagenda beim Zurückblättern bis 26 Monate HTML-identisch zum vorherigen Stand. Geprüft wurden 0, 1, 2, 3, 5, 8, 13 und 26 Monate zurück.
+- Die Suchergebnisse für einen 900 Tage alten Termin und für eine ein Jahr alte Serie sind identisch.
+- Keine Konsolenfehler.
+
+**Messung** (Aufbau wie Abschnitt 10, `bb6b0a3` gegen `5109426`, Messfolge je 6 Läufe, Zusatzmessungen je 3 Läufe, großes Profil):
+
+| Messpunkt (Median bzw. Spanne) | Vorher | Neu |
+|---|---:|---:|
+| Kalender → Aufgabenboard | 1,30 s (6 von 6 über 1 s) | **0,24 s** (0 von 6 über 1 s) |
+| Woche → Monat | 234 ms (31–431) | **45 ms** (42–55) |
+| Kalter Direkteinstieg in den Kalender, heutiger Termin sichtbar | 5,06–5,22 s | **1,82–2,05 s** |
+| Ein Monat zurückblättern (6 Schritte × 3 Läufe) | 141–245 ms | 126–348 ms |
+| Dashboard → alter Termin per Suche auffindbar | 4,18–4,50 s | 4,29–4,37 s |
+| Dashboard kalt / warm | 1,95 / 0,80 s | 2,00 / 0,79 s |
+
+In kleinen und mittleren Profilen liegen alle Messpunkte unverändert im Bereich von 0,2–2,0 s.
+
+**Bewertung.**
+- Die Konkurrenz aus Abschnitt 12 ist beseitigt. Der Wechsel zum Aufgabenboard liegt auch im großen Profil in allen Läufen unter 1 s, das Kriterium aus Befund 2 ist damit auch in der Messfolge erfüllt.
+- Der Kalender ist beim Direkteinstieg im großen Profil 2,6-mal schneller.
+- Das Zurückblättern bleibt flüssig: Die Fenstererweiterung fällt mit 126–348 ms pro Schritt nicht spürbar ins Gewicht.
+- Die Suche in der Historie braucht unverändert gut 4 s, weil sie bewusst die volle Historie lädt. Das tritt jetzt aber nur noch bei einer Suche auf, nicht bei jedem Kalenderbesuch.
+
+**Was jetzt noch an der Historie hängt.**
+- Die Kalendersuche, auf Wunsch des Nutzers.
+- Der Export (`fetchCalendarOnce`), selten und ausdrücklich angefordert.
+- Die Tracker-Seite (volles Protokoll für den Verlauf).
+- Das Archiv „Erledigt“ auf dem Aufgabenboard (parallel geladen, Abschnitt 12).
+
+Für die Suche wäre eine serverseitige oder indexbasierte Lösung nötig. Bei den aktuellen Datenmengen ist das nicht dringend.
+
+**Gesamtstand gegenüber dem Review (großes Profil, Median).**
+
+| Messpunkt | Ausgangsstand | Jetzt |
+|---|---:|---:|
+| Dashboard kalt | 12,24 s | 2,00 s |
+| Dashboard warm | 3,99 s | 0,79 s |
+| Kalender → Aufgabenboard | 4,99 s | 0,24 s |
+| Kalender kalt | 5,1 s | 1,9 s |
+| Eigene Termine bei 10 s langsamem Abo | 10,2 s | 0,2 s |
+
+Alle Abnahmeziele aus Abschnitt 7 (Dashboard ≤ 3 s, Kalenderaktion ≤ 500 ms, erste Aufgabenliste ≤ 1 s) sind in dieser Laborumgebung erfüllt. Offen bleiben die Nachweise auf echter Infrastruktur und echten Geräten (8.7). Vor dem Release müssen die neuen Firestore-Indizes deployt werden (`firebase deploy --only firestore:indexes`).

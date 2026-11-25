@@ -31,3 +31,9 @@ Browser-Einstellungen wie im Review: 393 × 852 CSS-Pixel, DPR 2, 4-fache CPU-Dr
 - `tasks-direct.cjs <port> <profil> <läufe> <out>`: kalter Direkteinstieg auf `/tasks`. Gemessen wird, bis alle offenen Karten angelegt sind (`tasksOpen`) und bis die Spalte „Erledigt“ die volle Anzahl zeigt (`tasksFull`).
 - `compare-tasks.cjs` vergleicht den Board-Text zwischen zwei Builds: zugeklappt, aufgeklappt und mit Suche.
 - `live-drag.cjs` zieht eine Aufgabe nach „Erledigt“ und zurück und protokolliert Spaltenzählung und Effizienz.
+
+## Ergänzende Skripte (Kalenderfenster)
+
+- `compare-cal.cjs` vergleicht zwischen zwei Builds (Ports 4341/4342) das Monatsraster-HTML samt Tagesagenda beim Zurückblättern über bis zu 26 Monate sowie die Suchergebnisse.
+- `paging.cjs <port> <profil>` misst den kalten Direkteinstieg in den Kalender (bis der heutige Termin sichtbar bzw. alles geladen ist) und sechs Schritte „Vorheriger Monat“ in der Monatsansicht.
+- `results-2026-11-25-calendar-window.ndjson` enthält die Rohdaten der Messfolge aus Abschnitt 13 (`bench3.cjs`, `bb6b0a3` gegen `5109426`).
