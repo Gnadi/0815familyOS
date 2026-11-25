@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { format } from 'date-fns';
 import { CalendarSync, ChevronDown, ChevronUp, Clock, ExternalLink, MapPin, Repeat, User } from 'lucide-react';
 import useCategories from '../../hooks/useCategories';
@@ -48,12 +48,19 @@ function DetailRow({ icon: Icon, children }) {
 //
 // `day` is the day the card is shown under. It only matters for an event that
 // runs over several days, whose card then says which day of the run this is.
-export default function EventCard({ event, onClick, showSource = false, day = null }) {
+//
+// `onEventClick(event)` is the stable way in: a day can list many cards, and an
+// inline `() => onClick(ev)` per card defeated the memo below on every render.
+function EventCard({ event, onClick, onEventClick, showSource = false, day = null }) {
   const { get } = useCategories();
   const { family } = useAuth();
   const { t, tn } = useT();
   const cat = get(event.category);
   const [open, setOpen] = useState(false);
+  const handleClick = useCallback(
+    (e) => (onEventClick ? onEventClick(event) : onClick?.(e)),
+    [onEventClick, onClick, event],
+  );
 
   const effort = event.effortLevel ? EFFORT[event.effortLevel] : null;
   const barClass = effort ? effort.bar : cat.bar;
@@ -109,7 +116,7 @@ export default function EventCard({ event, onClick, showSource = false, day = nu
   return (
     <div className="overflow-hidden rounded-2xl bg-white shadow-card">
       <button
-        onClick={onClick}
+        onClick={handleClick}
         className="flex w-full items-stretch gap-3 p-4 text-left hover:bg-slate-50"
       >
         <div className="w-16 shrink-0 text-right">
@@ -223,3 +230,5 @@ export default function EventCard({ event, onClick, showSource = false, day = nu
     </div>
   );
 }
+
+export default memo(EventCard);

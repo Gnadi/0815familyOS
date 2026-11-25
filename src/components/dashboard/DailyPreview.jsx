@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { Calendar, CheckSquare, Plus, Sun } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 import { compareEventsInDay, dayKey, formatDate } from '../../utils/date';
 import useAuth from '../../hooks/useAuth';
 import useEvents from '../../hooks/useEvents';
-import useTasks from '../../hooks/useTasks';
+import { useTasksDueOn } from '../../hooks/useTasks';
 import useCategories from '../../hooks/useCategories';
 import useFamilyMembers from '../../hooks/useFamilyMembers';
 import useT from '../../hooks/useT';
@@ -16,12 +16,12 @@ import QuickAddModal from './QuickAddModal';
 
 const PRIORITY_WEIGHT = { urgent: 0, high: 1, normal: 2, low: 3 };
 
-export default function DailyPreview() {
+function DailyPreview() {
   const { userDoc, family } = useAuth();
   const { get: getCat } = useCategories();
   const { t } = useT();
-  const { events, loading: evLoading } = useEvents(userDoc?.familyId);
-  const { tasks, loading: taskLoading } = useTasks(userDoc?.familyId);
+  const { events, loading: evLoading } = useEvents(userDoc?.familyId, { scope: 'upcoming' });
+  const { tasks, loading: taskLoading } = useTasksDueOn(userDoc?.familyId);
   const members = useFamilyMembers();
   const [showAdd, setShowAdd] = useState(false);
 
@@ -42,19 +42,27 @@ export default function DailyPreview() {
       new Date(y, m, d, 23, 59, 59),
     ).sort(compareEventsInDay);
   }, [events, todayStamp]);
-  const todayTasks = tasks
-    .filter((task) => task.dueDate && isSameDay(task.dueDate, today) && task.status !== 'completed')
-    .sort((a, b) => (PRIORITY_WEIGHT[a.priority] ?? 2) - (PRIORITY_WEIGHT[b.priority] ?? 2));
+  // Memoised on the day, the tasks and the members: grouping is
+  // O(members × tasks) and used to rerun on every render of the dashboard.
+  const unassignedLabel = t('dashboard.unassigned');
+  const { todayTasks, taskGroups } = useMemo(() => {
+    const [y, m, d] = todayStamp.split('-').map(Number);
+    const day = new Date(y, m, d);
+    const due = tasks
+      .filter((task) => task.dueDate && isSameDay(task.dueDate, day) && task.status !== 'completed')
+      .sort((a, b) => (PRIORITY_WEIGHT[a.priority] ?? 2) - (PRIORITY_WEIGHT[b.priority] ?? 2));
 
-  // Group tasks by assignee, preserving member list order. Tasks with no
-  // assignees collect in a trailing "Unassigned" bucket.
-  const taskGroups = [];
-  members.forEach((m) => {
-    const mt = todayTasks.filter((task) => task.assigneeIds.includes(m.uid));
-    if (mt.length) taskGroups.push({ name: m.displayName, tasks: mt });
-  });
-  const unassigned = todayTasks.filter((task) => !task.assigneeIds.length);
-  if (unassigned.length) taskGroups.push({ name: t('dashboard.unassigned'), tasks: unassigned });
+    // Group tasks by assignee, preserving member list order. Tasks with no
+    // assignees collect in a trailing "Unassigned" bucket.
+    const groups = [];
+    members.forEach((mem) => {
+      const mt = due.filter((task) => task.assigneeIds.includes(mem.uid));
+      if (mt.length) groups.push({ name: mem.displayName, tasks: mt });
+    });
+    const unassigned = due.filter((task) => !task.assigneeIds.length);
+    if (unassigned.length) groups.push({ name: unassignedLabel, tasks: unassigned });
+    return { todayTasks: due, taskGroups: groups };
+  }, [tasks, members, todayStamp, unassignedLabel]);
 
   // If no members loaded yet but tasks exist, fall back to a single flat group
   const flatFallback = taskGroups.length === 0 && todayTasks.length > 0;
@@ -171,7 +179,7 @@ export default function DailyPreview() {
         </div>
       </div>
 
-      <QuickAddModal open={showAdd} onClose={() => setShowAdd(false)} />
+      {showAdd && <QuickAddModal open onClose={() => setShowAdd(false)} />}
     </section>
   );
 }
@@ -191,3 +199,6 @@ function TaskRow({ task, t, indent = false }) {
     </li>
   );
 }
+
+// Memoised: the dashboard re-renders on auth/skin changes this widget ignores.
+export default memo(DailyPreview);

@@ -7,12 +7,15 @@ import {
   getTrophyCategoryDynamic,
 } from '../constants/documentCategories';
 
+// Stable fallback: a fresh `[]` per render would defeat the useMemo below.
+const NONE = [];
+
 export default function useVaultCategories(vaultType) {
   const { family } = useAuth();
   const isTrophy = vaultType === 'trophy';
 
-  const custom   = isTrophy ? (family?.customTrophyCategories   || []) : (family?.customDocCategories   || []);
-  const disabled = isTrophy ? (family?.disabledTrophyCategories || []) : (family?.disabledDocCategories || []);
+  const custom   = isTrophy ? (family?.customTrophyCategories   || NONE) : (family?.customDocCategories   || NONE);
+  const disabled = isTrophy ? (family?.disabledTrophyCategories || NONE) : (family?.disabledDocCategories || NONE);
 
   return useMemo(() => {
     const list = isTrophy

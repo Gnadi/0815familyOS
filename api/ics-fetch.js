@@ -15,12 +15,17 @@
 // - Only the public internet: the address connected to is checked, for every
 //   redirect too, so a name or a redirect pointing inside our own network is
 //   refused (_lib/publicFetch.js).
-// - 10s timeout, 8 MB max body.
+// - 10s timeout, 3.5 MB max body (see MAX_BYTES).
 
 import { verifyFamilyMember } from './_lib/familyMember.js';
 import { fetchPublic } from './_lib/publicFetch.js';
 
-const MAX_BYTES = 8 * 1024 * 1024;
+// The feed goes back to the app inside a buffered JSON response, and Vercel
+// refuses those above 4.5 MB. JSON escaping grows an .ics a little (every CRLF
+// line break becomes four characters), so the limit leaves room for that: a
+// larger feed now gets a clear "too large" instead of an opaque platform error
+// after it was already downloaded.
+const MAX_BYTES = 3.5 * 1024 * 1024;
 const TIMEOUT_MS = 10_000;
 
 const NOT_PUBLIC = 'Only calendars on the public internet can be subscribed to.';

@@ -7,7 +7,7 @@ import Button from '../common/Button';
 import useCategories from '../../hooks/useCategories';
 import useAuth from '../../hooks/useAuth';
 import useFamilyMembers from '../../hooks/useFamilyMembers';
-import useEvents from '../../hooks/useEvents';
+import useEvents, { windowStartFor } from '../../hooks/useEvents';
 import useT from '../../hooks/useT';
 import { tLabel } from '../../i18n/labels';
 import { addFamilyCategory, deleteCategory, addKid } from '../../services/families';
@@ -194,11 +194,18 @@ export default function EventFormModal({
   const { list: categories } = useCategories();
   const familyMembers = useFamilyMembers();
   const { t, tn } = useT();
-  const { events: familyEvents } = useEvents(userDoc?.familyId);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(toDateInput(new Date()));
+  // The conflict check only compares against events around the chosen date
+  // (and every series), so it loads a window from the quarter before that
+  // date -- or before today, whichever is earlier -- instead of the family's
+  // whole history. Opened from the calendar, this is usually the calendar's
+  // own window, already loaded.
+  const conflictAnchor = fromDateInput(date);
+  const conflictFrom = windowStartFor(conflictAnchor && conflictAnchor < new Date() ? conflictAnchor : new Date());
+  const { events: familyEvents } = useEvents(userDoc?.familyId, { scope: 'since', since: conflictFrom });
   const [time, setTime] = useState('09:00');
   const [allDay, setAllDay] = useState(false);
   // Last day of an all-day event, inclusive, or '' for a single day.

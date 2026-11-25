@@ -26,6 +26,7 @@ import { DAY_CODES, occurrenceKey } from '../utils/recurrence';
 import { loadAllFeeds } from './calendarFeeds';
 import { isDemoMode } from '../lib/demoMode';
 import { demoAdd, demoDelete, demoDocs, demoSubscribe, demoUpdate } from './demoStore';
+import { mergeListeners } from '../utils/mergedListeners';
 
 const eventsRef = collection(db, 'events');
 
@@ -110,17 +111,110 @@ function mapEventDocs(docs) {
 // waiting on the first snapshot stays on its loading state forever.
 export function subscribeEvents(familyId, cb, onError) {
   if (isDemoMode()) return demoSubscribe('events', (docs) => cb(mapEventDocs(docs)));
+  // Deliberately not limited to a date window: recurring series are stored
+  // once, at their first occurrence, and can reach today from years back, and
+  // the calendar pages freely through the past. A window would need a second
+  // query for series masters and on-demand loading of older months.
   const q = query(eventsRef, where('familyId', '==', familyId), orderBy('date', 'asc'));
+  // Mapped events by id, reused for documents a snapshot did not touch. Every
+  // save fires a snapshot (the local echo, then the server's answer); mapping
+  // the whole history afresh each time handed every view brand-new objects,
+  // which threw away each memo and search cache built on them.
+  const mapped = new Map();
+  let previous = null;
   return onSnapshot(
     q,
     (snap) => {
-      cb(snap.docs.map(mapEventDoc));
+      const changes = snap.docChanges();
+      if (previous && changes.length === 0) {
+        cb(previous);
+        return;
+      }
+      changes.forEach((change) => {
+        if (change.type === 'removed') mapped.delete(change.doc.id);
+        else mapped.set(change.doc.id, mapEventDoc(change.doc));
+      });
+      previous = snap.docs.map((d) => {
+        let ev = mapped.get(d.id);
+        if (!ev) {
+          ev = mapEventDoc(d);
+          mapped.set(d.id, ev);
+        }
+        return ev;
+      });
+      cb(previous);
     },
     (err) => {
       console.error('Events listener failed:', err);
       onError?.(err);
     },
   );
+}
+
+// One query, mapped with the same object reuse as subscribeEvents.
+function listenMapped(q, onData, onError) {
+  const mapped = new Map();
+  return onSnapshot(
+    q,
+    (snap) => {
+      snap.docChanges().forEach((change) => {
+        if (change.type === 'removed') mapped.delete(change.doc.id);
+        else mapped.set(change.doc.id, mapEventDoc(change.doc));
+      });
+      onData(snap.docs.map((d) => {
+        let ev = mapped.get(d.id);
+        if (!ev) {
+          ev = mapEventDoc(d);
+          mapped.set(d.id, ev);
+        }
+        return ev;
+      }));
+    },
+    onError,
+  );
+}
+
+const byDate = (a, b) => (a.date?.getTime?.() || 0) - (b.date?.getTime?.() || 0);
+
+// What a view of "now onwards" needs from a family's stored events: anything
+// that can produce an occurrence on or after `since`.
+export function reachesWindow(ev, since) {
+  if (ev.source === 'annotation') return true;
+  if (ev.recurrence) return true;
+  if (ev.date && ev.date >= since) return true;
+  return Boolean(ev.endDate && ev.endDate >= since);
+}
+
+// The Dashboard's bounded view of the calendar. subscribeEvents downloads the
+// whole history, which grows by the day although the Dashboard only shows this
+// week and the next month. Firestore cannot OR across fields, so the window is
+// assembled from four narrow queries and merged by id:
+//   - events starting on or after `since`,
+//   - every recurring series, however old its first occurrence,
+//   - multi-day events that started earlier but still run on `since`,
+//   - feed annotations (overlays carry the date of the feed event they belong
+//     to, which for a recurring feed event can be its first occurrence).
+// Needs the composite indexes (familyId, recurrence) and (familyId, endDate)
+// from firestore.indexes.json.
+export function subscribeUpcomingEvents(familyId, since, cb, onError) {
+  if (isDemoMode()) {
+    return demoSubscribe('events', (docs) => cb(mapEventDocs(docs).filter((ev) => reachesWindow(ev, since))));
+  }
+  const family = where('familyId', '==', familyId);
+  const from = Timestamp.fromDate(since);
+  const sources = [
+    query(eventsRef, family, where('date', '>=', from)),
+    query(eventsRef, family, where('recurrence', '!=', null)),
+    query(eventsRef, family, where('endDate', '>=', from)),
+    query(eventsRef, family, where('source', '==', 'annotation')),
+  ].map((q) => (onData, onErr) => listenMapped(q, onData, onErr));
+  return mergeListeners(sources, cb, {
+    sort: byDate,
+    onError: (err) => {
+      console.error('Upcoming events listener failed:', err);
+      onError?.(err);
+    },
+  });
 }
 
 // The whole family calendar in one shot: stored events plus the subscribed

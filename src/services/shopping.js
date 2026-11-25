@@ -17,7 +17,7 @@ import { joinQuantities, normalizeTitle, parseIngredient } from '../utils/ingred
 import { guessProductIcon } from '../utils/productIcons';
 import { indexShoppingItems, resolveExisting } from '../utils/smartShopping';
 import { isDemoMode } from '../lib/demoMode';
-import { demoAdd, demoDelete, demoDocs, demoSubscribe, demoUpdate } from './demoStore';
+import { demoAdd, demoBatch, demoDelete, demoDocs, demoSubscribe, demoUpdate } from './demoStore';
 import {
   logProductWriteError,
   preparePurchase,
@@ -69,10 +69,10 @@ function mapItemDocs(docs) {
     });
 }
 
-export function subscribeShoppingItems(familyId, cb) {
+export function subscribeShoppingItems(familyId, cb, onError) {
   if (isDemoMode()) return demoSubscribe('shoppingItems', (docs) => cb(mapItemDocs(docs)));
   const q = query(itemsRef, where('familyId', '==', familyId));
-  return onSnapshot(q, (snap) => cb(mapItemDocs(snap.docs)));
+  return onSnapshot(q, (snap) => cb(mapItemDocs(snap.docs)), onError);
 }
 
 export function createShoppingItem({ familyId, userId, title, quantity, icon, list }) {
@@ -307,37 +307,39 @@ export async function addShoppingItemsBulk({
   }
 
   if (isDemoMode()) {
-    for (const entry of creates) {
-      const now = new Date();
-      await demoAdd('shoppingItems', {
-        familyId,
-        userId,
-        title: entry.title,
-        quantity: entry.quantity || '',
-        icon: guessProductIcon(entry.title),
-        urgent: false,
-        offer: false,
-        ifConvenient: false,
-        list: createList,
-        ...origin(entry),
-        done: false,
-        createdAt: now,
-        updatedAt: now,
-        completedAt: null,
-      });
-    }
-    // The family's own quantity wins over whatever the recipe said, so a
-    // reactivation only flips `done`.
-    for (const entry of reactivates) {
-      await demoUpdate('shoppingItems', entry.existingId, {
-        done: false,
-        completedAt: null,
-        updatedAt: new Date(),
-        lastPurchase: null,
-        ...origin(entry),
-        ...listField,
-      });
-    }
+    await demoBatch(async () => {
+      for (const entry of creates) {
+        const now = new Date();
+        await demoAdd('shoppingItems', {
+          familyId,
+          userId,
+          title: entry.title,
+          quantity: entry.quantity || '',
+          icon: guessProductIcon(entry.title),
+          urgent: false,
+          offer: false,
+          ifConvenient: false,
+          list: createList,
+          ...origin(entry),
+          done: false,
+          createdAt: now,
+          updatedAt: now,
+          completedAt: null,
+        });
+      }
+      // The family's own quantity wins over whatever the recipe said, so a
+      // reactivation only flips `done`.
+      for (const entry of reactivates) {
+        await demoUpdate('shoppingItems', entry.existingId, {
+          done: false,
+          completedAt: null,
+          updatedAt: new Date(),
+          lastPurchase: null,
+          ...origin(entry),
+          ...listField,
+        });
+      }
+    });
     return { added: creates.length + reactivates.length, reactivated: reactivates.length, skipped };
   }
 
@@ -378,7 +380,9 @@ export async function addShoppingItemsBulk({
 export async function clearCompletedShoppingItems(familyId) {
   if (isDemoMode()) {
     const targets = demoDocs('shoppingItems').filter((d) => d.data().done === true);
-    for (const d of targets) await demoDelete('shoppingItems', d.id);
+    await demoBatch(async () => {
+      for (const d of targets) await demoDelete('shoppingItems', d.id);
+    });
     return targets.length;
   }
   const q = query(itemsRef, where('familyId', '==', familyId));

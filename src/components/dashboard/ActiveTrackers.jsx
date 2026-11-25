@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { Check, ChevronRight, Plus, Timer } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import useT from '../../hooks/useT';
-import useTrackers from '../../hooks/useTrackers';
+import { useRecentTrackers } from '../../hooks/useTrackers';
 import TrackerUndoBar from '../tracker/TrackerUndoBar';
 import { trackerColor } from '../../constants/trackerPresets';
 import { activeTrackerRows } from '../../utils/tracker';
@@ -37,7 +37,7 @@ function statusLine(status, { t, tn }) {
 export default function ActiveTrackers() {
   const { user, userDoc, family } = useAuth();
   const { t, tn } = useT();
-  const { trackers, entries, loading } = useTrackers(userDoc?.familyId);
+  const { trackers, entries, loading } = useRecentTrackers(userDoc?.familyId, family?.kids);
   const [now, setNow] = useState(() => new Date());
   const [undo, setUndo] = useState(null);
 

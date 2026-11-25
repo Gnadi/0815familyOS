@@ -1,6 +1,22 @@
-import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { isDemoMode } from '../lib/demoMode';
-import { clearAuthHint, setAuthHint } from '../lib/authHint';
+import { clearAuthHint, readAuthHint, setAuthHint } from '../lib/authHint';
+
+// Pre-rendered marketing/legal pages. A visitor here without an auth hint is
+// almost certainly signed out, so Firebase is started at idle time instead of
+// competing with the page itself.
+const PUBLIC_PATHS = new Set(['/', '/privacy', '/privacy/', '/terms', '/terms/']);
+const IDLE_START_TIMEOUT_MS = 4000;
+
+function scheduleIdle(fn) {
+  if (typeof window.requestIdleCallback === 'function') {
+    const id = window.requestIdleCallback(fn, { timeout: IDLE_START_TIMEOUT_MS });
+    return () => window.cancelIdleCallback(id);
+  }
+  const id = window.setTimeout(fn, 1500);
+  return () => window.clearTimeout(id);
+}
 
 export const AuthContext = createContext({
   user: null,
@@ -12,6 +28,11 @@ export const AuthContext = createContext({
   signOut: () => {},
 });
 
+// Startup: on app routes (or with an auth hint) Firebase Auth and the
+// user/family services are imported in one parallel batch, so Firestore is
+// already loading while Auth restores the session. On the public pages without
+// a hint only Auth (lib/firebaseApp, no Firestore) is started, at idle time.
+//
 // Firebase (auth + firestore) is imported lazily inside effects/handlers rather
 // than at module scope. This keeps the ~200 KB Firebase SDK out of the initial
 // JS chunk that loads on the pre-rendered marketing landing page — it is
@@ -31,6 +52,28 @@ export function AuthProvider({ children }) {
   // exactly one path per load and never has to tear listeners across modes.
   const demo = isDemoMode();
 
+  const { pathname } = useLocation();
+  const onPublicPage = PUBLIC_PATHS.has(pathname);
+  // Decided once: does this page load look like a signed-in visit?
+  const [expectSignedIn] = useState(() => !onPublicPage || Boolean(readAuthHint()));
+  const [armed, setArmed] = useState(expectSignedIn);
+  // The user doc is created by the sign-up/sign-in flows (services/auth.js).
+  // This is only the safety net for accounts without one; it runs when the
+  // live snapshot reports the doc missing, not as an extra read on every load.
+  const ensuredFor = useRef(null);
+
+  // Arm immediately when navigating off the public pages (e.g. to /login);
+  // otherwise once the browser is idle, so a signed-in visitor without a hint
+  // is still redirected from the landing page.
+  useEffect(() => {
+    if (armed || demo) return undefined;
+    if (!onPublicPage) {
+      setArmed(true);
+      return undefined;
+    }
+    return scheduleIdle(() => setArmed(true));
+  }, [armed, demo, onPublicPage]);
+
   useEffect(() => {
     // Demo: fabricate the signed-in user from the demo store and never touch
     // Firebase Auth — no listener attached, no network. Everything downstream
@@ -45,13 +88,19 @@ export function AuthProvider({ children }) {
         cancelled = true;
       };
     }
+    if (!armed) return undefined;
     let unsub = () => {};
     let cancelled = false;
     (async () => {
-      const [{ onAuthStateChanged }, { auth }, { ensureUserDoc }] = await Promise.all([
+      const [{ onAuthStateChanged }, { auth }] = await Promise.all([
         import('firebase/auth'),
-        import('../lib/firebase'),
-        import('../services/users'),
+        import('../lib/firebaseApp'),
+        // Warm the Firestore-backed services in the same round trip when a
+        // signed-in start is likely; the effects below import them again
+        // (instantly, from the module cache).
+        ...(expectSignedIn
+          ? [import('../services/users'), import('../services/families')]
+          : []),
       ]);
       if (cancelled) return;
       // No usable Firebase config: stay signed-out rather than crashing. The
@@ -72,8 +121,6 @@ export function AuthProvider({ children }) {
           setFamily(null);
           setEncryptionKey(null);
           setLoading(false);
-        } else {
-          ensureUserDoc(u).catch(console.error);
         }
       });
     })();
@@ -81,7 +128,7 @@ export function AuthProvider({ children }) {
       cancelled = true;
       unsub();
     };
-  }, [demo]);
+  }, [demo, armed, expectSignedIn]);
 
   useEffect(() => {
     if (!user) return undefined;
@@ -98,9 +145,15 @@ export function AuthProvider({ children }) {
         });
         return;
       }
-      const { subscribeUserDoc } = await import('../services/users');
+      const { subscribeUserDoc, ensureUserDoc } = await import('../services/users');
       if (cancelled) return;
       unsub = subscribeUserDoc(user.uid, (d) => {
+        if (!d && ensuredFor.current !== user.uid) {
+          ensuredFor.current = user.uid;
+          // ensureUserDoc re-checks before writing, so a cache-only "missing"
+          // snapshot on a fresh device never overwrites the real document.
+          ensureUserDoc(user).catch(console.error);
+        }
         setUserDoc(d);
         // Remember where this browser belongs, so index.html can skip the
         // landing page on the next visit. Written here (not on sign-in) so it

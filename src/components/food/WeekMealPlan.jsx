@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { addDays, addWeeks, format, isSameDay, isToday, startOfWeek } from 'date-fns';
-import { formatDate } from '../../utils/date';
+import { addDays, addWeeks, format, isToday, startOfWeek } from 'date-fns';
+import { dayKey, formatDate } from '../../utils/date';
 import { BookOpen, ChevronLeft, ChevronRight, ExternalLink, Plus, ShoppingBasket } from 'lucide-react';
 import Spinner from '../common/Spinner';
 import AvatarStack from '../common/AvatarStack';
@@ -72,8 +72,21 @@ export default function WeekMealPlan({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addSignal]);
 
+  // Index the plan by day and slot once per snapshot: the grid looks up 21
+  // cells, and scanning the whole (ever-growing) history for each was
+  // O(cells × entries) on every render. The first entry wins, as with find().
+  const entryIndex = useMemo(() => {
+    const map = new Map();
+    for (const e of entries) {
+      if (!e.date) continue;
+      const key = `${dayKey(e.date)}|${e.slot}`;
+      if (!map.has(key)) map.set(key, e);
+    }
+    return map;
+  }, [entries]);
+
   function entryFor(date, slot) {
-    return entries.find((e) => e.date && isSameDay(e.date, date) && e.slot === slot) || null;
+    return entryIndex.get(`${dayKey(date)}|${slot}`) || null;
   }
 
   function labelFor(entry) {

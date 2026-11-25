@@ -12,7 +12,7 @@
 // Deliberately free of React and Firebase imports so it stays unit-testable.
 
 import { startOfDay } from 'date-fns';
-import { expandEventsInRange, isValidRecurrence } from './recurrence';
+import { expandEventsInRange, expandRecurringEvent, isValidRecurrence } from './recurrence';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -148,6 +148,38 @@ function limitPerSeries(occurrences, now, maxPerSeries) {
   return out;
 }
 
+// How far around `now` a series is probed first. Most series have their nearest
+// few occurrences within a month; only sparse ones (monthly, yearly) need the
+// full window.
+const PROBE_DAYS = 31;
+
+const byDate = (a, b) => a.date - b.date;
+
+// The occurrences of one series that limitPerSeries() would keep -- the next
+// `max` from `now` on, topped up with the latest past ones when fewer are
+// coming -- without expanding the whole ±365-day window first. A daily series
+// matching a one-letter query used to build some 730 occurrences only to keep
+// three of them.
+function nearestOccurrences(master, now, from, to, max) {
+  const t = now.getTime();
+  const probeEnd = new Date(Math.min(to.getTime(), t + PROBE_DAYS * DAY_MS));
+  const upcomingUntil = (end) => expandRecurringEvent(master, now, end)
+    .filter((ev) => ev.date >= now)
+    .sort(byDate);
+  let upcoming = upcomingUntil(probeEnd);
+  if (upcoming.length < max && probeEnd < to) upcoming = upcomingUntil(to);
+  if (upcoming.length >= max) return upcoming.slice(0, max);
+
+  const need = max - upcoming.length;
+  const probeStart = new Date(Math.max(from.getTime(), t - PROBE_DAYS * DAY_MS));
+  const pastFrom = (start) => expandRecurringEvent(master, start, now)
+    .filter((ev) => ev.date < now)
+    .sort(byDate);
+  let past = pastFrom(probeStart);
+  if (past.length < need && probeStart > from) past = pastFrom(from);
+  return [...past.slice(-need), ...upcoming];
+}
+
 // Search `events` (own + imported + subscribed) for `query`.
 //
 // Returns { upcoming, past, total, truncated }: upcoming ascending from today,
@@ -184,7 +216,13 @@ export function searchEvents(events, query, options = {}) {
   if (series.length) {
     const from = new Date(now.getTime() - pastDays * DAY_MS);
     const to = new Date(now.getTime() + futureDays * DAY_MS);
-    occurrences.push(...limitPerSeries(expandEventsInRange(series, from, to), now, maxPerSeries));
+    if (maxPerSeries > 0) {
+      for (const master of series) {
+        occurrences.push(...nearestOccurrences(master, now, from, to, maxPerSeries));
+      }
+    } else {
+      occurrences.push(...limitPerSeries(expandEventsInRange(series, from, to), now, maxPerSeries));
+    }
   }
 
   // A meeting earlier today is still "today's schedule", not history.

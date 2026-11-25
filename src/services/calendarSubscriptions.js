@@ -26,7 +26,7 @@ import {
 } from '../utils/calendarSync';
 import { clearFeedCache } from './calendarFeeds';
 import { isDemoMode } from '../lib/demoMode';
-import { demoAdd, demoDocs, demoUpdate } from './demoStore';
+import { demoAdd, demoBatch, demoDocs, demoUpdate } from './demoStore';
 
 const eventsRef = collection(db, 'events');
 
@@ -148,6 +148,9 @@ export async function cleanupOrphanedSubscriptionEvents(familyId, { existingEven
     && !existingEvents.some((ev) => ev?.source === 'annotation' || ev?.source === 'subscription')) {
     return { removed: 0 };
   }
+  if (!Array.isArray(existingEvents) && housekeepingDone('cleanup', familyId)) {
+    return { removed: 0 };
+  }
 
   // Without a confirmed server-side view of the subscription list we cannot
   // tell which subscriptions are live, and guessing would wipe real data.
@@ -157,9 +160,39 @@ export async function cleanupOrphanedSubscriptionEvents(familyId, { existingEven
 
   const entries = await loadEventEntries(familyId, existingEvents);
   const orphans = entries.filter((e) => isOrphanedSubscriptionEvent(e.data, live));
-  if (orphans.length === 0) return { removed: 0 };
-  await deleteRefsInChunks(orphans.map((e) => e.ref));
+  if (orphans.length > 0) await deleteRefsInChunks(orphans.map((e) => e.ref));
+  markHousekeepingDone('cleanup', familyId);
   return { removed: orphans.length };
+}
+
+// Housekeeping runs once per session, a few seconds after the family loads.
+// When the user enters on a route without the calendar listener (Shopping,
+// say), it has no events in hand and falls back to reading the whole events
+// collection -- once for the migration and once for the orphan cleanup. After
+// a run that found nothing to do, a per-family marker lets later sessions skip
+// that fallback for HOUSEKEEPING_TTL_MS. With the listener's events in hand
+// the checks are free, so they still run.
+const HOUSEKEEPING_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+function markerKey(task, familyId) {
+  return `faos.housekeeping.v1.${task}.${familyId}`;
+}
+
+function housekeepingDone(task, familyId) {
+  try {
+    const at = Number(globalThis.localStorage?.getItem(markerKey(task, familyId)));
+    return Boolean(at) && Date.now() - at < HOUSEKEEPING_TTL_MS;
+  } catch {
+    return false;
+  }
+}
+
+function markHousekeepingDone(task, familyId) {
+  try {
+    globalThis.localStorage?.setItem(markerKey(task, familyId), String(Date.now()));
+  } catch {
+    // Storage unavailable (private mode): the check simply runs again.
+  }
 }
 
 // The family's events, preferably from the live listener the app is already
@@ -174,9 +207,19 @@ async function loadEventEntries(familyId, existingEvents) {
       data: ev,
     }));
   }
-  const allSnap = await getDocs(query(eventsRef, where('familyId', '==', familyId)));
-  return allSnap.docs.map((d) => ({ id: d.id, ref: d.ref, data: d.data() }));
+  // Only overlays and retired mirrored copies belong to a subscription, so
+  // that is all every caller here looks at. Asking for just those keeps the
+  // fallback proportional to the subscription data instead of to the family's
+  // whole calendar history (equality filters only: no composite index).
+  const snap = await getDocs(query(
+    eventsRef,
+    where('familyId', '==', familyId),
+    where('source', 'in', SUBSCRIPTION_SOURCES),
+  ));
+  return snap.docs.map((d) => ({ id: d.id, ref: d.ref, data: d.data() }));
 }
+
+const SUBSCRIPTION_SOURCES = ['subscription', 'annotation'];
 
 // Retire the mirrored copies of subscribed calendars.
 //
@@ -197,10 +240,16 @@ export async function migrateMirroredSubscriptionEvents(familyId, { userId, exis
     && !existingEvents.some((ev) => ev?.source === 'subscription')) {
     return { migrated: 0, removed: 0 };
   }
+  if (!Array.isArray(existingEvents) && housekeepingDone('migration', familyId)) {
+    return { migrated: 0, removed: 0 };
+  }
 
   const entries = await loadEventEntries(familyId, existingEvents);
   const mirrored = entries.filter((e) => e.data?.source === 'subscription');
-  if (mirrored.length === 0) return { migrated: 0, removed: 0 };
+  if (mirrored.length === 0) {
+    markHousekeepingDone('migration', familyId);
+    return { migrated: 0, removed: 0 };
+  }
 
   const annotated = mirrored.filter((e) => e.data.externalId && hasAnnotation(e.data));
 
@@ -239,6 +288,7 @@ export async function migrateMirroredSubscriptionEvents(familyId, { userId, exis
   if (writes > 0) await batch.commit();
 
   await deleteRefsInChunks(mirrored.map((e) => e.ref));
+  markHousekeepingDone('migration', familyId);
   return { migrated: annotated.length, removed: mirrored.length };
 }
 
@@ -264,44 +314,53 @@ export async function importEventsFromParsed({
   if (isDemoMode()) {
     const byUid = new Map();
     demoDocs('events').forEach((d) => {
-      const uid = d.data().externalId;
+      const uid = d.data().source === 'import' ? d.data().externalId : null;
       if (uid) byUid.set(uid, d.id);
     });
     let created = 0;
     let updated = 0;
-    for (const ev of candidates) {
-      const payload = {
-        familyId,
-        userId,
-        title: ev.title || 'Untitled',
-        description: ev.description || '',
-        category: 'general',
-        date: ev.date,
-        endDate: ev.endDate || null,
-        allDay: Boolean(ev.allDay),
-        location: ev.location || '',
-        kids: [],
-        responsibleParent: '',
-        effortLevel: '',
-        recurrence: ev.recurrence || null,
-        source: 'import',
-        externalId: ev.uid || null,
-        updatedAt: new Date(),
-      };
-      const knownId = ev.uid ? byUid.get(ev.uid) : null;
-      if (knownId) {
-        await demoUpdate('events', knownId, payload);
-        updated += 1;
-      } else {
-        await demoAdd('events', { ...payload, createdAt: new Date() });
-        created += 1;
+    await demoBatch(async () => {
+      for (const ev of candidates) {
+        const payload = {
+          familyId,
+          userId,
+          title: ev.title || 'Untitled',
+          description: ev.description || '',
+          category: 'general',
+          date: ev.date,
+          endDate: ev.endDate || null,
+          allDay: Boolean(ev.allDay),
+          location: ev.location || '',
+          kids: [],
+          responsibleParent: '',
+          effortLevel: '',
+          recurrence: ev.recurrence || null,
+          source: 'import',
+          externalId: ev.uid || null,
+          updatedAt: new Date(),
+        };
+        const knownId = ev.uid ? byUid.get(ev.uid) : null;
+        if (knownId) {
+          await demoUpdate('events', knownId, payload);
+          updated += 1;
+        } else {
+          await demoAdd('events', { ...payload, createdAt: new Date() });
+          created += 1;
+        }
       }
-    }
+    });
     return { created, updated, skipped: parsed.events.length - candidates.length };
   }
 
-  // Look up existing imports to dedupe by UID.
-  const q = query(eventsRef, where('familyId', '==', familyId));
+  // Look up existing imports to dedupe by UID. Only earlier file imports can
+  // match (they are the only documents this function writes), so the query is
+  // narrowed to them instead of reading the family's whole calendar. Equality
+  // filters only: no composite index needed.
+  const q = query(
+    eventsRef,
+    where('familyId', '==', familyId),
+    where('source', '==', 'import'),
+  );
   const allSnap = await getDocs(q);
   const byUid = new Map();
   allSnap.docs.forEach((d) => {

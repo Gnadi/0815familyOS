@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import BottomNav from './BottomNav';
 import DemoBanner from './DemoBanner';
@@ -31,25 +31,41 @@ export default function AppShell() {
   const isShoppingRoute = location.pathname.startsWith('/shopping');
 
   const [adding, setAdding] = useState(false);
-  const [createDefaultDate, setCreateDefaultDate] = useState(null);
 
-  // DocumentVaultPage registers a callback to open its own upload modal
-  const [vaultAdd, setVaultAdd] = useState(null);
-
-  // VaccinationPage registers a callback to open its own add-vaccination modal
-  const [healthFabCallback, setHealthFabCallback] = useState(null);
-
-  // TrackerPage registers a callback so the shared "+" creates a new tracker
-  // instead of opening the event form.
-  const [trackerFabCallback, setTrackerFabCallback] = useState(null);
-
-  // FoodPage registers a callback whose behaviour depends on its active tab
-  // (add a recipe vs. plan a meal).
-  const [foodFabCallback, setFoodFabCallback] = useState(null);
-
-  // ShoppingPage registers a callback so the shared "+" focuses its add field
-  // instead of opening the event form.
-  const [shoppingFabCallback, setShoppingFabCallback] = useState(null);
+  // Pages register their own "+" behaviour (and the calendar its selected
+  // day) through the outlet context. These live in refs, not state: nothing
+  // renders from them until the "+" is pressed, so storing them must not
+  // re-render the whole shell -- and with it the page that just registered.
+  // Each setter mimics a React state setter (value or updater function), which
+  // is how the pages call them: `setX(() => fn)`.
+  const fabRefs = useRef({
+    createDefaultDate: null,
+    vault: null,
+    health: null,
+    tracker: null,
+    food: null,
+    shopping: null,
+  });
+  const outletContext = useMemo(() => {
+    const setterFor = (name) => (value) => {
+      const prev = fabRefs.current[name];
+      fabRefs.current[name] = typeof value === 'function' ? value(prev) : value;
+    };
+    return {
+      // DocumentVaultPage: opens its own upload modal.
+      setVaultAdd: setterFor('vault'),
+      // VaccinationPage: opens its own add-vaccination modal.
+      setHealthFabCallback: setterFor('health'),
+      // TrackerPage: the shared "+" creates a new tracker.
+      setTrackerFabCallback: setterFor('tracker'),
+      // FoodPage: depends on its active tab (recipe vs. meal).
+      setFoodFabCallback: setterFor('food'),
+      // ShoppingPage: focuses its add field.
+      setShoppingFabCallback: setterFor('shopping'),
+      // CalendarPage: the day new events default to.
+      setCreateDefaultDate: setterFor('createDefaultDate'),
+    };
+  }, []);
 
   // Subscribed calendars are computed from their .ics feeds at render time and
   // are not stored, so there is no sync to run here. What is left is one-off
@@ -92,42 +108,51 @@ export default function AppShell() {
     setAdding(false);
   }
 
-  function handleFab() {
-    if (isVaultRoute)  { vaultAdd?.(); return; }
-    if (isHealthRoute) { healthFabCallback?.(); return; }
-    if (isTrackerRoute) { trackerFabCallback?.(); return; }
-    if (isFoodRoute)   { foodFabCallback?.(); return; }
-    if (isShoppingRoute) { shoppingFabCallback?.(); return; }
+  // Read the route from a ref so the handler (the AddActionContext value) keeps
+  // one identity and route changes don't re-render every consumer.
+  const pathRef = useRef(location.pathname);
+  pathRef.current = location.pathname;
+  const handleFab = useCallback(() => {
+    const path = pathRef.current;
+    const cb = fabRefs.current;
+    if (path.startsWith('/vault'))    { cb.vault?.(); return; }
+    if (path.startsWith('/health'))   { cb.health?.(); return; }
+    if (path.startsWith('/tracker'))  { cb.tracker?.(); return; }
+    if (path.startsWith('/meals'))    { cb.food?.(); return; }
+    if (path.startsWith('/shopping')) { cb.shopping?.(); return; }
     setAdding(true);
-  }
+  }, []);
+  const closeAdding = useCallback(() => setAdding(false), []);
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
       <DemoBanner />
       <AddActionContext.Provider value={handleFab}>
-        <Outlet context={{ setCreateDefaultDate, setVaultAdd, setHealthFabCallback, setTrackerFabCallback, setFoodFabCallback, setShoppingFabCallback }} />
+        <Outlet context={outletContext} />
       </AddActionContext.Provider>
       <BottomNav onAdd={handleFab} />
-      {!isVaultRoute && !isHealthRoute && !isTrackerRoute && !isFoodRoute && !isShoppingRoute && (
+      {/* Mounted only while open: a closed form would otherwise keep its data
+          hooks (events, members) alive and re-render on every snapshot. */}
+      {adding && !isVaultRoute && !isHealthRoute && !isTrackerRoute && !isFoodRoute && !isShoppingRoute && (
         isGiftsRoute ? (
           <GiftFormModal
-            open={adding}
-            onClose={() => setAdding(false)}
+            open
+            onClose={closeAdding}
             onSubmit={handleCreateGift}
             recipients={[...(family?.kids ?? []), ...(family?.giftRecipients ?? [])]}
           />
         ) : isTasksRoute ? (
           <TaskFormModal
-            open={adding}
-            onClose={() => setAdding(false)}
+            open
+            onClose={closeAdding}
             onSubmit={handleCreateTask}
           />
         ) : (
           <EventFormModal
-            open={adding}
-            onClose={() => setAdding(false)}
+            open
+            onClose={closeAdding}
             onSubmit={handleCreateEvent}
-            initialDate={createDefaultDate}
+            initialDate={fabRefs.current.createDefaultDate}
           />
         )
       )}

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
 import { format } from 'date-fns';
@@ -11,11 +11,11 @@ import { tLabel } from '../../i18n/labels';
 import { expandEventsInRange } from '../../utils/recurrence';
 import { formatEventEnd, isAllDay } from '../../utils/eventTime';
 
-export default function WeeklyPreview() {
+function WeeklyPreview() {
   const { userDoc } = useAuth();
   const { get: getCat } = useCategories();
   const { t } = useT();
-  const { events, loading } = useEvents(userDoc?.familyId);
+  const { events, loading } = useEvents(userDoc?.familyId, { scope: 'upcoming' });
   // Only the next three entries are shown, but the expansion behind them ran on
   // every render. Keyed on the day so it survives unrelated re-renders.
   const todayStamp = dayKey(new Date());
@@ -84,3 +84,6 @@ export default function WeeklyPreview() {
     </section>
   );
 }
+
+// Memoised: the dashboard re-renders on auth/skin changes this widget ignores.
+export default memo(WeeklyPreview);

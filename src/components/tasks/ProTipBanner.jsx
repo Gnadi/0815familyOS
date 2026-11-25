@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { format } from 'date-fns';
 import { Sparkles } from 'lucide-react';
 import { computeCapacityLoad, currentSprintMonday } from '../../utils/tasks';
@@ -33,7 +34,7 @@ function pickTip(tasks, t) {
   return { text: t('tasks.tipBalanced'), action: t('tasks.actionOpenBacklog') };
 }
 
-export default function ProTipBanner({ tasks, onRebalance }) {
+function ProTipBanner({ tasks, onRebalance }) {
   const { t } = useT();
   const tip = pickTip(tasks, t);
 
@@ -59,3 +60,6 @@ export default function ProTipBanner({ tasks, onRebalance }) {
     </div>
   );
 }
+
+// Memoised: depends only on the task list, not on the board's search or drag state.
+export default memo(ProTipBanner);

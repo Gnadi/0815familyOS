@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
-import { subscribeEvents } from '../services/events';
-import { loadAllFeeds } from '../services/calendarFeeds';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { subscribeEvents, subscribeUpcomingEvents } from '../services/events';
+import { localDayKey, startOfDayOffset, windowStartFor } from '../utils/mergedListeners';
+import { loadAllFeeds, onFeedRefreshed } from '../services/calendarFeeds';
 import { applyAnnotations, indexAnnotations } from '../utils/calendarSync';
 import useAuth from './useAuth';
 
@@ -23,6 +24,24 @@ const LINGER_MS = 15000;
 const EMPTY = { events: [], loading: false, error: null };
 const PENDING = { events: [], loading: true, error: null };
 
+// Feeds are keyed by `familyId` for the full history and by
+// `familyId|since|YYYY-MM-DD` for a window: every stored event that can occur
+// on or after that day (see subscribeUpcomingEvents).
+const UPCOMING_LOOKBACK_DAYS = 7;
+
+function parseSince(day) {
+  const [y, m, d] = day.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function startFeed(key, onData, onError) {
+  const [familyId, scope, day] = key.split('|');
+  if (scope !== 'since') return subscribeEvents(familyId, onData, onError);
+  return subscribeUpcomingEvents(familyId, parseSince(day), onData, onError);
+}
+
+export { windowStartFor };
+
 function getFeed(familyId) {
   const existing = feeds.get(familyId);
   if (existing) {
@@ -43,7 +62,7 @@ function getFeed(familyId) {
     feed.subscribers.forEach((notify) => notify(next));
   };
   feeds.set(familyId, feed);
-  feed.unsub = subscribeEvents(
+  feed.unsub = startFeed(
     familyId,
     (list) => emit({ events: list, loading: false, error: null }),
     // A failed listener has to end the loading state too, otherwise every
@@ -74,19 +93,49 @@ export function peekEvents(familyId) {
   return feed.state.events;
 }
 
+// Which shared feed serves a request. A loaded feed that covers more is reused
+// rather than opening another listener: the full history serves everything,
+// and a window starting earlier serves a later one. Otherwise the requested
+// feed itself.
+function resolveFeedKey(familyId, scope, sinceDay) {
+  if (!familyId) return null;
+  if (scope === 'all') return familyId;
+  const settled = (feed) => feed && !feed.state.loading && !feed.state.error;
+  if (settled(feeds.get(familyId))) return familyId;
+  const wanted = `${familyId}|since|${sinceDay}`;
+  if (feeds.has(wanted)) return wanted;
+  for (const [key, feed] of feeds) {
+    const [fid, scopeName, day] = key.split('|');
+    if (fid === familyId && scopeName === 'since' && day <= sinceDay && settled(feed)) return key;
+  }
+  return wanted;
+}
+
 // The family's own events, straight from Firestore.
-function useStoredEvents(familyId) {
+//
+// When the window widens (the calendar pages back past what is loaded, or a
+// search needs the whole history) the events already on screen stay there
+// while the wider feed loads; `extending` says that is happening, for a small
+// indicator instead of blanking the view.
+function useStoredEvents(familyId, scope, sinceDay) {
+  // Re-resolved only when the request changes, not on every render, so a
+  // reused feed tearing down elsewhere cannot flip an open view to loading.
+  const key = useMemo(
+    () => resolveFeedKey(familyId, scope, sinceDay),
+    [familyId, scope, sinceDay],
+  );
   const [state, setState] = useState(() => {
-    if (!familyId) return EMPTY;
-    return feeds.get(familyId)?.state || PENDING;
+    if (!key) return EMPTY;
+    return feeds.get(key)?.state || PENDING;
   });
+  const settledRef = useRef(null);
 
   useEffect(() => {
-    if (!familyId) {
+    if (!key) {
       setState(EMPTY);
       return undefined;
     }
-    const feed = getFeed(familyId);
+    const feed = getFeed(key);
     feed.subscribers.add(setState);
     // Adopt whatever the shared feed already holds, so a component mounting
     // later renders immediately instead of showing a spinner again.
@@ -95,8 +144,14 @@ function useStoredEvents(familyId) {
       feed.subscribers.delete(setState);
       releaseFeed(feed);
     };
-  }, [familyId]);
+  }, [key]);
 
+  if (!state.loading) {
+    settledRef.current = { familyId, state };
+    return state;
+  }
+  const last = settledRef.current;
+  if (last && last.familyId === familyId) return { ...last.state, extending: true };
   return state;
 }
 
@@ -130,6 +185,11 @@ export function invalidateFeeds() {
   generationListeners.forEach((notify) => notify(feedGeneration));
 }
 
+// A stale feed is served from its cache straight away and refreshed in the
+// background; when that refresh changed anything, reload what is on screen.
+// The reload reads the now-fresh cache, so it does not hit the network again.
+onFeedRefreshed(() => invalidateFeeds());
+
 function useFeedGeneration() {
   const [generation, setGeneration] = useState(feedGeneration);
   useEffect(() => {
@@ -140,43 +200,68 @@ function useFeedGeneration() {
   return generation;
 }
 
+const NO_FEEDS = { events: [], loading: false, errors: [], reports: [] };
+
+// The settled value of a shared load, if it is still within its share window.
+// Reading it synchronously is what lets a remount (or a second component)
+// render the feed events in its very first frame instead of flashing an empty
+// calendar while an already-resolved promise goes through the microtask queue.
+function settledLoad(cacheKey) {
+  const cached = feedLoads.get(cacheKey);
+  if (!cached || Date.now() - cached.at >= FEED_SHARE_MS) return null;
+  return cached.value || null;
+}
+
 function useFeedEvents(subscriptions) {
   const key = feedKey(subscriptions);
   const generation = useFeedGeneration();
-  const [state, setState] = useState({ events: [], loading: Boolean(key), errors: [], reports: [] });
+  const [state, setState] = useState(() => {
+    if (!key) return NO_FEEDS;
+    return settledLoad(`${generation}|${key}`) || { ...NO_FEEDS, loading: true };
+  });
 
   useEffect(() => {
     if (!key) {
-      setState({ events: [], loading: false, errors: [], reports: [] });
+      setState(NO_FEEDS);
       return undefined;
     }
     let cancelled = false;
     const cacheKey = `${generation}|${key}`;
+    const settled = settledLoad(cacheKey);
+    if (settled) {
+      setState(settled);
+      return undefined;
+    }
     // Shared across hook instances so mounting five components fetches once,
     // but not for the whole session: a long-lived tab should still pick up a
     // changed calendar.
     const cached = feedLoads.get(cacheKey);
     let load = cached && Date.now() - cached.at < FEED_SHARE_MS ? cached.promise : null;
     if (!load) {
-      load = loadAllFeeds(subscriptions);
-      feedLoads.set(cacheKey, { promise: load, at: Date.now() });
+      const entry = { promise: null, at: Date.now(), value: null };
+      load = loadAllFeeds(subscriptions).then((res) => {
+        entry.value = {
+          events: res.events,
+          loading: false,
+          errors: res.errors,
+          reports: res.reports || [],
+        };
+        return entry.value;
+      });
+      entry.promise = load;
+      feedLoads.set(cacheKey, entry);
     }
-    setState((prev) => ({ ...prev, loading: true }));
+    // A reload (sync, invalidation) keeps showing the events it has; only the
+    // loading flag changes, so the calendar does not blank out meanwhile.
+    setState((prev) => (prev.loading ? prev : { ...prev, loading: true }));
     load
-      .then((res) => {
-        if (!cancelled) {
-          setState({
-            events: res.events,
-            loading: false,
-            errors: res.errors,
-            reports: res.reports || [],
-          });
-        }
+      .then((value) => {
+        if (!cancelled) setState(value);
       })
       .catch(() => {
         // loadAllFeeds settles per feed and never rejects, but a broken cache
         // read must not leave the calendar spinning.
-        if (!cancelled) setState({ events: [], loading: false, errors: [], reports: [] });
+        if (!cancelled) setState((prev) => ({ ...prev, loading: false }));
       });
     return () => {
       cancelled = true;
@@ -189,28 +274,41 @@ function useFeedEvents(subscriptions) {
   return state;
 }
 
-export default function useEvents(familyId) {
+// `loading` covers the family's own events only. Subscribed calendars come
+// from third-party servers that can take seconds to answer; waiting on them
+// used to hide the family's own week behind "Loading events…". Their state is
+// reported separately as `feedLoading`, for a small indicator.
+//
+// Which stored events to load:
+//   scope 'all'      -- the whole history (search needs it).
+//   scope 'upcoming' -- what can occur from a week ago onwards: the
+//                       Dashboard's today / this week / next month.
+//   scope 'since'    -- what can occur on or after `since` (a Date): the
+//                       calendar's window, widened as it pages back, and the
+//                       event form's conflict check around its date.
+// A bounded scope is served from a wider feed when one is already loaded.
+export default function useEvents(familyId, { scope = 'all', since = null } = {}) {
   const { family } = useAuth();
-  const stored = useStoredEvents(familyId);
+  let sinceDay = null;
+  if (scope === 'upcoming') sinceDay = localDayKey(startOfDayOffset(new Date(), UPCOMING_LOOKBACK_DAYS));
+  else if (scope === 'since' && since) sinceDay = localDayKey(since);
+  const stored = useStoredEvents(familyId, sinceDay ? 'since' : 'all', sinceDay);
   const subscriptions = family?.id === familyId ? family?.calendarSubscriptions : null;
   const feed = useFeedEvents(subscriptions);
 
   return useMemo(() => {
     // Annotation documents are overlays, not calendar entries of their own.
     const ownEvents = stored.events.filter((ev) => ev.source !== 'annotation');
-    if (feed.events.length === 0) {
-      return {
-        events: ownEvents,
-        loading: stored.loading || feed.loading,
-        error: stored.error,
-        feedErrors: feed.errors,
-        feedReports: feed.reports,
-      };
-    }
-    const annotated = applyAnnotations(feed.events, indexAnnotations(stored.events));
+    const events = feed.events.length === 0
+      ? ownEvents
+      : [...ownEvents, ...applyAnnotations(feed.events, indexAnnotations(stored.events))];
     return {
-      events: [...ownEvents, ...annotated],
-      loading: stored.loading || feed.loading,
+      events,
+      loading: stored.loading,
+      // The window is widening (older months, or the full history for a
+      // search); the events shown so far stay on screen meanwhile.
+      extending: Boolean(stored.extending),
+      feedLoading: feed.loading,
       error: stored.error,
       feedErrors: feed.errors,
       feedReports: feed.reports,
@@ -218,6 +316,7 @@ export default function useEvents(familyId) {
   }, [
     stored.events,
     stored.loading,
+    stored.extending,
     stored.error,
     feed.events,
     feed.loading,

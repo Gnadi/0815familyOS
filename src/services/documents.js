@@ -50,10 +50,10 @@ function mapDocumentDocs(docs) {
     });
 }
 
-export function subscribeDocuments(familyId, cb) {
+export function subscribeDocuments(familyId, cb, onError) {
   if (isDemoMode()) return demoSubscribe('documents', (docs) => cb(mapDocumentDocs(docs)));
   const q = query(docsRef, where('familyId', '==', familyId));
-  return onSnapshot(q, (snap) => cb(mapDocumentDocs(snap.docs)));
+  return onSnapshot(q, (snap) => cb(mapDocumentDocs(snap.docs)), onError);
 }
 
 export function createDocument({

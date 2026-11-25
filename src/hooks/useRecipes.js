@@ -1,23 +1,10 @@
-import { useEffect, useState } from 'react';
+import { createSharedCollection, useSharedCollection } from './sharedCollection';
 import { subscribeRecipes } from '../services/recipes';
 
+// One listener per family shared by every caller (see sharedCollection.js).
+const store = createSharedCollection(subscribeRecipes);
+
 export default function useRecipes(familyId) {
-  const [recipes, setRecipes] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!familyId) {
-      setRecipes([]);
-      setLoading(false);
-      return undefined;
-    }
-    setLoading(true);
-    const unsub = subscribeRecipes(familyId, (list) => {
-      setRecipes(list);
-      setLoading(false);
-    });
-    return unsub;
-  }, [familyId]);
-
-  return { recipes, loading };
+  const { data, loading, error } = useSharedCollection(store, familyId);
+  return { recipes: data, loading, error };
 }

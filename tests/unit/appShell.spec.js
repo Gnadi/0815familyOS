@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { buildShells } from '../../scripts/emit-app-shell.mjs';
+import { APP_PRECONNECT, buildShells, startupChunks } from '../../scripts/emit-app-shell.mjs';
 
 // scripts/emit-app-shell.mjs turns the pre-rendered landing page into the two
 // static shells that answer everything the SSG pass skips. The invite shell is
@@ -18,6 +18,7 @@ const PRERENDERED = [
   '<!DOCTYPE html><html lang="en"><head>',
   '<meta charset="UTF-8">',
   '<link rel="manifest" href="/manifest.webmanifest">',
+  '<link rel="preload" as="image" href="/screenshots/dashboard.webp" fetchpriority="high">',
   '<title data-rh="true">myFAOS — from family chaos to calm</title>',
   '<meta data-rh="true" name="description" content="Landing copy">',
   '<meta data-rh="true" property="og:image" content="https://myfaos.app/og-image.png">',
@@ -151,5 +152,95 @@ describe('routing wiring', () => {
     expect(matches('en-US,en;q=0.9')).toBe(false);
     // German further down someone else's list is not a German client.
     expect(matches('en-US,en;q=0.9,de;q=0.8')).toBe(false);
+  });
+});
+
+describe('startup hints', () => {
+  // A trimmed Vite manifest: entry -> react; the services pull in Firebase;
+  // the layout and dashboard share a chunk.
+  const manifest = {
+    'index.html': { file: 'assets/app-1.js', isEntry: true, imports: ['_react-1.js'], css: ['assets/app-1.css'] },
+    '_react-1.js': { file: 'assets/react-1.js', name: 'react' },
+    '_firebaseApp-1.js': { file: 'assets/firebaseApp-1.js', name: 'firebaseApp', imports: ['_auth-1.js'] },
+    '_auth-1.js': { file: 'assets/index.esm-1.js', name: 'index.esm' },
+    '_firebase-1.js': { file: 'assets/firebase-1.js', name: 'firebase', imports: ['_firebaseApp-1.js'] },
+    '_users-1.js': { file: 'assets/users-1.js', name: 'users', imports: ['_firebase-1.js', 'index.html'] },
+    '_families-1.js': { file: 'assets/families-1.js', name: 'families', imports: ['_firebase-1.js'] },
+    'src/routes/ProtectedAppLayout.jsx': { file: 'assets/ProtectedAppLayout-1.js', imports: ['_shared-1.js', '_react-1.js'] },
+    'src/pages/DashboardPage.jsx': { file: 'assets/DashboardPage-1.js', imports: ['_shared-1.js'] },
+    '_shared-1.js': { file: 'assets/shared-1.js', name: 'shared' },
+    'src/pages/VaccinationPage.jsx': { file: 'assets/VaccinationPage-1.js' },
+  };
+  const { preload, precache } = startupChunks(manifest);
+
+  it('preloads Firebase, the services, the layout and the dashboard', () => {
+    for (const f of [
+      '/assets/firebaseApp-1.js', '/assets/index.esm-1.js', '/assets/firebase-1.js',
+      '/assets/users-1.js', '/assets/families-1.js', '/assets/ProtectedAppLayout-1.js',
+      '/assets/DashboardPage-1.js', '/assets/shared-1.js',
+    ]) expect(preload).toContain(f);
+  });
+
+  it('does not re-preload what the entry loads or unrelated routes', () => {
+    expect(preload).not.toContain('/assets/app-1.js');
+    expect(preload).not.toContain('/assets/react-1.js');
+    expect(preload).not.toContain('/assets/VaccinationPage-1.js');
+  });
+
+  it('precaches the entry, its css and the preloads for the service worker', () => {
+    expect(precache).toContain('/assets/app-1.js');
+    expect(precache).toContain('/assets/app-1.css');
+    expect(precache).toContain('/assets/DashboardPage-1.js');
+    expect(new Set(precache).size).toBe(precache.length);
+  });
+
+  it('fails soft without a manifest', () => {
+    expect(startupChunks(null)).toEqual({ preload: [], precache: [] });
+  });
+
+  it('puts the hints into the app shell only, and drops the hero preload everywhere', () => {
+    const shells = buildShells(PRERENDERED, { preload });
+    expect(shells['app.html']).toContain('<link rel="modulepreload" crossorigin href="/assets/DashboardPage-1.js">');
+    for (const origin of APP_PRECONNECT) {
+      expect(shells['app.html']).toContain(`<link rel="preconnect" href="${origin}" crossorigin>`);
+      expect(shells['join.html']).not.toContain(origin);
+    }
+    for (const shell of Object.values(shells)) {
+      expect(shell).not.toContain('dashboard.webp');
+    }
+  });
+});
+
+describe('caching headers', () => {
+  const { headers } = JSON.parse(readFileSync(resolve(root, 'vercel.json'), 'utf8'));
+  const valueFor = (source) =>
+    headers.find((h) => h.source === source)?.headers.find((x) => x.key === 'Cache-Control')?.value;
+
+  it('caches hashed build output forever', () => {
+    expect(valueFor('/assets/(.*)')).toBe('public, max-age=31536000, immutable');
+  });
+
+  it('never lets the service worker or the HTML shells go stale', () => {
+    expect(valueFor('/sw.js')).toBe('no-cache');
+    expect(valueFor('/')).toBe('no-cache');
+    expect(valueFor('/(.*)\\.html')).toBe('no-cache');
+  });
+
+  it('keeps the invite Vary header', () => {
+    const join = headers.find((h) => h.source === '/join/:token');
+    expect(join.headers).toContainEqual({ key: 'Vary', value: 'Accept-Language' });
+  });
+});
+
+describe('service worker', () => {
+  const sw = readFileSync(resolve(root, 'public', 'sw.js'), 'utf8');
+
+  it('keeps the placeholder the build fills with startup chunks', () => {
+    expect(sw).toContain('/*__PRECACHE_ASSETS__*/ []');
+  });
+
+  it('precaches the app shell that answers every private route', () => {
+    expect(sw).toMatch(/APP_SHELL = '\/app\.html'/);
+    expect(sw).toMatch(/PRECACHE_URLS = \['\/', APP_SHELL/);
   });
 });

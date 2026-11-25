@@ -165,11 +165,17 @@ export async function ensureFamilyEncryptionKey(familyId) {
   });
 }
 
-export function subscribeFamily(familyId, cb) {
+// `onError` is optional; without it a failed listener is at least logged
+// instead of failing silently.
+export function subscribeFamily(familyId, cb, onError) {
   if (isDemoMode()) return demoSubscribeFamily(cb);
-  return onSnapshot(doc(db, 'families', familyId), (snap) => {
-    cb(snap.exists() ? { id: snap.id, ...snap.data() } : null);
-  });
+  return onSnapshot(
+    doc(db, 'families', familyId),
+    (snap) => {
+      cb(snap.exists() ? { id: snap.id, ...snap.data() } : null);
+    },
+    onError || ((err) => console.error('Family listener failed', err)),
+  );
 }
 
 export async function addFamilyCategory(familyId, { label, color }) {

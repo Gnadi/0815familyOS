@@ -1,6 +1,8 @@
+import { memo, useMemo } from 'react';
 import { Cake } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import useT from '../../hooks/useT';
+import { dayKey } from '../../utils/date';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -23,20 +25,25 @@ function describe(daysUntil, t) {
   return t('dashboard.bdInDays', { days: daysUntil });
 }
 
-export default function UpcomingBirthdays() {
+function UpcomingBirthdays() {
   const { family } = useAuth();
   const { t, locale } = useT();
-  const today = new Date();
+  const todayStamp = dayKey(new Date());
 
   // Gift recipients (grandparents, godparents, …) carry a birthday too — it is
   // the whole point of storing one — so they belong on this list next to the
   // kids. Ids are prefixed per list (kid_… / recip_…), so they never collide.
-  const people = [...(family?.kids || []), ...(family?.giftRecipients || [])];
-
-  const upcoming = people
-    .map((p) => ({ kid: p, info: nextBirthday(p.birthday, today) }))
-    .filter((row) => row.info && row.info.daysUntil <= 60)
-    .sort((a, b) => a.info.daysUntil - b.info.daysUntil);
+  const kids = family?.kids;
+  const recipients = family?.giftRecipients;
+  const upcoming = useMemo(() => {
+    const today = new Date();
+    const people = [...(kids || []), ...(recipients || [])];
+    return people
+      .map((p) => ({ kid: p, info: nextBirthday(p.birthday, today) }))
+      .filter((row) => row.info && row.info.daysUntil <= 60)
+      .sort((a, b) => a.info.daysUntil - b.info.daysUntil);
+    // todayStamp: days-until changes when the calendar day rolls over.
+  }, [kids, recipients, todayStamp]);
 
   if (upcoming.length === 0) return null;
 
@@ -70,3 +77,5 @@ export default function UpcomingBirthdays() {
     </section>
   );
 }
+
+export default memo(UpcomingBirthdays);

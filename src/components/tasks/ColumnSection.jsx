@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import TaskCard from './TaskCard';
@@ -12,20 +12,31 @@ const COLUMN_META = {
   completed:  { labelKey: 'taskStatus.completed',  chip: 'bg-emerald-50 text-emerald-700' },
 };
 
-export default function ColumnSection({
+// A long column (the completed archive grows forever) is rendered in pages so
+// opening it doesn't create thousands of draggable cards at once.
+const PAGE_SIZE = 50;
+
+function ColumnSection({
   status,
   tasks,
   members,
   onTaskClick,
   sectionRef,
   defaultCollapsed = false,
+  // The column's tasks are still loading (the completed archive arrives after
+  // the open tasks): show a placeholder rather than a misleading 0.
+  pending = false,
 }) {
   const { t, tn } = useT();
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const meta = COLUMN_META[status];
   const columnLabel = t(meta.labelKey);
-  const filtered = tasks.filter((t2) => t2.status === status);
-  const summary = summaryForColumn(status, tasks);
+  // `tasks` is this column's list, already grouped by the page.
+  const filtered = tasks;
+  const summary = useMemo(() => summaryForColumn(status, tasks), [status, tasks]);
+  const [limit, setLimit] = useState(PAGE_SIZE);
+  const visible = filtered.length > limit ? filtered.slice(0, limit) : filtered;
+  const hidden = filtered.length - visible.length;
 
   const { setNodeRef, isOver } = useDroppable({
     id: `column-${status}`,
@@ -50,9 +61,12 @@ export default function ColumnSection({
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-bold text-slate-900">{columnLabel}</h2>
               <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${meta.chip}`}>
-                {summary.count}
+                {pending ? '…' : summary.count}
               </span>
             </div>
+            {pending ? (
+              <div className="mt-1 text-xs font-medium text-slate-400">{t('common.loading')}</div>
+            ) : (
             <div className="mt-1 flex items-center gap-2 text-xs font-medium text-slate-500">
               <span>{t(summary.leftKey)}</span>
               <span className="h-1 w-1 rounded-full bg-slate-300" />
@@ -60,6 +74,7 @@ export default function ColumnSection({
               <span className="h-1 w-1 rounded-full bg-slate-300" />
               <span className={`${summary.rightTone} font-semibold`}>{t(summary.rightKey, summary.rightParams)}</span>
             </div>
+            )}
           </div>
           <span
             className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition-transform ${
@@ -73,7 +88,11 @@ export default function ColumnSection({
 
         {!collapsed && (
           <div className="mt-2 space-y-3 px-1 pb-1">
-            {filtered.length === 0 ? (
+            {pending && filtered.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-white/60 p-4 text-center text-xs text-slate-400">
+                {t('common.loading')}
+              </div>
+            ) : filtered.length === 0 ? (
               <div
                 className={`rounded-2xl border border-dashed p-4 text-center text-xs transition ${
                   isOver
@@ -84,14 +103,25 @@ export default function ColumnSection({
                 {isOver ? t('tasks.dropToMove', { column: columnLabel }) : t('tasks.noTasksIn', { column: columnLabel })}
               </div>
             ) : (
-              filtered.map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  members={members}
-                  onClick={onTaskClick}
-                />
-              ))
+              <>
+                {visible.map((task) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    members={members}
+                    onClick={onTaskClick}
+                  />
+                ))}
+                {hidden > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setLimit((n) => n + PAGE_SIZE)}
+                    className="w-full rounded-xl border border-dashed border-slate-200 bg-white/60 py-2 text-xs font-semibold text-slate-500 hover:bg-white"
+                  >
+                    {t('dashboard.seeAll')} (+{hidden})
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}
@@ -105,3 +135,5 @@ export default function ColumnSection({
     </section>
   );
 }
+
+export default memo(ColumnSection);

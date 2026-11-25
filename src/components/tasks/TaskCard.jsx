@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Calendar, Check, GripVertical, Repeat, Users } from 'lucide-react';
 import { format, isBefore, isSameDay, startOfDay } from 'date-fns';
 import { useDraggable } from '@dnd-kit/core';
@@ -38,6 +39,7 @@ function TaskCardBody({ task, members, t, tn, dragging = false, overlay = false 
   const isInProgress = task.status === 'inProgress';
   const isCompleted = task.status === 'completed';
   const isShared = assigned.length >= 2;
+  const recurrenceLabel = describeRecurrence(task.recurrence, t, tn);
 
   const completedLine = isCompleted && task.completedAt
     ? t('tasks.completedAt', { when: `${formatRelativeDay(task.completedAt, t)} ${format(task.completedAt, 'p')}` })
@@ -119,10 +121,10 @@ function TaskCardBody({ task, members, t, tn, dragging = false, overlay = false 
           <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-600">
             {task.points || 0} {tn('tasks.pts', task.points || 0)}
           </span>
-          {describeRecurrence(task.recurrence, t, tn) && (
+          {recurrenceLabel && (
             <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 text-[11px] font-semibold text-indigo-700">
               <Repeat size={11} />
-              {describeRecurrence(task.recurrence, t, tn)}
+              {recurrenceLabel}
             </span>
           )}
         </div>
@@ -143,7 +145,7 @@ export function TaskCardPreview({ task, members }) {
   );
 }
 
-export default function TaskCard({ task, members, onClick }) {
+function TaskCard({ task, members, onClick }) {
   const { t, tn } = useT();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.id,
@@ -165,3 +167,7 @@ export default function TaskCard({ task, members, onClick }) {
     </button>
   );
 }
+
+// Memoised: a search keystroke or a drag elsewhere on the board no longer
+// re-renders every card. Needs stable `members` and `onClick` from the page.
+export default memo(TaskCard);

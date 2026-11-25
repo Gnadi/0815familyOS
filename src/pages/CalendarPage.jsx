@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { useOutletContext } from 'react-router-dom';
 import { CalendarClock, Download, List, RefreshCw } from 'lucide-react';
@@ -34,7 +34,7 @@ import { eventEnd } from '../utils/eventTime';
 import { formatDate } from '../utils/date';
 import { EMPTY_SEARCH_RESULT, searchEvents } from '../utils/eventSearch';
 import { isFeedEvent } from '../utils/calendarSync';
-import { invalidateFeeds } from '../hooks/useEvents';
+import { invalidateFeeds, windowStartFor } from '../hooks/useEvents';
 import { loadFeed } from '../services/calendarFeeds';
 
 const MEMBER_PALETTE = ['red', 'blue', 'emerald', 'amber', 'violet', 'pink', 'cyan'];
@@ -42,13 +42,35 @@ const MEMBER_PALETTE = ['red', 'blue', 'emerald', 'amber', 'violet', 'pink', 'cy
 export default function CalendarPage() {
   const { user, userDoc, family } = useAuth();
   const { t } = useT();
-  const { events, loading, error, feedErrors, feedReports } = useEvents(userDoc?.familyId);
   const { showDayTimeline, setShowDayTimeline } = useUIPreferences();
   const members = useFamilyMembers();
   const { get: getCategory } = useCategories();
   const { setCreateDefaultDate } = useOutletContext() || {};
   const [view, setView] = useState('week');
   const [anchor, setAnchor] = useState(new Date());
+  const [search, setSearch] = useState('');
+
+  // The field updates on every keystroke; the search itself runs on a deferred
+  // copy, so typing stays responsive while a short query ("a") matches and
+  // expands most of the calendar in the background.
+  const deferredSearch = useDeferredValue(search);
+  const searchQuery = deferredSearch.trim();
+  const isSearching = searchQuery.length > 0;
+
+  // Load the window the calendar has been looking at, not the family's whole
+  // history: from the quarter before the earliest month visited in this
+  // session. Paging further back widens it in quarter steps; the events on
+  // screen stay while it does (`extending`). Search looks through everything,
+  // past events included, so it switches to the full history.
+  const [earliestVisited, setEarliestVisited] = useState(() => new Date());
+  if (anchor < earliestVisited
+    && (anchor.getFullYear() !== earliestVisited.getFullYear() || anchor.getMonth() !== earliestVisited.getMonth())) {
+    setEarliestVisited(anchor);
+  }
+  const windowStart = windowStartFor(earliestVisited);
+  const {
+    events, loading, extending, feedLoading, error, feedErrors, feedReports,
+  } = useEvents(userDoc?.familyId, isSearching ? { scope: 'all' } : { scope: 'since', since: windowStart });
   const [selected, setSelected] = useState(new Date());
   // What the form is open for, or null:
   //   { mode: 'new', date }                     -- a new event (from the timeline)
@@ -59,11 +81,6 @@ export default function CalendarPage() {
   const [scopeFor, setScopeFor] = useState(null);
   const [activeFilters, setActiveFilters] = useState(new Set());
   const [syncing, setSyncing] = useState(false);
-  const [search, setSearch] = useState('');
-
-  const searchQuery = search.trim();
-  const isSearching = searchQuery.length > 0;
-
   const chips = useMemo(() => [
     { id: 'all', label: t('common.all'), colorKey: 'slate' },
     ...members.map((m, i) => ({
@@ -150,7 +167,7 @@ export default function CalendarPage() {
     return () => setCreateDefaultDate(null);
   }, [selected, setCreateDefaultDate]);
 
-  function handleEventClick(ev) {
+  const handleEventClick = useCallback((ev) => {
     const master = ev?.masterId ? events.find((e) => e.id === ev.masterId) || ev : ev;
     // A subscribed calendar's series cannot be split -- the feed owns it, and
     // what the family adds on top applies to the whole series anyway.
@@ -159,7 +176,7 @@ export default function CalendarPage() {
       return;
     }
     setEditing({ mode: 'event', event: master });
-  }
+  }, [events]);
 
   function chooseScope(scope) {
     if (!scopeFor) return;
@@ -169,10 +186,18 @@ export default function CalendarPage() {
     setScopeFor(null);
   }
 
-  function handleCreateAt(date) {
+  const handleCreateAt = useCallback((date) => {
     setSelected(date);
     setEditing({ mode: 'new', date });
-  }
+  }, []);
+
+  // Stable, so the views (and the modal's Escape listener) are not handed a new
+  // function on every render.
+  const handleAnchorChange = useCallback((d) => {
+    setAnchor(d);
+    setSelected(d);
+  }, []);
+  const closeForm = useCallback(() => setEditing(null), []);
 
   async function handleSubmit(values) {
     if (editing?.mode === 'occurrence') {
@@ -265,7 +290,9 @@ export default function CalendarPage() {
       title={t('calendar.syncExternal')}
       className="rounded-full p-2 text-slate-600 hover:bg-slate-100 disabled:opacity-50"
     >
-      <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
+      {/* Also turns while the subscribed calendars load in the background: the
+          family's own events are already on screen and stay usable. */}
+      <RefreshCw size={18} className={syncing || feedLoading || extending ? 'animate-spin' : ''} />
     </button>
   ) : null;
 
@@ -332,10 +359,7 @@ export default function CalendarPage() {
           <WeekView
             anchor={anchor}
             selected={selected}
-            onAnchorChange={(d) => {
-              setAnchor(d);
-              setSelected(d);
-            }}
+            onAnchorChange={handleAnchorChange}
             onSelect={setSelected}
             events={filteredEvents}
             onEventClick={handleEventClick}
@@ -345,10 +369,7 @@ export default function CalendarPage() {
           <MonthView
             anchor={anchor}
             selected={selected}
-            onAnchorChange={(d) => {
-              setAnchor(d);
-              setSelected(d);
-            }}
+            onAnchorChange={handleAnchorChange}
             onSelect={setSelected}
             events={filteredEvents}
             onEventClick={handleEventClick}
@@ -357,16 +378,20 @@ export default function CalendarPage() {
         )}
       </main>
 
-      <EventFormModal
-        open={Boolean(editing)}
-        initial={editing && editing.mode !== 'new' ? editing.event : null}
-        initialDate={editing?.mode === 'new' ? editing.date : undefined}
-        initialTime={editing?.mode === 'new' ? format(editing.date, 'HH:mm') : undefined}
-        occurrence={editing?.mode === 'occurrence'}
-        onClose={() => setEditing(null)}
-        onSubmit={handleSubmit}
-        onDelete={editing && editing.mode !== 'new' ? handleDelete : undefined}
-      />
+      {/* Mounted only while open: a closed form still ran its own events
+          listener, member lookups and conflict check on every snapshot. */}
+      {editing && (
+        <EventFormModal
+          open
+          initial={editing.mode !== 'new' ? editing.event : null}
+          initialDate={editing.mode === 'new' ? editing.date : undefined}
+          initialTime={editing.mode === 'new' ? format(editing.date, 'HH:mm') : undefined}
+          occurrence={editing.mode === 'occurrence'}
+          onClose={closeForm}
+          onSubmit={handleSubmit}
+          onDelete={editing.mode !== 'new' ? handleDelete : undefined}
+        />
+      )}
 
       <Modal
         open={Boolean(scopeFor)}

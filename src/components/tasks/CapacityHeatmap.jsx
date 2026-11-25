@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { isSameDay } from 'date-fns';
 import { computeCapacityLoad, currentSprintMonday } from '../../utils/tasks';
 import useT from '../../hooks/useT';
@@ -9,7 +10,7 @@ const BUBBLE_BY_LEVEL = {
   high: 'bg-red-100 text-red-700',
 };
 
-export default function CapacityHeatmap({ tasks }) {
+function CapacityHeatmap({ tasks }) {
   const { t } = useT();
   const monday = currentSprintMonday();
   const capacity = computeCapacityLoad(tasks, monday);
@@ -45,3 +46,6 @@ export default function CapacityHeatmap({ tasks }) {
     </div>
   );
 }
+
+// Memoised: depends only on the task list, not on the board's search or drag state.
+export default memo(CapacityHeatmap);

@@ -33,9 +33,33 @@ function fakeDocs(name) {
   return [...col.entries()].map(([id, raw]) => ({ id, data: () => raw }));
 }
 
+// While a demoBatch() is running, notifications are collected and sent once
+// per channel at the end, so a bulk loop of N writes re-renders once, not N
+// times.
+let batchDepth = 0;
+const pendingNotify = new Set();
+
 function notify(name) {
+  if (batchDepth > 0) {
+    pendingNotify.add(name);
+    return;
+  }
   const docs = fakeDocs(name);
   channel(name).forEach((cb) => cb(docs));
+}
+
+export async function demoBatch(fn) {
+  batchDepth += 1;
+  try {
+    return await fn();
+  } finally {
+    batchDepth -= 1;
+    if (batchDepth === 0) {
+      const names = [...pendingNotify];
+      pendingNotify.clear();
+      names.forEach(notify);
+    }
+  }
 }
 
 export function genId(prefix = 'demo') {

@@ -17,7 +17,7 @@ export default function TopBar({
 
   if (skin === 'ios') {
     return (
-      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 px-4 pb-2 pt-3 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 px-4 pb-2 pt-3 backdrop-blur-md">
         <div className="mx-auto max-w-md">
           <div className="flex min-h-7 items-center justify-between">
             {onBack ? (
@@ -53,7 +53,7 @@ export default function TopBar({
   }
 
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur-sm">
+    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-3">
       <div className="mx-auto flex max-w-md items-center justify-between">
         <div className="flex items-center gap-2">
           {onBack && (

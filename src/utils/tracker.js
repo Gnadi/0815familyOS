@@ -74,13 +74,75 @@ export function cooldownUntil(lastAt, minIntervalHours) {
   return new Date(lastAt.getTime() + minIntervalHours * HOUR_MS);
 }
 
+// Per-(tracker, kid) buckets, sorted newest first, built once per entries
+// array. trackerStatus used to filter and sort the family's entire history for
+// every card -- and again on every 30 s clock tick -- which grew without bound
+// with feeding or diaper logs. The index is cached against the array identity,
+// so a tick (same entries, new `now`) costs only lookups.
+const ALL_KIDS = '*';
+const indexCache = new WeakMap();
+
+function bucketKey(trackerId, kidId) {
+  return `${trackerId}|${kidId || ALL_KIDS}`;
+}
+
+export function indexTrackerEntries(entries) {
+  const cached = indexCache.get(entries);
+  if (cached) return cached;
+  const index = new Map();
+  const add = (key, entry) => {
+    const list = index.get(key);
+    if (list) list.push(entry);
+    else index.set(key, [entry]);
+  };
+  for (const entry of entries) {
+    add(bucketKey(entry.trackerId, null), entry);
+    if (entry.kidId) add(bucketKey(entry.trackerId, entry.kidId), entry);
+  }
+  for (const [key, list] of index) index.set(key, sortEntriesDesc(list));
+  indexCache.set(entries, index);
+  return index;
+}
+
+const NONE = Object.freeze([]);
+
+// Sorted-desc entries of one tracker card, via the cached index.
+export function trackerEntriesFor(entries, trackerId, kidId) {
+  return indexTrackerEntries(entries).get(bucketKey(trackerId, kidId)) || NONE;
+}
+
+// Count / sum of entries on `day` in a newest-first list. Stops at the first
+// entry before that day instead of scanning the whole history.
+function dayStats(sortedDesc, day) {
+  const start = startOfDay(day);
+  const dayStart = start.getTime();
+  // Next local midnight, not +24 h: DST days are 23 or 25 hours long.
+  const next = new Date(start);
+  next.setDate(next.getDate() + 1);
+  const dayEnd = next.getTime();
+  let count = 0;
+  let sum = 0;
+  let hasValue = false;
+  for (const e of sortedDesc) {
+    const t = e.at?.getTime();
+    if (t == null || t < dayStart) break;
+    if (t >= dayEnd) continue;
+    count += 1;
+    if (typeof e.value === 'number' && !Number.isNaN(e.value)) {
+      sum += e.value;
+      hasValue = true;
+    }
+  }
+  return { count, sum: hasValue ? Math.round(sum * 100) / 100 : null };
+}
+
 // Everything a tracker card renders, derived in one place so the card stays
 // presentational and the logic stays testable.
 export function trackerStatus(tracker, entries, kidId, now = new Date()) {
-  const own = sortEntriesDesc(entriesForTracker(entries, tracker.id, kidId));
+  const own = trackerEntriesFor(entries, tracker.id, kidId);
   const last = own[0] ?? null;
   const lastAt = last?.at ?? null;
-  const todayCount = countOnDay(own, now);
+  const { count: todayCount, sum: todaySum } = dayStats(own, now);
   const goal = tracker.dailyGoal || 0;
   const until = cooldownUntil(lastAt, tracker.minIntervalHours);
 
@@ -94,7 +156,7 @@ export function trackerStatus(tracker, entries, kidId, now = new Date()) {
     // from yesterday — that is the exact question the card answers.
     lastWasToday: isSameDay(lastAt, now),
     todayCount,
-    todaySum: sumOnDay(own, now),
+    todaySum,
     hasGoal: goal > 0,
     goal,
     goalMet: goal > 0 && todayCount >= goal,

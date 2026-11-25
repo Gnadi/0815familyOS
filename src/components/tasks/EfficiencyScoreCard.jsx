@@ -1,8 +1,11 @@
+import { memo } from 'react';
 import AvatarStack from '../common/AvatarStack';
 import { computeEfficiencyScore } from '../../utils/tasks';
 import useT from '../../hooks/useT';
 
-export default function EfficiencyScoreCard({ tasks, members }) {
+// `pending`: the completed archive is still loading. The score counts completed
+// points, so it would read far too low until then; show a placeholder instead.
+function EfficiencyScoreCard({ tasks, members, pending = false }) {
   const { t } = useT();
   const { score, completedPoints, totalPoints } = computeEfficiencyScore(tasks);
 
@@ -17,15 +20,17 @@ export default function EfficiencyScoreCard({ tasks, members }) {
             <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
               <div
                 className="h-full rounded-full bg-brand-500 transition-all"
-                style={{ width: `${Math.min(100, score)}%` }}
+                style={{ width: `${pending ? 0 : Math.min(100, score)}%` }}
               />
             </div>
             <span className="text-lg font-bold text-slate-900 tabular-nums">
-              {score}%
+              {pending ? '…' : `${score}%`}
             </span>
           </div>
           <p className="mt-1.5 text-[11px] font-medium text-slate-500 tabular-nums">
-            {t('tasks.ptsCompletedSprint', { completed: completedPoints, total: totalPoints })}
+            {pending
+              ? t('common.loading')
+              : t('tasks.ptsCompletedSprint', { completed: completedPoints, total: totalPoints })}
           </p>
         </div>
         <AvatarStack members={members} max={3} size="md" />
@@ -33,3 +38,6 @@ export default function EfficiencyScoreCard({ tasks, members }) {
     </div>
   );
 }
+
+// Memoised: depends only on the task list, not on the board's search or drag state.
+export default memo(EfficiencyScoreCard);

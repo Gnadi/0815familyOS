@@ -54,13 +54,54 @@ function normalizeRecurrence(rec) {
   return { freq, interval, until };
 }
 
-export function subscribeTasks(familyId, cb) {
+export function subscribeTasks(familyId, cb, onError) {
   // Single-field `familyId` query only — Firestore auto-indexes this so we
   // don't need a composite index. Sort client-side; a family's task list is
   // small enough that this is cheaper than maintaining an index.
   if (isDemoMode()) return demoSubscribe('tasks', (docs) => cb(mapTaskDocs(docs)));
   const q = query(tasksRef, where('familyId', '==', familyId));
-  return onSnapshot(q, (snap) => cb(mapTaskDocs(snap.docs)));
+  return onSnapshot(q, (snap) => cb(mapTaskDocs(snap.docs)), onError);
+}
+
+// The board in two parts. Open tasks are what the board is used for and stay
+// few; completed tasks are an archive that grows forever. Listening to them
+// separately lets the board render as soon as the open tasks arrive, while the
+// archive (needed for the Completed column and the efficiency score) loads in
+// parallel. `!=` also matches unknown status values, which the mapper treats
+// as backlog. Needs the composite index (familyId, status).
+export function subscribeOpenTasks(familyId, cb, onError) {
+  if (isDemoMode()) {
+    return demoSubscribe('tasks', (docs) => cb(mapTaskDocs(docs).filter((t) => t.status !== 'completed')));
+  }
+  const q = query(tasksRef, where('familyId', '==', familyId), where('status', '!=', 'completed'));
+  return onSnapshot(q, (snap) => cb(mapTaskDocs(snap.docs)), onError);
+}
+
+export function subscribeCompletedTasks(familyId, cb, onError) {
+  if (isDemoMode()) {
+    return demoSubscribe('tasks', (docs) => cb(mapTaskDocs(docs).filter((t) => t.status === 'completed')));
+  }
+  const q = query(tasksRef, where('familyId', '==', familyId), where('status', '==', 'completed'));
+  return onSnapshot(q, (snap) => cb(mapTaskDocs(snap.docs)), onError);
+}
+
+// Tasks due within [from, to): the Dashboard lists today's open tasks and has
+// no use for the family's archive, which only grows. Status is filtered by the
+// caller, so a task completed today still updates live. Needs the composite
+// index (familyId, dueDate) from firestore.indexes.json.
+export function subscribeTasksDueBetween(familyId, from, to, cb, onError) {
+  if (isDemoMode()) {
+    return demoSubscribe('tasks', (docs) => cb(
+      mapTaskDocs(docs).filter((t) => t.dueDate && t.dueDate >= from && t.dueDate < to),
+    ));
+  }
+  const q = query(
+    tasksRef,
+    where('familyId', '==', familyId),
+    where('dueDate', '>=', Timestamp.fromDate(from)),
+    where('dueDate', '<', Timestamp.fromDate(to)),
+  );
+  return onSnapshot(q, (snap) => cb(mapTaskDocs(snap.docs)), onError);
 }
 
 function mapTaskDocs(docs) {
