@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { subscribeEvents, subscribeUpcomingEvents } from '../services/events';
-import { localDayKey, startOfDayOffset } from '../utils/mergedListeners';
+import { localDayKey, startOfDayOffset, windowStartFor } from '../utils/mergedListeners';
 import { loadAllFeeds, onFeedRefreshed } from '../services/calendarFeeds';
 import { applyAnnotations, indexAnnotations } from '../utils/calendarSync';
 import useAuth from './useAuth';
@@ -25,20 +25,22 @@ const EMPTY = { events: [], loading: false, error: null };
 const PENDING = { events: [], loading: true, error: null };
 
 // Feeds are keyed by `familyId` for the full history and by
-// `familyId|upcoming|<day>` for the Dashboard's bounded window.
+// `familyId|since|YYYY-MM-DD` for a window: every stored event that can occur
+// on or after that day (see subscribeUpcomingEvents).
 const UPCOMING_LOOKBACK_DAYS = 7;
 
-function upcomingKey(familyId, now = new Date()) {
-  return `${familyId}|upcoming|${localDayKey(now)}`;
+function parseSince(day) {
+  const [y, m, d] = day.split('-').map(Number);
+  return new Date(y, m - 1, d);
 }
 
 function startFeed(key, onData, onError) {
   const [familyId, scope, day] = key.split('|');
-  if (scope !== 'upcoming') return subscribeEvents(familyId, onData, onError);
-  const [y, m, d] = day.split('-').map(Number);
-  const since = startOfDayOffset(new Date(y, m - 1, d), UPCOMING_LOOKBACK_DAYS);
-  return subscribeUpcomingEvents(familyId, since, onData, onError);
+  if (scope !== 'since') return subscribeEvents(familyId, onData, onError);
+  return subscribeUpcomingEvents(familyId, parseSince(day), onData, onError);
 }
+
+export { windowStartFor };
 
 function getFeed(familyId) {
   const existing = feeds.get(familyId);
@@ -91,27 +93,42 @@ export function peekEvents(familyId) {
   return feed.state.events;
 }
 
-// Which shared feed a hook instance reads. The full history when asked for;
-// for the upcoming window, the full history too if it is already loaded (it is
-// a superset, so reusing it costs nothing), otherwise the bounded feed. Decided
-// once per mount so a lingering calendar feed tearing down underneath does not
-// flip an open Dashboard back to a loading state.
-function resolveFeedKey(familyId, scope) {
+// Which shared feed serves a request. A loaded feed that covers more is reused
+// rather than opening another listener: the full history serves everything,
+// and a window starting earlier serves a later one. Otherwise the requested
+// feed itself.
+function resolveFeedKey(familyId, scope, sinceDay) {
   if (!familyId) return null;
-  if (scope !== 'upcoming') return familyId;
-  const full = feeds.get(familyId);
-  if (full && !full.state.loading && !full.state.error) return familyId;
-  return upcomingKey(familyId);
+  if (scope === 'all') return familyId;
+  const settled = (feed) => feed && !feed.state.loading && !feed.state.error;
+  if (settled(feeds.get(familyId))) return familyId;
+  const wanted = `${familyId}|since|${sinceDay}`;
+  if (feeds.has(wanted)) return wanted;
+  for (const [key, feed] of feeds) {
+    const [fid, scopeName, day] = key.split('|');
+    if (fid === familyId && scopeName === 'since' && day <= sinceDay && settled(feed)) return key;
+  }
+  return wanted;
 }
 
 // The family's own events, straight from Firestore.
-function useStoredEvents(familyId, scope) {
-  const [feedKeyFor] = useState(() => ({ familyId, key: resolveFeedKey(familyId, scope) }));
-  const key = feedKeyFor.familyId === familyId ? feedKeyFor.key : resolveFeedKey(familyId, scope);
+//
+// When the window widens (the calendar pages back past what is loaded, or a
+// search needs the whole history) the events already on screen stay there
+// while the wider feed loads; `extending` says that is happening, for a small
+// indicator instead of blanking the view.
+function useStoredEvents(familyId, scope, sinceDay) {
+  // Re-resolved only when the request changes, not on every render, so a
+  // reused feed tearing down elsewhere cannot flip an open view to loading.
+  const key = useMemo(
+    () => resolveFeedKey(familyId, scope, sinceDay),
+    [familyId, scope, sinceDay],
+  );
   const [state, setState] = useState(() => {
     if (!key) return EMPTY;
     return feeds.get(key)?.state || PENDING;
   });
+  const settledRef = useRef(null);
 
   useEffect(() => {
     if (!key) {
@@ -129,6 +146,12 @@ function useStoredEvents(familyId, scope) {
     };
   }, [key]);
 
+  if (!state.loading) {
+    settledRef.current = { familyId, state };
+    return state;
+  }
+  const last = settledRef.current;
+  if (last && last.familyId === familyId) return { ...last.state, extending: true };
   return state;
 }
 
@@ -256,14 +279,20 @@ function useFeedEvents(subscriptions) {
 // used to hide the family's own week behind "Loading events…". Their state is
 // reported separately as `feedLoading`, for a small indicator.
 //
-// `scope: 'upcoming'` limits the family's stored events to what can occur from
-// a week ago onwards (see subscribeUpcomingEvents) -- enough for the
-// Dashboard's today / this week / next month, without downloading the history.
-// Views that page through the past (the calendar, the event form's conflict
-// check) keep the default full scope.
-export default function useEvents(familyId, { scope = 'all' } = {}) {
+// Which stored events to load:
+//   scope 'all'      -- the whole history (search needs it).
+//   scope 'upcoming' -- what can occur from a week ago onwards: the
+//                       Dashboard's today / this week / next month.
+//   scope 'since'    -- what can occur on or after `since` (a Date): the
+//                       calendar's window, widened as it pages back, and the
+//                       event form's conflict check around its date.
+// A bounded scope is served from a wider feed when one is already loaded.
+export default function useEvents(familyId, { scope = 'all', since = null } = {}) {
   const { family } = useAuth();
-  const stored = useStoredEvents(familyId, scope);
+  let sinceDay = null;
+  if (scope === 'upcoming') sinceDay = localDayKey(startOfDayOffset(new Date(), UPCOMING_LOOKBACK_DAYS));
+  else if (scope === 'since' && since) sinceDay = localDayKey(since);
+  const stored = useStoredEvents(familyId, sinceDay ? 'since' : 'all', sinceDay);
   const subscriptions = family?.id === familyId ? family?.calendarSubscriptions : null;
   const feed = useFeedEvents(subscriptions);
 
@@ -276,6 +305,9 @@ export default function useEvents(familyId, { scope = 'all' } = {}) {
     return {
       events,
       loading: stored.loading,
+      // The window is widening (older months, or the full history for a
+      // search); the events shown so far stay on screen meanwhile.
+      extending: Boolean(stored.extending),
       feedLoading: feed.loading,
       error: stored.error,
       feedErrors: feed.errors,
@@ -284,6 +316,7 @@ export default function useEvents(familyId, { scope = 'all' } = {}) {
   }, [
     stored.events,
     stored.loading,
+    stored.extending,
     stored.error,
     feed.events,
     feed.loading,

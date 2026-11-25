@@ -81,3 +81,17 @@ describe('reachesWindow', () => {
     expect(reachesWindow({ date: old, source: 'annotation' }, since)).toBe(true);
   });
 });
+
+describe('windowStartFor', () => {
+  it('starts at the quarter before the month, always covering the previous month', async () => {
+    const { windowStartFor } = await import('../../src/utils/mergedListeners');
+    expect(windowStartFor(new Date(2026, 10, 25))).toEqual(new Date(2026, 9, 1)); // Nov -> Oct 1
+    expect(windowStartFor(new Date(2026, 9, 3))).toEqual(new Date(2026, 6, 1)); // Oct -> Jul 1 (Sep in Q3)
+    expect(windowStartFor(new Date(2026, 0, 10))).toEqual(new Date(2025, 9, 1)); // Jan -> Oct 1 previous year
+    for (let m = 0; m < 24; m++) {
+      const d = new Date(2025, m, 15);
+      const start = windowStartFor(d);
+      expect(start <= new Date(d.getFullYear(), d.getMonth() - 1, 1)).toBe(true);
+    }
+  });
+});

@@ -60,3 +60,13 @@ export function localDayKey(date) {
   const d = String(date.getDate()).padStart(2, '0');
   return `${date.getFullYear()}-${m}-${d}`;
 }
+
+// The first day of the quarter before `date`'s month. Windows are widened in
+// quarter steps so paging back month by month opens a new listener only every
+// few months, and the month before the one in view (which the calendar expands
+// recurrences into) is always included.
+export function windowStartFor(date) {
+  const monthIndex = date.getFullYear() * 12 + date.getMonth() - 1;
+  const quarterStart = Math.floor(monthIndex / 3) * 3;
+  return new Date(Math.floor(quarterStart / 12), quarterStart % 12, 1);
+}

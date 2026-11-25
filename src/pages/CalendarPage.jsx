@@ -34,7 +34,7 @@ import { eventEnd } from '../utils/eventTime';
 import { formatDate } from '../utils/date';
 import { EMPTY_SEARCH_RESULT, searchEvents } from '../utils/eventSearch';
 import { isFeedEvent } from '../utils/calendarSync';
-import { invalidateFeeds } from '../hooks/useEvents';
+import { invalidateFeeds, windowStartFor } from '../hooks/useEvents';
 import { loadFeed } from '../services/calendarFeeds';
 
 const MEMBER_PALETTE = ['red', 'blue', 'emerald', 'amber', 'violet', 'pink', 'cyan'];
@@ -42,15 +42,35 @@ const MEMBER_PALETTE = ['red', 'blue', 'emerald', 'amber', 'violet', 'pink', 'cy
 export default function CalendarPage() {
   const { user, userDoc, family } = useAuth();
   const { t } = useT();
-  const {
-    events, loading, feedLoading, error, feedErrors, feedReports,
-  } = useEvents(userDoc?.familyId);
   const { showDayTimeline, setShowDayTimeline } = useUIPreferences();
   const members = useFamilyMembers();
   const { get: getCategory } = useCategories();
   const { setCreateDefaultDate } = useOutletContext() || {};
   const [view, setView] = useState('week');
   const [anchor, setAnchor] = useState(new Date());
+  const [search, setSearch] = useState('');
+
+  // The field updates on every keystroke; the search itself runs on a deferred
+  // copy, so typing stays responsive while a short query ("a") matches and
+  // expands most of the calendar in the background.
+  const deferredSearch = useDeferredValue(search);
+  const searchQuery = deferredSearch.trim();
+  const isSearching = searchQuery.length > 0;
+
+  // Load the window the calendar has been looking at, not the family's whole
+  // history: from the quarter before the earliest month visited in this
+  // session. Paging further back widens it in quarter steps; the events on
+  // screen stay while it does (`extending`). Search looks through everything,
+  // past events included, so it switches to the full history.
+  const [earliestVisited, setEarliestVisited] = useState(() => new Date());
+  if (anchor < earliestVisited
+    && (anchor.getFullYear() !== earliestVisited.getFullYear() || anchor.getMonth() !== earliestVisited.getMonth())) {
+    setEarliestVisited(anchor);
+  }
+  const windowStart = windowStartFor(earliestVisited);
+  const {
+    events, loading, extending, feedLoading, error, feedErrors, feedReports,
+  } = useEvents(userDoc?.familyId, isSearching ? { scope: 'all' } : { scope: 'since', since: windowStart });
   const [selected, setSelected] = useState(new Date());
   // What the form is open for, or null:
   //   { mode: 'new', date }                     -- a new event (from the timeline)
@@ -61,15 +81,6 @@ export default function CalendarPage() {
   const [scopeFor, setScopeFor] = useState(null);
   const [activeFilters, setActiveFilters] = useState(new Set());
   const [syncing, setSyncing] = useState(false);
-  const [search, setSearch] = useState('');
-
-  // The field updates on every keystroke; the search itself runs on a deferred
-  // copy, so typing stays responsive while a short query ("a") matches and
-  // expands most of the calendar in the background.
-  const deferredSearch = useDeferredValue(search);
-  const searchQuery = deferredSearch.trim();
-  const isSearching = searchQuery.length > 0;
-
   const chips = useMemo(() => [
     { id: 'all', label: t('common.all'), colorKey: 'slate' },
     ...members.map((m, i) => ({
@@ -281,7 +292,7 @@ export default function CalendarPage() {
     >
       {/* Also turns while the subscribed calendars load in the background: the
           family's own events are already on screen and stay usable. */}
-      <RefreshCw size={18} className={syncing || feedLoading ? 'animate-spin' : ''} />
+      <RefreshCw size={18} className={syncing || feedLoading || extending ? 'animate-spin' : ''} />
     </button>
   ) : null;
 
