@@ -305,3 +305,28 @@ Zum Kontrollversuch mit 2,5 s Verzögerung: Zwei der drei Läufe der alten Versi
 1. **Aufgabenboard:** offene Aufgaben zuerst über eine eigene Abfrage laden, erledigte Aufgaben erst beim Aufklappen oder seitenweise. Das schließt Befund 2 vollständig.
 2. **Kalender:** die volle Historie optional im Leerlauf nach dem Dashboard vorladen. Das kostet zusätzliche Reads auch für Nutzer, die den Kalender nicht öffnen. Alternativ ältere Monate erst beim Blättern nachladen.
 3. **Messlauf auf einem Vercel-Preview** (8.7) und ein Pilot mit echten Geräten.
+
+## 12. Befund 2 abgeschlossen: offene Aufgaben zuerst
+
+**Änderung (Commit `939c83d`).** Das Aufgabenboard hört getrennt auf offene Aufgaben (`status != 'completed'`) und auf das Archiv (`status == 'completed'`). Beide Abfragen starten gleichzeitig. Das Board erscheint, sobald die offenen Aufgaben da sind. Die Spalte „Erledigt“ und die Effizienz-Kennzahl zeigen bis zum Eintreffen des Archivs „Loading…“ bzw. „…“ statt einer zu niedrigen Zahl. Benötigt den zusammengesetzten Index `(familyId, status)`, der wie die Indizes aus Abschnitt 11 vor dem Release deployt werden muss.
+
+**Korrektheit.**
+- In vier Testfamilien ist der Board-Text zwischen vorherigem und neuem Stand identisch. Geprüft wurde zugeklappt, mit aufgeklappter Spalte „Erledigt“ und mit Suche, einschließlich Reihenfolge, Spaltensummen und Effizienz-Kennzahl.
+- Live: Eine Aufgabe wurde per Drag-and-drop nach „Erledigt“ und zurück nach „Geplant“ verschoben. Spaltenzählung (2/18 → 1/19 → 2/18) und Effizienz (90 % → 95 % → 90 %) sind in beiden Ständen identisch, die Aufgabe erscheint nie doppelt, und es gab keine Fehler.
+
+**Messung: kalter Direkteinstieg auf `/tasks`** (Aufbau wie Abschnitt 10, je 6 Läufe, `d195a74` gegen `939c83d`):
+
+| Messpunkt (Median, Spanne) | Klein vorher | Klein neu | Mittel vorher | Mittel neu | Groß vorher | Groß neu |
+|---|---:|---:|---:|---:|---:|---:|
+| Alle offenen Karten angelegt | 1,55 s | 1,47 s | 2,05 s | **1,56 s** | 3,27 s (3,20–3,40) | **1,77 s** (1,68–1,84) |
+| Archiv vollständig | 1,60 s | 1,67 s | 2,11 s | 2,05 s | 3,39 s | 3,09 s |
+
+Im großen Profil ist das Board damit 46 % früher bedienbar, ohne dass das Archiv später fertig wird.
+
+**Grenzen der bisherigen Board-Messung.** Für den Wechsel Kalender → Aufgabenboard (Messfolge aus Abschnitt 10) ergab sich kein Unterschied (groß: 1,21 s vorher, 1,28 s neu). Die Ursache sind zwei Messartefakte:
+- Die heutige Aufgabe liegt bereits im lokalen Firestore-Cache (aus der Dashboard-Abfrage). Der erste Snapshot aus dem Cache erfüllt den Messpunkt, bevor die übrigen Karten da sind. Deshalb ist die Messung in kleinen Profilen zu optimistisch.
+- Im großen Profil lädt in dieser Folge der Kalender noch seine volle Historie (Abschnitt 11, knapp 4 s) und bindet CPU und Netz. Die 1,2 s spiegeln diese Konkurrenz wider, nicht das Board.
+
+Der Direkteinstieg oben misst das Board ohne beide Effekte. Für die Abnahme sollte der Messpunkt „alle offenen Karten angelegt“ verwendet werden.
+
+**Offener Punkt mit Wechselwirkung.** Wer im großen Profil vom Kalender direkt zum Board wechselt, teilt sich die Ladezeit mit der Kalender-Historie. Ein Nachladen älterer Kalendermonate erst beim Zurückblättern (statt der vollen Historie beim Öffnen) würde diese Konkurrenz beseitigen. Das ist der nächste sinnvolle Schritt für den Kalender.

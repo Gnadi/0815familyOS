@@ -24,3 +24,10 @@ Browser-Einstellungen wie im Review: 393 × 852 CSS-Pixel, DPR 2, 4-fache CPU-Dr
 - `compare.cjs` vergleicht den Dashboard-Text zwischen zwei Builds (Ports 4321/4322) für alle Testfamilien.
 - `history.cjs <port> <profil> "<titel>"` misst vom Wechsel Dashboard → Kalender bis ein alter Termin über die Suche gefunden wird.
 - `results-2026-11-24-bounded.ndjson` enthält die Rohdaten der Messreihe aus Abschnitt 11 (`243ef52` gegen `f17b4b6`).
+
+## Ergänzende Skripte (Befund 2)
+
+- `bench3.cjs`: wie `bench.cjs`, zusätzlich mit dem Messpunkt `toTasksFull`, also bis das Archiv geladen ist.
+- `tasks-direct.cjs <port> <profil> <läufe> <out>`: kalter Direkteinstieg auf `/tasks`. Gemessen wird, bis alle offenen Karten angelegt sind (`tasksOpen`) und bis die Spalte „Erledigt“ die volle Anzahl zeigt (`tasksFull`).
+- `compare-tasks.cjs` vergleicht den Board-Text zwischen zwei Builds: zugeklappt, aufgeklappt und mit Suche.
+- `live-drag.cjs` zieht eine Aufgabe nach „Erledigt“ und zurück und protokolliert Spaltenzählung und Effizienz.
